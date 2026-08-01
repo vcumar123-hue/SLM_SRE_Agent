@@ -64,3 +64,8 @@ data_package/
 *.dylib
 *.pyd
 *.whl
+
+# API keys - NEVER commit
+API_Key/
+*.key
+*.secret
