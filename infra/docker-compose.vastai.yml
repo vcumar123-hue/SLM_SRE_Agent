@@ -1,0 +1,236 @@
+# ============================================================
+# AI SRE Platform — vast.ai POC Deployment
+# ============================================================
+# Deploy with:
+#   docker compose -f infra/docker-compose.vastai.yml up -d
+#
+# Exposed ports:
+#   8501 → Streamlit UI   (http://<vast-ip>:8501)
+#   8001 → FastAPI backend (http://<vast-ip>:8001)
+#
+# Required env vars (set in .env or vast.ai env panel):
+#   GROQ_API_KEY         — LLM inference
+#   AIOPS_API_KEY        — optional API auth (leave empty to disable)
+#   PGPASSWORD           — overrides default DB password
+# ============================================================
+
+services:
+
+  # ── Infrastructure ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: aiops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       aiops
+      POSTGRES_USER:     aiops_user
+      POSTGRES_PASSWORD: ${PGPASSWORD:-AiOpsPOC2024!}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiops_user -d aiops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: aiops-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ────────────────────────────────────────
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.vastai
+      target: backend
+    image: aiops-backend:poc
+    container_name: aiops-app
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      APP_ENV:                    poc
+      PORT:                       8000
+
+      # Database
+      PGHOST:                     aiops-postgres
+      PGPORT:                     5432
+      PGDATABASE:                 aiops
+      PGUSER:                     aiops_user
+      PGPASSWORD:                 ${PGPASSWORD:-AiOpsPOC2024!}
+
+      # Vector store
+      QDRANT_URL:                 http://aiops-qdrant:6333
+
+      # LLM — use Groq (no local LM Studio needed)
+      PRIMARY_PROVIDER:           groq
+      GROQ_API_KEY:               ${GROQ_API_KEY}
+      GROQ_MODEL:                 ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      LM_STUDIO_BASE_URL:         ""
+
+      # Embeddings (local CPU-based nomic)
+      EMBEDDING_MODEL:            text-embedding-nomic-embed-text-v1.5
+      EMBEDDING_DEVICE:           cpu
+
+      # Tenant
+      AIOPS_DEFAULT_TENANT_ID:    poc_client
+      AIOPS_TENANT_CONFIG_DIR:    /app/tenant_config
+
+      # Optional API auth (leave empty to disable for POC)
+      AIOPS_API_KEY:              ${AIOPS_API_KEY:-}
+
+      CONFIDENCE_THRESHOLD:       0.48
+      MIN_RETRIEVAL_SCORE:        0.25
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    volumes:
+      - app_data:/app/data
+      - ../automation:/automation
+      - ../tenant_config:/app/tenant_config:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+
+  # ── Streamlit UI ────────────────────────────────────────────
+  ui:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.vastai
+      target: frontend
+    image: aiops-frontend:poc
+    container_name: aiops-ui
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      AIOPS_BACKEND_URL:          http://aiops-app:8000
+      STREAMLIT_SERVER_PORT:      8501
+      STREAMLIT_SERVER_ADDRESS:   0.0.0.0
+      STREAMLIT_SERVER_HEADLESS:  "true"
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+    command: ["streamlit", "run", "ui.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # ── Lab Containers (incident simulation targets) ────────────
+  linux-lab-01:
+    image: ubuntu:22.04
+    container_name: linux-lab-01
+    restart: unless-stopped
+    command: >
+      bash -c "
+        apt-get update -qq &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends
+          openssh-server sudo python3 curl procps nginx sshpass iproute2 iputils-ping
+          net-tools stress-ng dnsutils &&
+        mkdir -p /var/run/sshd &&
+        id ansible 2>/dev/null || useradd -m -s /bin/bash ansible &&
+        echo 'ansible:LabPassword123!' | chpasswd &&
+        usermod -aG sudo ansible &&
+        echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible &&
+        chmod 0440 /etc/sudoers.d/ansible &&
+        ssh-keygen -A &&
+        service nginx start &&
+        /usr/sbin/sshd -D
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "service nginx status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  linux-lab-02:
+    image: ubuntu:22.04
+    container_name: linux-lab-02
+    restart: unless-stopped
+    command: >
+      bash -c "
+        apt-get update -qq &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends
+          openssh-server sudo python3 curl procps nginx sshpass iproute2 iputils-ping
+          net-tools stress-ng dnsutils &&
+        mkdir -p /var/run/sshd &&
+        id ansible 2>/dev/null || useradd -m -s /bin/bash ansible &&
+        echo 'ansible:LabPassword123!' | chpasswd &&
+        usermod -aG sudo ansible &&
+        echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible &&
+        chmod 0440 /etc/sudoers.d/ansible &&
+        ssh-keygen -A &&
+        service nginx start &&
+        /usr/sbin/sshd -D
+      "
+
+  network-lab-01:
+    image: ubuntu:22.04
+    container_name: network-lab-01
+    restart: unless-stopped
+    command: >
+      bash -c "
+        apt-get update -qq &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends
+          openssh-server sudo python3 curl procps iproute2 iputils-ping
+          net-tools dnsutils traceroute sshpass iptables tc &&
+        mkdir -p /var/run/sshd &&
+        id ansible 2>/dev/null || useradd -m -s /bin/bash ansible &&
+        echo 'ansible:LabPassword123!' | chpasswd &&
+        usermod -aG sudo ansible &&
+        echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible &&
+        chmod 0440 /etc/sudoers.d/ansible &&
+        ssh-keygen -A &&
+        /usr/sbin/sshd -D
+      "
+    cap_add:
+      - NET_ADMIN
+
+  # ── Backtesting Scheduler (optional, lightweight) ───────────
+  backtesting-scheduler:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.vastai
+      target: backend
+    container_name: aiops-backtesting-scheduler
+    restart: unless-stopped
+    command: ["python", "backtesting_scheduler.py", "--hour", "2", "--minute", "0"]
+    environment:
+      AIOPS_BACKEND_URL:          http://aiops-app:8000
+      AIOPS_DEFAULT_TENANT_ID:    poc_client
+      PGHOST:                     aiops-postgres
+      PGPORT:                     5432
+      PGDATABASE:                 aiops
+      PGUSER:                     aiops_user
+      PGPASSWORD:                 ${PGPASSWORD:-AiOpsPOC2024!}
+      GROQ_API_KEY:               ${GROQ_API_KEY}
+      GROQ_MODEL:                 ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      PRIMARY_PROVIDER:           groq
+      LM_STUDIO_BASE_URL:         ""
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  app_data:

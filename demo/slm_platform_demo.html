@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI SRE Platform</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;color-scheme:dark}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:#060a12;color:#dce8f5;min-height:100vh;overflow-x:hidden;
+}
+
+/* ── HERO ─────────────────────────────────────────────────────── */
+.hero{
+  text-align:center;padding:48px 24px 36px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.18),transparent);
+  border-bottom:1px solid #1c2f48;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%233b82f6' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:4px 14px;border-radius:20px;margin-bottom:20px;
+  background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);
+  font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#60a5fa;
+}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.hero h1{
+  font-size:2.6rem;font-weight:800;line-height:1.15;margin-bottom:14px;
+  background:linear-gradient(135deg,#fff 30%,#60a5fa 70%,#34d399);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{font-size:1rem;color:#7a9bb5;max-width:580px;margin:0 auto 28px;line-height:1.6}
+.hero-stats{display:flex;justify-content:center;gap:40px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-val{font-size:1.8rem;font-weight:800;color:#fff;line-height:1}
+.stat-lbl{font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#4d6a84;margin-top:4px}
+
+/* ── SECTION ──────────────────────────────────────────────────── */
+.section{padding:40px 28px}
+.section-title{
+  font-size:.65rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:#3b82f6;margin-bottom:8px;
+}
+.section-heading{font-size:1.5rem;font-weight:700;margin-bottom:6px;color:#fff}
+.section-desc{font-size:.85rem;color:#7a9bb5;max-width:560px;line-height:1.6;margin-bottom:28px}
+
+/* ── MODULE GRID ──────────────────────────────────────────────── */
+.modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.mod{
+  background:#0d1420;border:1px solid #1c2f48;border-radius:10px;
+  padding:20px 18px;cursor:default;transition:all .25s;position:relative;overflow:hidden;
+}
+.mod:hover{border-color:var(--mc);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.mod::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--mc);opacity:.7;
+}
+.mod-icon{font-size:1.8rem;margin-bottom:10px;display:block}
+.mod-name{font-size:.82rem;font-weight:700;color:#fff;margin-bottom:4px}
+.mod-desc{font-size:.7rem;color:#5a7a96;line-height:1.5}
+.mod-tag{
+  display:inline-block;margin-top:10px;padding:2px 8px;border-radius:3px;
+  font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  background:rgba(255,255,255,.05);border:1px solid #1c2f48;color:#4d6a84;
+}
+
+/* ── FLOW ─────────────────────────────────────────────────────── */
+.flow-wrap{background:#0a0e18;border:1px solid #1c2f48;border-radius:12px;padding:32px 24px;overflow-x:auto}
+.flow{display:flex;align-items:flex-start;gap:0;min-width:700px}
+.flow-step{
+  display:flex;flex-direction:column;align-items:center;flex:1;position:relative;
+}
+.flow-step:not(:last-child)::after{
+  content:'→';position:absolute;right:-14px;top:22px;
+  font-size:1rem;color:#1c2f48;z-index:1;
+}
+.flow-bubble{
+  width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;border:2px solid var(--fc);background:rgba(0,0,0,.4);
+  box-shadow:0 0 0 4px var(--fg);transition:all .3s;
+}
+.flow-step.lit .flow-bubble{background:var(--fc);box-shadow:0 0 16px var(--fc)}
+.flow-lbl{font-size:.62rem;font-weight:600;text-align:center;color:#5a7a96;margin-top:8px;max-width:72px;line-height:1.4}
+.flow-step.lit .flow-lbl{color:#fff}
+
+/* ── TWO PATHS ────────────────────────────────────────────────── */
+.paths{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.path{border-radius:10px;overflow:hidden;border:1px solid var(--pc)}
+.path-hdr{
+  padding:14px 18px;display:flex;align-items:center;gap:10px;
+  background:var(--pg);border-bottom:1px solid var(--pc);
+}
+.path-icon{font-size:1.4rem}
+.path-title{font-size:.85rem;font-weight:700;color:#fff}
+.path-sub{font-size:.68rem;color:var(--pc);margin-top:1px}
+.path-body{padding:16px 18px;background:#0a0e18}
+.path-step{
+  display:flex;align-items:flex-start;gap:10px;padding:8px 0;
+  border-bottom:1px solid #111d2e;
+}
+.path-step:last-child{border-bottom:none}
+.path-step-num{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.62rem;font-weight:700;background:var(--pg);color:var(--pc);border:1px solid var(--pc);
+}
+.path-step-text{font-size:.75rem;color:#7a9bb5;line-height:1.5}
+.path-step-text strong{color:#fff;display:block;font-size:.78rem}
+
+/* ── PROOF POINTS ─────────────────────────────────────────────── */
+.proofs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.proof{
+  background:#0d1420;border:1px solid #1c2f48;border-radius:10px;padding:20px;
+  display:flex;gap:14px;align-items:flex-start;
+}
+.proof-icon{
+  width:40px;height:40px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+  background:var(--pg);border:1px solid var(--pc);
+}
+.proof-title{font-size:.82rem;font-weight:700;color:#fff;margin-bottom:3px}
+.proof-desc{font-size:.7rem;color:#5a7a96;line-height:1.5}
+
+/* ── DIVIDER ──────────────────────────────────────────────────── */
+.divider{display:flex;align-items:center;gap:12px;margin:8px 0 28px}
+.divider-line{flex:1;height:1px;background:#1c2f48}
+.divider-text{font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#2a3d55;white-space:nowrap}
+
+/* ── FLOW ANIMATION ───────────────────────────────────────────── */
+.run-btn{
+  display:block;margin:0 auto 28px;padding:10px 28px;border-radius:6px;border:none;
+  background:#3b82f6;color:#fff;font-size:.78rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;cursor:pointer;transition:all .2s;
+}
+.run-btn:hover{background:#2563eb}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+
+@media(max-width:680px){
+  .hero h1{font-size:1.8rem}
+  .paths,.proofs{grid-template-columns:1fr}
+  .modules{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow"><div class="pulse-dot"></div>Live Platform</div>
+  <h1>AI SRE Platform</h1>
+  <p class="hero-sub">From first alert to verified closure — AI-powered incident intelligence, autonomous remediation, and governance evidence. All in one platform.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-val">22</div><div class="stat-lbl">Workflow Steps</div></div>
+    <div class="stat"><div class="stat-val">2</div><div class="stat-lbl">Remediation Paths</div></div>
+    <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">Safety Checks</div></div>
+    <div class="stat"><div class="stat-val">100%</div><div class="stat-lbl">Audit Coverage</div></div>
+  </div>
+</div>
+
+<!-- MODULES -->
+<div class="section">
+  <div class="section-title">Platform Capabilities</div>
+  <div class="section-heading">Everything in one platform</div>
+  <div class="section-desc">Ten tightly integrated modules — from alert detection to governance reporting — with no manual handoffs between tools.</div>
+
+  <div class="modules">
+    <div class="mod" style="--mc:#ef4444">
+      <span class="mod-icon">🚨</span>
+      <div class="mod-name">Incident Console</div>
+      <div class="mod-desc">Telemetry-driven alert detection. Rules fire automatically when metric thresholds breach — incidents created in real time.</div>
+      <span class="mod-tag">Prometheus · Alertmanager</span>
+    </div>
+    <div class="mod" style="--mc:#a78bfa">
+      <span class="mod-icon">🧠</span>
+      <div class="mod-name">AI Classification</div>
+      <div class="mod-desc">AI classifies each incident with a confidence score and full reasoning chain. No manual triage needed.</div>
+      <span class="mod-tag">HIGH / MEDIUM / LOW</span>
+    </div>
+    <div class="mod" style="--mc:#3b82f6">
+      <span class="mod-icon">🕐</span>
+      <div class="mod-name">Temporal Correlation</div>
+      <div class="mod-desc">Surfaces related events that co-occurred before similar incidents. Domain-aware confidence prevents spurious correlations.</div>
+      <span class="mod-tag">Domain confidence</span>
+    </div>
+    <div class="mod" style="--mc:#22c55e">
+      <span class="mod-icon">👥</span>
+      <div class="mod-name">Peer Insights</div>
+      <div class="mod-desc">Shows how similar incidents resolved across other client tenants — anonymised, with before/after timelines and MTTR benchmarks.</div>
+      <span class="mod-tag">Cross-client · Anonymised</span>
+    </div>
+    <div class="mod" style="--mc:#f59e0b">
+      <span class="mod-icon">📋</span>
+      <div class="mod-name">AI Runbook</div>
+      <div class="mod-desc">AI generates a step-by-step remediation procedure with validated checks, actions, and an Ansible playbook ready to execute.</div>
+      <span class="mod-tag">Ansible · Rollback plan</span>
+    </div>
+    <div class="mod" style="--mc:#f472b6">
+      <span class="mod-icon">⚖️</span>
+      <div class="mod-name">Error Tolerance</div>
+      <div class="mod-desc">CMDB criticality × redundancy determines the remediation path. Standalone critical systems always go to human review.</div>
+      <span class="mod-tag">CMDB-backed · Tiered</span>
+    </div>
+    <div class="mod" style="--mc:#06b6d4">
+      <span class="mod-icon">🛡️</span>
+      <div class="mod-name">Safety Gate</div>
+      <div class="mod-desc">Six pre-execution checks: drift, SLO budget, concurrent activity, change window, rollback readiness, blast radius.</div>
+      <span class="mod-tag">6 checks · Evidence-backed</span>
+    </div>
+    <div class="mod" style="--mc:#8b5cf6">
+      <span class="mod-icon">📸</span>
+      <div class="mod-name">Drift Management</div>
+      <div class="mod-desc">Snapshot the environment before any change. Test the fix on the clone. Only apply to live after the snapshot verifies clean.</div>
+      <span class="mod-tag">Snapshot · Verify · Audit</span>
+    </div>
+    <div class="mod" style="--mc:#f59e0b">
+      <span class="mod-icon">⚙️</span>
+      <div class="mod-name">Ansible Automation</div>
+      <div class="mod-desc">Approved playbooks execute against the target container through the Ansible runner. Live task output streamed in real time.</div>
+      <span class="mod-tag">ansible-runner · Live output</span>
+    </div>
+    <div class="mod" style="--mc:#22c55e">
+      <span class="mod-icon">🏛️</span>
+      <div class="mod-name">Governance &amp; Audit</div>
+      <div class="mod-desc">Full evidence package: MTTR, SLA compliance, approval log, Ansible execution log, before/after drift diff. JSON export.</div>
+      <span class="mod-tag">SLA · MTTR · Audit chain</span>
+    </div>
+  </div>
+</div>
+
+<!-- FLOW -->
+<div class="section" style="padding-top:0">
+  <div class="divider"><div class="divider-line"></div><div class="divider-text">End-to-End Workflow</div><div class="divider-line"></div></div>
+  <div class="section-title">How it works</div>
+  <div class="section-heading">Alert to audit in one continuous flow</div>
+  <div class="section-desc">Every step is connected. No manual handoffs, no context switching between tools.</div>
+
+  <button class="run-btn" id="runBtn" onclick="animateFlow()">&#9654; Animate Workflow</button>
+
+  <div class="flow-wrap">
+    <div class="flow" id="flowSteps">
+      <div class="flow-step" style="--fc:#ef4444;--fg:rgba(239,68,68,.1)">
+        <div class="flow-bubble">🚨</div>
+        <div class="flow-lbl">Alert Detected</div>
+      </div>
+      <div class="flow-step" style="--fc:#a78bfa;--fg:rgba(167,139,250,.1)">
+        <div class="flow-bubble">🧠</div>
+        <div class="flow-lbl">AI Classifies</div>
+      </div>
+      <div class="flow-step" style="--fc:#3b82f6;--fg:rgba(59,130,246,.1)">
+        <div class="flow-bubble">🕐</div>
+        <div class="flow-lbl">Temporal Correlation</div>
+      </div>
+      <div class="flow-step" style="--fc:#22c55e;--fg:rgba(34,197,94,.1)">
+        <div class="flow-bubble">👥</div>
+        <div class="flow-lbl">Peer Insights</div>
+      </div>
+      <div class="flow-step" style="--fc:#f59e0b;--fg:rgba(245,158,11,.1)">
+        <div class="flow-bubble">📋</div>
+        <div class="flow-lbl">AI Runbook</div>
+      </div>
+      <div class="flow-step" style="--fc:#f472b6;--fg:rgba(244,114,182,.1)">
+        <div class="flow-bubble">⚖️</div>
+        <div class="flow-lbl">Error Tolerance</div>
+      </div>
+      <div class="flow-step" style="--fc:#06b6d4;--fg:rgba(6,182,212,.1)">
+        <div class="flow-bubble">🛡️</div>
+        <div class="flow-lbl">Safety Gate</div>
+      </div>
+      <div class="flow-step" style="--fc:#8b5cf6;--fg:rgba(139,92,246,.1)">
+        <div class="flow-bubble">📸</div>
+        <div class="flow-lbl">Drift Snapshot</div>
+      </div>
+      <div class="flow-step" style="--fc:#f59e0b;--fg:rgba(245,158,11,.1)">
+        <div class="flow-bubble">⚙️</div>
+        <div class="flow-lbl">Ansible Executes</div>
+      </div>
+      <div class="flow-step" style="--fc:#22c55e;--fg:rgba(34,197,94,.1)">
+        <div class="flow-bubble">🏛️</div>
+        <div class="flow-lbl">Governance Report</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TWO PATHS -->
+<div class="section" style="padding-top:0">
+  <div class="divider"><div class="divider-line"></div><div class="divider-text">Dual Remediation Paths</div><div class="divider-line"></div></div>
+  <div class="section-title">Decision Intelligence</div>
+  <div class="section-heading">The platform decides — you stay in control</div>
+  <div class="section-desc">Criticality and redundancy determine the path. Critical standalone systems require human approval. Redundant systems remediate automatically — with the same rigour.</div>
+
+  <div class="paths">
+    <div class="path" style="--pc:#f59e0b;--pg:rgba(245,158,11,.08)">
+      <div class="path-hdr">
+        <div class="path-icon">🔐</div>
+        <div>
+          <div class="path-title">Path A — Human Approval</div>
+          <div class="path-sub">Critical · Standalone · Production</div>
+        </div>
+      </div>
+      <div class="path-body">
+        <div class="path-step"><div class="path-step-num">1</div><div class="path-step-text"><strong>Alert + AI Analysis</strong>Classification, correlation, peer insights, runbook</div></div>
+        <div class="path-step"><div class="path-step-num">2</div><div class="path-step-text"><strong>Error Tolerance → Human Required</strong>Standalone CI — no auto-remediation permitted</div></div>
+        <div class="path-step"><div class="path-step-num">3</div><div class="path-step-text"><strong>Safety Gate + Evidence Package</strong>6 checks run — engineer reviews before approving</div></div>
+        <div class="path-step"><div class="path-step-num">4</div><div class="path-step-text"><strong>Engineer Approves in UI</strong>Explicit human decision gates live execution</div></div>
+        <div class="path-step"><div class="path-step-num">5</div><div class="path-step-text"><strong>Snapshot → Test → Verify → Live</strong>Fix tested on clone before touching production</div></div>
+        <div class="path-step"><div class="path-step-num">6</div><div class="path-step-text"><strong>Audit Written</strong>Before/after diff · approval log · MTTR</div></div>
+      </div>
+    </div>
+    <div class="path" style="--pc:#22c55e;--pg:rgba(34,197,94,.08)">
+      <div class="path-hdr">
+        <div class="path-icon">⚡</div>
+        <div>
+          <div class="path-title">Path B — Automated</div>
+          <div class="path-sub">Redundant · Active-Active · Lower Risk</div>
+        </div>
+      </div>
+      <div class="path-body">
+        <div class="path-step"><div class="path-step-num">1</div><div class="path-step-text"><strong>Alert + AI Analysis</strong>Identical intelligence pipeline to Path A</div></div>
+        <div class="path-step"><div class="path-step-num">2</div><div class="path-step-text"><strong>Error Tolerance → Auto Eligible</strong>Redundant CI — policy permits automated execution</div></div>
+        <div class="path-step"><div class="path-step-num">3</div><div class="path-step-text"><strong>Safety Gate Passes</strong>6 checks pass — no blockers detected</div></div>
+        <div class="path-step"><div class="path-step-num">4</div><div class="path-step-text"><strong>Policy Auto-Approves</strong>Zero human touchpoints — full audit logged</div></div>
+        <div class="path-step"><div class="path-step-num">5</div><div class="path-step-text"><strong>Snapshot → Test → Verify → Live</strong>Same rigour as Path A — safety never skipped</div></div>
+        <div class="path-step"><div class="path-step-num">6</div><div class="path-step-text"><strong>Audit Written</strong>Identical evidence package — governance maintained</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROOF POINTS -->
+<div class="section" style="padding-top:0">
+  <div class="divider"><div class="divider-line"></div><div class="divider-text">Key Proof Points</div><div class="divider-line"></div></div>
+  <div class="proofs">
+    <div class="proof" style="--pc:#3b82f6;--pg:rgba(59,130,246,.1)">
+      <div class="proof-icon">🤝</div>
+      <div>
+        <div class="proof-title">Not blind automation</div>
+        <div class="proof-desc">Every remediation decision is backed by CMDB criticality, error tolerance policy, and a 6-check safety gate. The platform explains its reasoning at every step.</div>
+      </div>
+    </div>
+    <div class="proof" style="--pc:#22c55e;--pg:rgba(34,197,94,.1)">
+      <div class="proof-icon">🔬</div>
+      <div>
+        <div class="proof-title">Test before you touch</div>
+        <div class="proof-desc">Drift snapshots capture the pre-fix state. Every remediation is tested on a clone first. The live system is only touched after the snapshot verifies clean.</div>
+      </div>
+    </div>
+    <div class="proof" style="--pc:#f59e0b;--pg:rgba(245,158,11,.1)">
+      <div class="proof-icon">📊</div>
+      <div>
+        <div class="proof-title">Cross-client intelligence</div>
+        <div class="proof-desc">Peer insights surface how similar incidents resolved across your entire client portfolio — anonymised. Your team learns from every incident across every tenant.</div>
+      </div>
+    </div>
+    <div class="proof" style="--pc:#a78bfa;--pg:rgba(167,139,250,.1)">
+      <div class="proof-icon">🏛️</div>
+      <div>
+        <div class="proof-title">Audit-ready by default</div>
+        <div class="proof-desc">Every action produces evidence: approval events, Ansible logs, before/after state diffs, MTTR, SLA compliance. Nothing happens off the record.</div>
+      </div>
+    </div>
+    <div class="proof" style="--pc:#06b6d4;--pg:rgba(6,182,212,.1)">
+      <div class="proof-icon">⚡</div>
+      <div>
+        <div class="proof-title">Minutes, not hours</div>
+        <div class="proof-desc">From first alert to verified closure in under 15 minutes for redundant systems. Human-approved paths add review time — the platform never adds unnecessary delay.</div>
+      </div>
+    </div>
+    <div class="proof" style="--pc:#f472b6;--pg:rgba(244,114,182,.1)">
+      <div class="proof-icon">🔗</div>
+      <div>
+        <div class="proof-title">Integrates with your stack</div>
+        <div class="proof-desc">ServiceNow CMDB, Prometheus, Grafana, Ansible, and your existing alert pipelines. No rip-and-replace — the platform wraps around what you already have.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const steps = document.querySelectorAll('.flow-step');
+let animating = false;
+
+async function animateFlow() {
+  if (animating) return;
+  animating = true;
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+
+  steps.forEach(s => s.classList.remove('lit'));
+
+  for (let i = 0; i < steps.length; i++) {
+    steps[i].classList.add('lit');
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  btn.textContent = 'Complete ✓';
+  await new Promise(r => setTimeout(r, 1500));
+  btn.disabled = false;
+  btn.textContent = '▶ Animate Again';
+  animating = false;
+}
+</script>
+</body>
+</html>

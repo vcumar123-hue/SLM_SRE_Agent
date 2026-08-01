@@ -1,0 +1,8 @@
+{
+  "status": "pass",
+  "severity": "low",
+  "summary": "Blast radius is low, single service scope.",
+  "evidence": "Manually verified.",
+  "source_system": "manual",
+  "checked_at": "2026-06-17T15:11:25Z"
+}

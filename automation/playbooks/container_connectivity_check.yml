@@ -1,0 +1,41 @@
+﻿---
+- name: Validate container connectivity path
+  hosts: all
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running container connectivity validation on {{ inventory_hostname }}"
+
+    - name: Validate basic host reachability
+      ansible.builtin.ping:
+
+    - name: Check common container/network diagnostic tools
+      ansible.builtin.shell: |
+        set -e
+        echo "hostname=$(hostname)"
+        command -v curl || true
+        command -v nc || true
+        command -v ss || true
+        command -v docker || true
+      register: tool_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display diagnostic tool availability
+      ansible.builtin.debug:
+        var: tool_check.stdout_lines
+
+    - name: Synthetic local connectivity check placeholder
+      ansible.builtin.shell: |
+        echo "Container connectivity validation placeholder completed."
+        echo "Validate security group, ALB listener, target group health, container port mapping, ECS/Kubernetes endpoint registration."
+      register: synthetic_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display synthetic check result
+      ansible.builtin.debug:
+        var: synthetic_check.stdout_lines

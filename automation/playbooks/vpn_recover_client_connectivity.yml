@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for container_connection_issue
+  hosts: vpn-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for container_connection_issue on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Verify Security Group Rules'\n        echo '- Inspect Container Port Bindings'\n        echo '- Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

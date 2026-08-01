@@ -1,0 +1,7 @@
+---
+- name: Restart Kubernetes pod demo
+  hosts: demo
+  gather_facts: false
+  tasks:
+    - name: Rollout restart deployment
+      shell: kubectl rollout restart deployment demo-app -n default

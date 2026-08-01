@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for cpu_saturation
+  hosts: linux-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for cpu_saturation on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Review execution feedback for existing automation action: validate_cpu_saturation.'\n        echo '- Start from current approved playbook: validate_cpu_saturation.yml.'\n        echo '- Create revised candidate playbook: validate_cpu_saturation_v2_candidate.yml.'\n        echo '- Add the engineer-observed validation/remediation steps before any destructive remediation.'\n        echo '- Retest in simulation mode before approval and registry enablement.'\n        echo '- Engineer requested change: Configuration file to be updated for complete resolution.'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

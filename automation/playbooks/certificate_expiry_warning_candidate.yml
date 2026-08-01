@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for certificate_expiry_warning
+  hosts: vpn-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for certificate_expiry_warning on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Check Idp/MFA Health'\n        echo '- Review Conditional Access Changes'\n        echo '- Validate Ldap/Radius Bind Status'\n        echo '- Inspect Vpn Client Logs'\n        echo '- Inspect Token/Certificate Errors'\n        echo '- Clear Cached Vpn Credentials'\n        echo '- Validate MFA/Idp Health'\n        echo '- Refresh Vpn Client Profile'\n        echo '- Restore Identity Dependency If Degraded'\n        echo '- Rollback Conditional-Access Change If Confirmed'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

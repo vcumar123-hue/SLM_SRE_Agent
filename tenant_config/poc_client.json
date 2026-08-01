@@ -1,0 +1,59 @@
+{
+  "tenant_id": "poc_client",
+  "display_name": "POC Client",
+  "knowledge_scope_default": "client_private",
+  "collections": {
+    "client_private": "poc_client_index",
+    "global_learned": "global_learned_patterns_index",
+    "global_base": "global_base_index"
+  },
+  "branding": {
+    "client_label": "POC Client",
+    "product_label": "AI SRE Platform"
+  },
+  "fallback_policy": {
+    "enabled": true,
+    "allow_force_fallback_for_engineers": true,
+    "user_visible_force_fallback": false
+  },
+  "retrieval_policy": {
+    "default_search_order": [
+      "poc_client_index",
+      "global_learned_patterns_index",
+      "global_base_index"
+    ],
+    "tenant_match_priority": "high",
+    "global_learned_priority": "medium_high",
+    "global_base_priority": "medium"
+  },
+  "qdrant": {
+    "active_collections": [
+      "poc_client_index",
+      "global_learned_patterns_index",
+      "global_base_index"
+    ],
+    "vector_payload_required_fields": [
+      "collection_name",
+      "tenant_id",
+      "knowledge_scope",
+      "classification",
+      "domain",
+      "source_type",
+      "source_layer"
+    ]
+  },
+  "knowledge_governance": {
+    "external_knowledge_contribution": "enabled",
+    "allow_base_release_import": true,
+    "allow_global_pattern_usage": true,
+    "allow_client_data_export": false,
+    "allow_sanitized_pattern_export": false,
+    "allow_cross_client_learning_contribution": false,
+    "export_approval_required": false,
+    "local_learning_enabled": true,
+    "client_local_backtesting_enabled": true,
+    "global_backtesting_enabled": false
+  },
+  "created_at": "2026-07-31T00:00:00.000000+00:00",
+  "updated_at": "2026-07-31T00:00:00.000000+00:00"
+}

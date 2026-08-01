@@ -1,0 +1,1902 @@
+{
+  "generated_at": "2026-07-29T20:22:20.168738+00:00",
+  "total_incidents": 448929,
+  "clients": [
+    "client_b",
+    "client_c",
+    "client_e",
+    "client_f",
+    "client_h"
+  ],
+  "elapsed_seconds": 10.2,
+  "summary": {
+    "total_classifications": 21,
+    "shared_across_2plus_clients": 21,
+    "unclassified_count": 137923
+  },
+  "by_client": {
+    "client_b": {
+      "total": 58203,
+      "top_classifications": [
+        [
+          "service_unavailable",
+          23530
+        ],
+        [
+          "email_delivery_failure",
+          12284
+        ],
+        [
+          "unclassified",
+          6733
+        ],
+        [
+          "high_memory_usage",
+          5492
+        ],
+        [
+          "authentication_failure",
+          4586
+        ],
+        [
+          "high_cpu_usage",
+          1211
+        ],
+        [
+          "network_connectivity_issue",
+          817
+        ],
+        [
+          "vpn_client_failure",
+          660
+        ],
+        [
+          "database_connection_failure",
+          572
+        ],
+        [
+          "high_disk_usage",
+          407
+        ]
+      ]
+    },
+    "client_c": {
+      "total": 279207,
+      "top_classifications": [
+        [
+          "unclassified",
+          120498
+        ],
+        [
+          "authentication_failure",
+          47553
+        ],
+        [
+          "service_unavailable",
+          20107
+        ],
+        [
+          "user_access_issue",
+          19475
+        ],
+        [
+          "email_delivery_failure",
+          14469
+        ],
+        [
+          "high_memory_usage",
+          10725
+        ],
+        [
+          "dns_resolution_failure",
+          7769
+        ],
+        [
+          "network_connectivity_issue",
+          7104
+        ],
+        [
+          "vpn_client_failure",
+          5886
+        ],
+        [
+          "high_cpu_usage",
+          4688
+        ]
+      ]
+    },
+    "client_e": {
+      "total": 16851,
+      "top_classifications": [
+        [
+          "database_connection_failure",
+          4902
+        ],
+        [
+          "unclassified",
+          2695
+        ],
+        [
+          "high_disk_usage",
+          2412
+        ],
+        [
+          "service_unavailable",
+          1761
+        ],
+        [
+          "high_cpu_usage",
+          1683
+        ],
+        [
+          "high_memory_usage",
+          1326
+        ],
+        [
+          "backup_failure",
+          681
+        ],
+        [
+          "network_connectivity_issue",
+          521
+        ],
+        [
+          "hardware_failure",
+          173
+        ],
+        [
+          "false_positive_alert",
+          155
+        ]
+      ]
+    },
+    "client_f": {
+      "total": 33119,
+      "top_classifications": [
+        [
+          "email_delivery_failure",
+          14387
+        ],
+        [
+          "high_disk_usage",
+          5979
+        ],
+        [
+          "service_unavailable",
+          4557
+        ],
+        [
+          "database_connection_failure",
+          4282
+        ],
+        [
+          "unclassified",
+          1484
+        ],
+        [
+          "high_cpu_usage",
+          836
+        ],
+        [
+          "authentication_failure",
+          803
+        ],
+        [
+          "user_access_issue",
+          184
+        ],
+        [
+          "hardware_failure",
+          148
+        ],
+        [
+          "certificate_expiry_warning",
+          89
+        ]
+      ]
+    },
+    "client_h": {
+      "total": 61549,
+      "top_classifications": [
+        [
+          "service_unavailable",
+          14332
+        ],
+        [
+          "database_connection_failure",
+          12816
+        ],
+        [
+          "high_cpu_usage",
+          10766
+        ],
+        [
+          "high_disk_usage",
+          9371
+        ],
+        [
+          "unclassified",
+          6513
+        ],
+        [
+          "high_memory_usage",
+          2510
+        ],
+        [
+          "network_connectivity_issue",
+          1738
+        ],
+        [
+          "api_gateway_timeout",
+          1288
+        ],
+        [
+          "false_positive_alert",
+          1086
+        ],
+        [
+          "authentication_failure",
+          310
+        ]
+      ]
+    }
+  },
+  "cross_client_patterns": {
+    "api_gateway_timeout": {
+      "client_count": 5,
+      "total_incidents": 5469,
+      "clients": {
+        "client_b": {
+          "count": 278,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 3669,
+          "share_pct": 1.3
+        },
+        "client_e": {
+          "count": 151,
+          "share_pct": 0.9
+        },
+        "client_f": {
+          "count": 83,
+          "share_pct": 0.3
+        },
+        "client_h": {
+          "count": 1288,
+          "share_pct": 2.1
+        }
+      }
+    },
+    "authentication_failure": {
+      "client_count": 5,
+      "total_incidents": 53357,
+      "clients": {
+        "client_b": {
+          "count": 4586,
+          "share_pct": 7.9
+        },
+        "client_c": {
+          "count": 47553,
+          "share_pct": 17.0
+        },
+        "client_e": {
+          "count": 105,
+          "share_pct": 0.6
+        },
+        "client_f": {
+          "count": 803,
+          "share_pct": 2.4
+        },
+        "client_h": {
+          "count": 310,
+          "share_pct": 0.5
+        }
+      }
+    },
+    "backup_failure": {
+      "client_count": 5,
+      "total_incidents": 1387,
+      "clients": {
+        "client_b": {
+          "count": 254,
+          "share_pct": 0.4
+        },
+        "client_c": {
+          "count": 348,
+          "share_pct": 0.1
+        },
+        "client_e": {
+          "count": 681,
+          "share_pct": 4.0
+        },
+        "client_f": {
+          "count": 6,
+          "share_pct": 0.0
+        },
+        "client_h": {
+          "count": 98,
+          "share_pct": 0.2
+        }
+      }
+    },
+    "certificate_expiry_warning": {
+      "client_count": 5,
+      "total_incidents": 1944,
+      "clients": {
+        "client_b": {
+          "count": 176,
+          "share_pct": 0.3
+        },
+        "client_c": {
+          "count": 1581,
+          "share_pct": 0.6
+        },
+        "client_e": {
+          "count": 29,
+          "share_pct": 0.2
+        },
+        "client_f": {
+          "count": 89,
+          "share_pct": 0.3
+        },
+        "client_h": {
+          "count": 69,
+          "share_pct": 0.1
+        }
+      }
+    },
+    "database_connection_failure": {
+      "client_count": 5,
+      "total_incidents": 27065,
+      "clients": {
+        "client_b": {
+          "count": 572,
+          "share_pct": 1.0
+        },
+        "client_c": {
+          "count": 4493,
+          "share_pct": 1.6
+        },
+        "client_e": {
+          "count": 4902,
+          "share_pct": 29.1
+        },
+        "client_f": {
+          "count": 4282,
+          "share_pct": 12.9
+        },
+        "client_h": {
+          "count": 12816,
+          "share_pct": 20.8
+        }
+      }
+    },
+    "deployment_failure": {
+      "client_count": 5,
+      "total_incidents": 1095,
+      "clients": {
+        "client_b": {
+          "count": 94,
+          "share_pct": 0.2
+        },
+        "client_c": {
+          "count": 965,
+          "share_pct": 0.3
+        },
+        "client_e": {
+          "count": 3,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 24,
+          "share_pct": 0.1
+        },
+        "client_h": {
+          "count": 9,
+          "share_pct": 0.0
+        }
+      }
+    },
+    "dns_resolution_failure": {
+      "client_count": 5,
+      "total_incidents": 8156,
+      "clients": {
+        "client_b": {
+          "count": 262,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 7769,
+          "share_pct": 2.8
+        },
+        "client_e": {
+          "count": 8,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 89,
+          "share_pct": 0.3
+        },
+        "client_h": {
+          "count": 28,
+          "share_pct": 0.0
+        }
+      }
+    },
+    "email_delivery_failure": {
+      "client_count": 5,
+      "total_incidents": 41297,
+      "clients": {
+        "client_b": {
+          "count": 12284,
+          "share_pct": 21.1
+        },
+        "client_c": {
+          "count": 14469,
+          "share_pct": 5.2
+        },
+        "client_e": {
+          "count": 108,
+          "share_pct": 0.6
+        },
+        "client_f": {
+          "count": 14387,
+          "share_pct": 43.4
+        },
+        "client_h": {
+          "count": 49,
+          "share_pct": 0.1
+        }
+      }
+    },
+    "false_positive_alert": {
+      "client_count": 5,
+      "total_incidents": 3492,
+      "clients": {
+        "client_b": {
+          "count": 103,
+          "share_pct": 0.2
+        },
+        "client_c": {
+          "count": 2120,
+          "share_pct": 0.8
+        },
+        "client_e": {
+          "count": 155,
+          "share_pct": 0.9
+        },
+        "client_f": {
+          "count": 28,
+          "share_pct": 0.1
+        },
+        "client_h": {
+          "count": 1086,
+          "share_pct": 1.8
+        }
+      }
+    },
+    "hardware_failure": {
+      "client_count": 5,
+      "total_incidents": 2491,
+      "clients": {
+        "client_b": {
+          "count": 297,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 1694,
+          "share_pct": 0.6
+        },
+        "client_e": {
+          "count": 173,
+          "share_pct": 1.0
+        },
+        "client_f": {
+          "count": 148,
+          "share_pct": 0.4
+        },
+        "client_h": {
+          "count": 179,
+          "share_pct": 0.3
+        }
+      }
+    },
+    "high_cpu_usage": {
+      "client_count": 5,
+      "total_incidents": 19184,
+      "clients": {
+        "client_b": {
+          "count": 1211,
+          "share_pct": 2.1
+        },
+        "client_c": {
+          "count": 4688,
+          "share_pct": 1.7
+        },
+        "client_e": {
+          "count": 1683,
+          "share_pct": 10.0
+        },
+        "client_f": {
+          "count": 836,
+          "share_pct": 2.5
+        },
+        "client_h": {
+          "count": 10766,
+          "share_pct": 17.5
+        }
+      }
+    },
+    "high_disk_usage": {
+      "client_count": 5,
+      "total_incidents": 22788,
+      "clients": {
+        "client_b": {
+          "count": 407,
+          "share_pct": 0.7
+        },
+        "client_c": {
+          "count": 4619,
+          "share_pct": 1.7
+        },
+        "client_e": {
+          "count": 2412,
+          "share_pct": 14.3
+        },
+        "client_f": {
+          "count": 5979,
+          "share_pct": 18.1
+        },
+        "client_h": {
+          "count": 9371,
+          "share_pct": 15.2
+        }
+      }
+    },
+    "high_memory_usage": {
+      "client_count": 5,
+      "total_incidents": 20104,
+      "clients": {
+        "client_b": {
+          "count": 5492,
+          "share_pct": 9.4
+        },
+        "client_c": {
+          "count": 10725,
+          "share_pct": 3.8
+        },
+        "client_e": {
+          "count": 1326,
+          "share_pct": 7.9
+        },
+        "client_f": {
+          "count": 51,
+          "share_pct": 0.2
+        },
+        "client_h": {
+          "count": 2510,
+          "share_pct": 4.1
+        }
+      }
+    },
+    "load_balancer_issue": {
+      "client_count": 2,
+      "total_incidents": 13,
+      "clients": {
+        "client_c": {
+          "count": 12,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 1,
+          "share_pct": 0.0
+        }
+      }
+    },
+    "network_connectivity_issue": {
+      "client_count": 5,
+      "total_incidents": 10240,
+      "clients": {
+        "client_b": {
+          "count": 817,
+          "share_pct": 1.4
+        },
+        "client_c": {
+          "count": 7104,
+          "share_pct": 2.5
+        },
+        "client_e": {
+          "count": 521,
+          "share_pct": 3.1
+        },
+        "client_f": {
+          "count": 60,
+          "share_pct": 0.2
+        },
+        "client_h": {
+          "count": 1738,
+          "share_pct": 2.8
+        }
+      }
+    },
+    "performance_degradation": {
+      "client_count": 5,
+      "total_incidents": 1742,
+      "clients": {
+        "client_b": {
+          "count": 174,
+          "share_pct": 0.3
+        },
+        "client_c": {
+          "count": 1351,
+          "share_pct": 0.5
+        },
+        "client_e": {
+          "count": 52,
+          "share_pct": 0.3
+        },
+        "client_f": {
+          "count": 16,
+          "share_pct": 0.0
+        },
+        "client_h": {
+          "count": 149,
+          "share_pct": 0.2
+        }
+      }
+    },
+    "pod_crash_loop": {
+      "client_count": 3,
+      "total_incidents": 93,
+      "clients": {
+        "client_b": {
+          "count": 11,
+          "share_pct": 0.0
+        },
+        "client_c": {
+          "count": 81,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 1,
+          "share_pct": 0.0
+        }
+      }
+    },
+    "service_unavailable": {
+      "client_count": 5,
+      "total_incidents": 64287,
+      "clients": {
+        "client_b": {
+          "count": 23530,
+          "share_pct": 40.4
+        },
+        "client_c": {
+          "count": 20107,
+          "share_pct": 7.2
+        },
+        "client_e": {
+          "count": 1761,
+          "share_pct": 10.5
+        },
+        "client_f": {
+          "count": 4557,
+          "share_pct": 13.8
+        },
+        "client_h": {
+          "count": 14332,
+          "share_pct": 23.3
+        }
+      }
+    },
+    "unclassified": {
+      "client_count": 5,
+      "total_incidents": 137923,
+      "clients": {
+        "client_b": {
+          "count": 6733,
+          "share_pct": 11.6
+        },
+        "client_c": {
+          "count": 120498,
+          "share_pct": 43.2
+        },
+        "client_e": {
+          "count": 2695,
+          "share_pct": 16.0
+        },
+        "client_f": {
+          "count": 1484,
+          "share_pct": 4.5
+        },
+        "client_h": {
+          "count": 6513,
+          "share_pct": 10.6
+        }
+      }
+    },
+    "user_access_issue": {
+      "client_count": 5,
+      "total_incidents": 20053,
+      "clients": {
+        "client_b": {
+          "count": 262,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 19475,
+          "share_pct": 7.0
+        },
+        "client_e": {
+          "count": 72,
+          "share_pct": 0.4
+        },
+        "client_f": {
+          "count": 184,
+          "share_pct": 0.6
+        },
+        "client_h": {
+          "count": 60,
+          "share_pct": 0.1
+        }
+      }
+    },
+    "vpn_client_failure": {
+      "client_count": 5,
+      "total_incidents": 6749,
+      "clients": {
+        "client_b": {
+          "count": 660,
+          "share_pct": 1.1
+        },
+        "client_c": {
+          "count": 5886,
+          "share_pct": 2.1
+        },
+        "client_e": {
+          "count": 14,
+          "share_pct": 0.1
+        },
+        "client_f": {
+          "count": 11,
+          "share_pct": 0.0
+        },
+        "client_h": {
+          "count": 178,
+          "share_pct": 0.3
+        }
+      }
+    }
+  },
+  "shared_patterns": [
+    {
+      "classification": "api_gateway_timeout",
+      "client_count": 5,
+      "total_incidents": 5469,
+      "clients": {
+        "client_b": {
+          "count": 278,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 3669,
+          "share_pct": 1.3
+        },
+        "client_e": {
+          "count": 151,
+          "share_pct": 0.9
+        },
+        "client_f": {
+          "count": 83,
+          "share_pct": 0.3
+        },
+        "client_h": {
+          "count": 1288,
+          "share_pct": 2.1
+        }
+      },
+      "resolve_stats": {
+        "count": 508,
+        "mean_h": 186.9,
+        "median_h": 38.2,
+        "p90_h": 450.9
+      },
+      "reopen_stats": {
+        "count": 429,
+        "mean_reassignments": 0.97,
+        "pct_reassigned": 69.2
+      },
+      "priority_dist": {
+        "3": 1301,
+        "4": 2247,
+        "2": 228,
+        "1": 1693
+      }
+    },
+    {
+      "classification": "authentication_failure",
+      "client_count": 5,
+      "total_incidents": 53357,
+      "clients": {
+        "client_b": {
+          "count": 4586,
+          "share_pct": 7.9
+        },
+        "client_c": {
+          "count": 47553,
+          "share_pct": 17.0
+        },
+        "client_e": {
+          "count": 105,
+          "share_pct": 0.6
+        },
+        "client_f": {
+          "count": 803,
+          "share_pct": 2.4
+        },
+        "client_h": {
+          "count": 310,
+          "share_pct": 0.5
+        }
+      },
+      "resolve_stats": {
+        "count": 5391,
+        "mean_h": 186.3,
+        "median_h": 7.1,
+        "p90_h": 405.4
+      },
+      "reopen_stats": {
+        "count": 4691,
+        "mean_reassignments": 0.62,
+        "pct_reassigned": 38.1
+      },
+      "priority_dist": {
+        "3": 25274,
+        "4": 27564,
+        "2": 237,
+        "1": 282
+      }
+    },
+    {
+      "classification": "backup_failure",
+      "client_count": 5,
+      "total_incidents": 1387,
+      "clients": {
+        "client_b": {
+          "count": 254,
+          "share_pct": 0.4
+        },
+        "client_c": {
+          "count": 348,
+          "share_pct": 0.1
+        },
+        "client_e": {
+          "count": 681,
+          "share_pct": 4.0
+        },
+        "client_f": {
+          "count": 6,
+          "share_pct": 0.0
+        },
+        "client_h": {
+          "count": 98,
+          "share_pct": 0.2
+        }
+      },
+      "resolve_stats": {
+        "count": 938,
+        "mean_h": 87.9,
+        "median_h": 21.3,
+        "p90_h": 214.2
+      },
+      "reopen_stats": {
+        "count": 935,
+        "mean_reassignments": 1.04,
+        "pct_reassigned": 80.7
+      },
+      "priority_dist": {
+        "3": 759,
+        "4": 548,
+        "2": 70,
+        "1": 10
+      }
+    },
+    {
+      "classification": "certificate_expiry_warning",
+      "client_count": 5,
+      "total_incidents": 1944,
+      "clients": {
+        "client_b": {
+          "count": 176,
+          "share_pct": 0.3
+        },
+        "client_c": {
+          "count": 1581,
+          "share_pct": 0.6
+        },
+        "client_e": {
+          "count": 29,
+          "share_pct": 0.2
+        },
+        "client_f": {
+          "count": 89,
+          "share_pct": 0.3
+        },
+        "client_h": {
+          "count": 69,
+          "share_pct": 0.1
+        }
+      },
+      "resolve_stats": {
+        "count": 293,
+        "mean_h": 335.6,
+        "median_h": 144.0,
+        "p90_h": 718.8
+      },
+      "reopen_stats": {
+        "count": 205,
+        "mean_reassignments": 1.01,
+        "pct_reassigned": 53.7
+      },
+      "priority_dist": {
+        "4": 1246,
+        "3": 640,
+        "1": 21,
+        "2": 37
+      }
+    },
+    {
+      "classification": "database_connection_failure",
+      "client_count": 5,
+      "total_incidents": 27065,
+      "clients": {
+        "client_b": {
+          "count": 572,
+          "share_pct": 1.0
+        },
+        "client_c": {
+          "count": 4493,
+          "share_pct": 1.6
+        },
+        "client_e": {
+          "count": 4902,
+          "share_pct": 29.1
+        },
+        "client_f": {
+          "count": 4282,
+          "share_pct": 12.9
+        },
+        "client_h": {
+          "count": 12816,
+          "share_pct": 20.8
+        }
+      },
+      "resolve_stats": {
+        "count": 9751,
+        "mean_h": 150.4,
+        "median_h": 49.4,
+        "p90_h": 280.0
+      },
+      "reopen_stats": {
+        "count": 5474,
+        "mean_reassignments": 0.94,
+        "pct_reassigned": 87.0
+      },
+      "priority_dist": {
+        "4": 11096,
+        "3": 11053,
+        "1": 2142,
+        "2": 2774
+      }
+    },
+    {
+      "classification": "deployment_failure",
+      "client_count": 5,
+      "total_incidents": 1095,
+      "clients": {
+        "client_b": {
+          "count": 94,
+          "share_pct": 0.2
+        },
+        "client_c": {
+          "count": 965,
+          "share_pct": 0.3
+        },
+        "client_e": {
+          "count": 3,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 24,
+          "share_pct": 0.1
+        },
+        "client_h": {
+          "count": 9,
+          "share_pct": 0.0
+        }
+      },
+      "resolve_stats": {
+        "count": 121,
+        "mean_h": 430.1,
+        "median_h": 107.9,
+        "p90_h": 696.1
+      },
+      "reopen_stats": {
+        "count": 97,
+        "mean_reassignments": 1.13,
+        "pct_reassigned": 51.5
+      },
+      "priority_dist": {
+        "3": 852,
+        "4": 200,
+        "1": 11,
+        "2": 32
+      }
+    },
+    {
+      "classification": "dns_resolution_failure",
+      "client_count": 5,
+      "total_incidents": 8156,
+      "clients": {
+        "client_b": {
+          "count": 262,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 7769,
+          "share_pct": 2.8
+        },
+        "client_e": {
+          "count": 8,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 89,
+          "share_pct": 0.3
+        },
+        "client_h": {
+          "count": 28,
+          "share_pct": 0.0
+        }
+      },
+      "resolve_stats": {
+        "count": 357,
+        "mean_h": 222.3,
+        "median_h": 36.5,
+        "p90_h": 577.1
+      },
+      "reopen_stats": {
+        "count": 270,
+        "mean_reassignments": 0.86,
+        "pct_reassigned": 55.9
+      },
+      "priority_dist": {
+        "4": 3680,
+        "3": 4283,
+        "1": 4,
+        "2": 189
+      }
+    },
+    {
+      "classification": "email_delivery_failure",
+      "client_count": 5,
+      "total_incidents": 41297,
+      "clients": {
+        "client_b": {
+          "count": 12284,
+          "share_pct": 21.1
+        },
+        "client_c": {
+          "count": 14469,
+          "share_pct": 5.2
+        },
+        "client_e": {
+          "count": 108,
+          "share_pct": 0.6
+        },
+        "client_f": {
+          "count": 14387,
+          "share_pct": 43.4
+        },
+        "client_h": {
+          "count": 49,
+          "share_pct": 0.1
+        }
+      },
+      "resolve_stats": {
+        "count": 26394,
+        "mean_h": 285.2,
+        "median_h": 219.2,
+        "p90_h": 486.1
+      },
+      "reopen_stats": {
+        "count": 12392,
+        "mean_reassignments": 0.71,
+        "pct_reassigned": 48.9
+      },
+      "priority_dist": {
+        "4": 21044,
+        "3": 10538,
+        "2": 5939,
+        "1": 3776
+      }
+    },
+    {
+      "classification": "false_positive_alert",
+      "client_count": 5,
+      "total_incidents": 3492,
+      "clients": {
+        "client_b": {
+          "count": 103,
+          "share_pct": 0.2
+        },
+        "client_c": {
+          "count": 2120,
+          "share_pct": 0.8
+        },
+        "client_e": {
+          "count": 155,
+          "share_pct": 0.9
+        },
+        "client_f": {
+          "count": 28,
+          "share_pct": 0.1
+        },
+        "client_h": {
+          "count": 1086,
+          "share_pct": 1.8
+        }
+      },
+      "resolve_stats": {
+        "count": 283,
+        "mean_h": 134.3,
+        "median_h": 8.7,
+        "p90_h": 244.5
+      },
+      "reopen_stats": {
+        "count": 258,
+        "mean_reassignments": 0.58,
+        "pct_reassigned": 54.7
+      },
+      "priority_dist": {
+        "4": 2189,
+        "3": 393,
+        "2": 149,
+        "1": 761
+      }
+    },
+    {
+      "classification": "hardware_failure",
+      "client_count": 5,
+      "total_incidents": 2491,
+      "clients": {
+        "client_b": {
+          "count": 297,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 1694,
+          "share_pct": 0.6
+        },
+        "client_e": {
+          "count": 173,
+          "share_pct": 1.0
+        },
+        "client_f": {
+          "count": 148,
+          "share_pct": 0.4
+        },
+        "client_h": {
+          "count": 179,
+          "share_pct": 0.3
+        }
+      },
+      "resolve_stats": {
+        "count": 613,
+        "mean_h": 213.5,
+        "median_h": 20.5,
+        "p90_h": 557.4
+      },
+      "reopen_stats": {
+        "count": 470,
+        "mean_reassignments": 0.59,
+        "pct_reassigned": 40.9
+      },
+      "priority_dist": {
+        "3": 607,
+        "4": 1543,
+        "2": 93,
+        "1": 248
+      }
+    },
+    {
+      "classification": "high_cpu_usage",
+      "client_count": 5,
+      "total_incidents": 19184,
+      "clients": {
+        "client_b": {
+          "count": 1211,
+          "share_pct": 2.1
+        },
+        "client_c": {
+          "count": 4688,
+          "share_pct": 1.7
+        },
+        "client_e": {
+          "count": 1683,
+          "share_pct": 10.0
+        },
+        "client_f": {
+          "count": 836,
+          "share_pct": 2.5
+        },
+        "client_h": {
+          "count": 10766,
+          "share_pct": 17.5
+        }
+      },
+      "resolve_stats": {
+        "count": 3713,
+        "mean_h": 137.3,
+        "median_h": 9.3,
+        "p90_h": 417.5
+      },
+      "reopen_stats": {
+        "count": 2894,
+        "mean_reassignments": 0.8,
+        "pct_reassigned": 68.1
+      },
+      "priority_dist": {
+        "3": 7599,
+        "4": 11310,
+        "2": 173,
+        "1": 102
+      }
+    },
+    {
+      "classification": "high_disk_usage",
+      "client_count": 5,
+      "total_incidents": 22788,
+      "clients": {
+        "client_b": {
+          "count": 407,
+          "share_pct": 0.7
+        },
+        "client_c": {
+          "count": 4619,
+          "share_pct": 1.7
+        },
+        "client_e": {
+          "count": 2412,
+          "share_pct": 14.3
+        },
+        "client_f": {
+          "count": 5979,
+          "share_pct": 18.1
+        },
+        "client_h": {
+          "count": 9371,
+          "share_pct": 15.2
+        }
+      },
+      "resolve_stats": {
+        "count": 8792,
+        "mean_h": 183.6,
+        "median_h": 221.9,
+        "p90_h": 275.9
+      },
+      "reopen_stats": {
+        "count": 2819,
+        "mean_reassignments": 0.97,
+        "pct_reassigned": 91.7
+      },
+      "priority_dist": {
+        "4": 12319,
+        "3": 4989,
+        "2": 2916,
+        "1": 2564
+      }
+    },
+    {
+      "classification": "high_memory_usage",
+      "client_count": 5,
+      "total_incidents": 20104,
+      "clients": {
+        "client_b": {
+          "count": 5492,
+          "share_pct": 9.4
+        },
+        "client_c": {
+          "count": 10725,
+          "share_pct": 3.8
+        },
+        "client_e": {
+          "count": 1326,
+          "share_pct": 7.9
+        },
+        "client_f": {
+          "count": 51,
+          "share_pct": 0.2
+        },
+        "client_h": {
+          "count": 2510,
+          "share_pct": 4.1
+        }
+      },
+      "resolve_stats": {
+        "count": 6829,
+        "mean_h": 34.6,
+        "median_h": 2.2,
+        "p90_h": 33.6
+      },
+      "reopen_stats": {
+        "count": 6818,
+        "mean_reassignments": 0.27,
+        "pct_reassigned": 22.9
+      },
+      "priority_dist": {
+        "3": 4500,
+        "4": 15233,
+        "2": 189,
+        "1": 182
+      }
+    },
+    {
+      "classification": "network_connectivity_issue",
+      "client_count": 5,
+      "total_incidents": 10240,
+      "clients": {
+        "client_b": {
+          "count": 817,
+          "share_pct": 1.4
+        },
+        "client_c": {
+          "count": 7104,
+          "share_pct": 2.5
+        },
+        "client_e": {
+          "count": 521,
+          "share_pct": 3.1
+        },
+        "client_f": {
+          "count": 60,
+          "share_pct": 0.2
+        },
+        "client_h": {
+          "count": 1738,
+          "share_pct": 2.8
+        }
+      },
+      "resolve_stats": {
+        "count": 1378,
+        "mean_h": 111.2,
+        "median_h": 17.4,
+        "p90_h": 264.5
+      },
+      "reopen_stats": {
+        "count": 1338,
+        "mean_reassignments": 1.0,
+        "pct_reassigned": 69.7
+      },
+      "priority_dist": {
+        "3": 3260,
+        "4": 6107,
+        "2": 665,
+        "1": 208
+      }
+    },
+    {
+      "classification": "performance_degradation",
+      "client_count": 5,
+      "total_incidents": 1742,
+      "clients": {
+        "client_b": {
+          "count": 174,
+          "share_pct": 0.3
+        },
+        "client_c": {
+          "count": 1351,
+          "share_pct": 0.5
+        },
+        "client_e": {
+          "count": 52,
+          "share_pct": 0.3
+        },
+        "client_f": {
+          "count": 16,
+          "share_pct": 0.0
+        },
+        "client_h": {
+          "count": 149,
+          "share_pct": 0.2
+        }
+      },
+      "resolve_stats": {
+        "count": 240,
+        "mean_h": 144.3,
+        "median_h": 26.1,
+        "p90_h": 385.8
+      },
+      "reopen_stats": {
+        "count": 226,
+        "mean_reassignments": 0.7,
+        "pct_reassigned": 49.1
+      },
+      "priority_dist": {
+        "3": 358,
+        "4": 1286,
+        "2": 80,
+        "1": 18
+      }
+    },
+    {
+      "classification": "service_unavailable",
+      "client_count": 5,
+      "total_incidents": 64287,
+      "clients": {
+        "client_b": {
+          "count": 23530,
+          "share_pct": 40.4
+        },
+        "client_c": {
+          "count": 20107,
+          "share_pct": 7.2
+        },
+        "client_e": {
+          "count": 1761,
+          "share_pct": 10.5
+        },
+        "client_f": {
+          "count": 4557,
+          "share_pct": 13.8
+        },
+        "client_h": {
+          "count": 14332,
+          "share_pct": 23.3
+        }
+      },
+      "resolve_stats": {
+        "count": 29439,
+        "mean_h": 162.2,
+        "median_h": 21.0,
+        "p90_h": 391.1
+      },
+      "reopen_stats": {
+        "count": 25291,
+        "mean_reassignments": 0.76,
+        "pct_reassigned": 52.2
+      },
+      "priority_dist": {
+        "4": 35396,
+        "3": 21245,
+        "2": 4180,
+        "1": 3466
+      }
+    },
+    {
+      "classification": "unclassified",
+      "client_count": 5,
+      "total_incidents": 137923,
+      "clients": {
+        "client_b": {
+          "count": 6733,
+          "share_pct": 11.6
+        },
+        "client_c": {
+          "count": 120498,
+          "share_pct": 43.2
+        },
+        "client_e": {
+          "count": 2695,
+          "share_pct": 16.0
+        },
+        "client_f": {
+          "count": 1484,
+          "share_pct": 4.5
+        },
+        "client_h": {
+          "count": 6513,
+          "share_pct": 10.6
+        }
+      },
+      "resolve_stats": {
+        "count": 10488,
+        "mean_h": 154.5,
+        "median_h": 18.1,
+        "p90_h": 341.0
+      },
+      "reopen_stats": {
+        "count": 9428,
+        "mean_reassignments": 0.68,
+        "pct_reassigned": 45.9
+      },
+      "priority_dist": {
+        "3": 29624,
+        "4": 88808,
+        "2": 10443,
+        "1": 9048
+      }
+    },
+    {
+      "classification": "user_access_issue",
+      "client_count": 5,
+      "total_incidents": 20053,
+      "clients": {
+        "client_b": {
+          "count": 262,
+          "share_pct": 0.5
+        },
+        "client_c": {
+          "count": 19475,
+          "share_pct": 7.0
+        },
+        "client_e": {
+          "count": 72,
+          "share_pct": 0.4
+        },
+        "client_f": {
+          "count": 184,
+          "share_pct": 0.6
+        },
+        "client_h": {
+          "count": 60,
+          "share_pct": 0.1
+        }
+      },
+      "resolve_stats": {
+        "count": 501,
+        "mean_h": 250.2,
+        "median_h": 118.2,
+        "p90_h": 503.2
+      },
+      "reopen_stats": {
+        "count": 334,
+        "mean_reassignments": 0.69,
+        "pct_reassigned": 43.4
+      },
+      "priority_dist": {
+        "4": 16903,
+        "3": 2754,
+        "1": 138,
+        "2": 258
+      }
+    },
+    {
+      "classification": "vpn_client_failure",
+      "client_count": 5,
+      "total_incidents": 6749,
+      "clients": {
+        "client_b": {
+          "count": 660,
+          "share_pct": 1.1
+        },
+        "client_c": {
+          "count": 5886,
+          "share_pct": 2.1
+        },
+        "client_e": {
+          "count": 14,
+          "share_pct": 0.1
+        },
+        "client_f": {
+          "count": 11,
+          "share_pct": 0.0
+        },
+        "client_h": {
+          "count": 178,
+          "share_pct": 0.3
+        }
+      },
+      "resolve_stats": {
+        "count": 672,
+        "mean_h": 59.9,
+        "median_h": 3.4,
+        "p90_h": 167.5
+      },
+      "reopen_stats": {
+        "count": 674,
+        "mean_reassignments": 0.99,
+        "pct_reassigned": 51.2
+      },
+      "priority_dist": {
+        "4": 4366,
+        "3": 2047,
+        "2": 310,
+        "1": 26
+      }
+    },
+    {
+      "classification": "pod_crash_loop",
+      "client_count": 3,
+      "total_incidents": 93,
+      "clients": {
+        "client_b": {
+          "count": 11,
+          "share_pct": 0.0
+        },
+        "client_c": {
+          "count": 81,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 1,
+          "share_pct": 0.0
+        }
+      },
+      "resolve_stats": {
+        "count": 11,
+        "mean_h": 390.2,
+        "median_h": 71.2,
+        "p90_h": 1729.2
+      },
+      "reopen_stats": {
+        "count": 11,
+        "mean_reassignments": 1.36,
+        "pct_reassigned": 81.8
+      },
+      "priority_dist": {
+        "4": 35,
+        "3": 13,
+        "2": 9,
+        "1": 36
+      }
+    },
+    {
+      "classification": "load_balancer_issue",
+      "client_count": 2,
+      "total_incidents": 13,
+      "clients": {
+        "client_c": {
+          "count": 12,
+          "share_pct": 0.0
+        },
+        "client_f": {
+          "count": 1,
+          "share_pct": 0.0
+        }
+      },
+      "resolve_stats": {
+        "count": 1,
+        "mean_h": 313.8,
+        "median_h": 313.8,
+        "p90_h": 313.8
+      },
+      "reopen_stats": {},
+      "priority_dist": {
+        "4": 8,
+        "3": 5
+      }
+    }
+  ],
+  "resolution_stats_by_classification": {
+    "service_unavailable": {
+      "count": 29439,
+      "mean_h": 162.2,
+      "median_h": 21.0,
+      "p90_h": 391.1
+    },
+    "email_delivery_failure": {
+      "count": 26394,
+      "mean_h": 285.2,
+      "median_h": 219.2,
+      "p90_h": 486.1
+    },
+    "unclassified": {
+      "count": 10488,
+      "mean_h": 154.5,
+      "median_h": 18.1,
+      "p90_h": 341.0
+    },
+    "database_connection_failure": {
+      "count": 9751,
+      "mean_h": 150.4,
+      "median_h": 49.4,
+      "p90_h": 280.0
+    },
+    "false_positive_alert": {
+      "count": 283,
+      "mean_h": 134.3,
+      "median_h": 8.7,
+      "p90_h": 244.5
+    },
+    "authentication_failure": {
+      "count": 5391,
+      "mean_h": 186.3,
+      "median_h": 7.1,
+      "p90_h": 405.4
+    },
+    "certificate_expiry_warning": {
+      "count": 293,
+      "mean_h": 335.6,
+      "median_h": 144.0,
+      "p90_h": 718.8
+    },
+    "hardware_failure": {
+      "count": 613,
+      "mean_h": 213.5,
+      "median_h": 20.5,
+      "p90_h": 557.4
+    },
+    "deployment_failure": {
+      "count": 121,
+      "mean_h": 430.1,
+      "median_h": 107.9,
+      "p90_h": 696.1
+    },
+    "api_gateway_timeout": {
+      "count": 508,
+      "mean_h": 186.9,
+      "median_h": 38.2,
+      "p90_h": 450.9
+    },
+    "high_memory_usage": {
+      "count": 6829,
+      "mean_h": 34.6,
+      "median_h": 2.2,
+      "p90_h": 33.6
+    },
+    "high_cpu_usage": {
+      "count": 3713,
+      "mean_h": 137.3,
+      "median_h": 9.3,
+      "p90_h": 417.5
+    },
+    "user_access_issue": {
+      "count": 501,
+      "mean_h": 250.2,
+      "median_h": 118.2,
+      "p90_h": 503.2
+    },
+    "pod_crash_loop": {
+      "count": 11,
+      "mean_h": 390.2,
+      "median_h": 71.2,
+      "p90_h": 1729.2
+    },
+    "network_connectivity_issue": {
+      "count": 1378,
+      "mean_h": 111.2,
+      "median_h": 17.4,
+      "p90_h": 264.5
+    },
+    "performance_degradation": {
+      "count": 240,
+      "mean_h": 144.3,
+      "median_h": 26.1,
+      "p90_h": 385.8
+    },
+    "dns_resolution_failure": {
+      "count": 357,
+      "mean_h": 222.3,
+      "median_h": 36.5,
+      "p90_h": 577.1
+    },
+    "backup_failure": {
+      "count": 938,
+      "mean_h": 87.9,
+      "median_h": 21.3,
+      "p90_h": 214.2
+    },
+    "vpn_client_failure": {
+      "count": 672,
+      "mean_h": 59.9,
+      "median_h": 3.4,
+      "p90_h": 167.5
+    },
+    "high_disk_usage": {
+      "count": 8792,
+      "mean_h": 183.6,
+      "median_h": 221.9,
+      "p90_h": 275.9
+    },
+    "load_balancer_issue": {
+      "count": 1,
+      "mean_h": 313.8,
+      "median_h": 313.8,
+      "p90_h": 313.8
+    }
+  },
+  "reassignment_stats_by_classification": {
+    "service_unavailable": {
+      "count": 25291,
+      "mean_reassignments": 0.76,
+      "pct_reassigned": 52.2
+    },
+    "email_delivery_failure": {
+      "count": 12392,
+      "mean_reassignments": 0.71,
+      "pct_reassigned": 48.9
+    },
+    "unclassified": {
+      "count": 9428,
+      "mean_reassignments": 0.68,
+      "pct_reassigned": 45.9
+    },
+    "database_connection_failure": {
+      "count": 5474,
+      "mean_reassignments": 0.94,
+      "pct_reassigned": 87.0
+    },
+    "false_positive_alert": {
+      "count": 258,
+      "mean_reassignments": 0.58,
+      "pct_reassigned": 54.7
+    },
+    "authentication_failure": {
+      "count": 4691,
+      "mean_reassignments": 0.62,
+      "pct_reassigned": 38.1
+    },
+    "certificate_expiry_warning": {
+      "count": 205,
+      "mean_reassignments": 1.01,
+      "pct_reassigned": 53.7
+    },
+    "hardware_failure": {
+      "count": 470,
+      "mean_reassignments": 0.59,
+      "pct_reassigned": 40.9
+    },
+    "deployment_failure": {
+      "count": 97,
+      "mean_reassignments": 1.13,
+      "pct_reassigned": 51.5
+    },
+    "api_gateway_timeout": {
+      "count": 429,
+      "mean_reassignments": 0.97,
+      "pct_reassigned": 69.2
+    },
+    "high_memory_usage": {
+      "count": 6818,
+      "mean_reassignments": 0.27,
+      "pct_reassigned": 22.9
+    },
+    "high_cpu_usage": {
+      "count": 2894,
+      "mean_reassignments": 0.8,
+      "pct_reassigned": 68.1
+    },
+    "user_access_issue": {
+      "count": 334,
+      "mean_reassignments": 0.69,
+      "pct_reassigned": 43.4
+    },
+    "pod_crash_loop": {
+      "count": 11,
+      "mean_reassignments": 1.36,
+      "pct_reassigned": 81.8
+    },
+    "network_connectivity_issue": {
+      "count": 1338,
+      "mean_reassignments": 1.0,
+      "pct_reassigned": 69.7
+    },
+    "performance_degradation": {
+      "count": 226,
+      "mean_reassignments": 0.7,
+      "pct_reassigned": 49.1
+    },
+    "dns_resolution_failure": {
+      "count": 270,
+      "mean_reassignments": 0.86,
+      "pct_reassigned": 55.9
+    },
+    "backup_failure": {
+      "count": 935,
+      "mean_reassignments": 1.04,
+      "pct_reassigned": 80.7
+    },
+    "vpn_client_failure": {
+      "count": 674,
+      "mean_reassignments": 0.99,
+      "pct_reassigned": 51.2
+    },
+    "high_disk_usage": {
+      "count": 2819,
+      "mean_reassignments": 0.97,
+      "pct_reassigned": 91.7
+    }
+  }
+}

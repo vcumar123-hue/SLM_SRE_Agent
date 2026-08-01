@@ -1,0 +1,73 @@
+{
+  "status": "ok",
+  "generated_at": "2026-05-04T16:23:29.618362+00:00",
+  "client_alias_count": 1,
+  "client_aliases": [
+    "client_a"
+  ],
+  "evidence_record_count": 5,
+  "pattern_candidate_count": 9,
+  "enterprise_pattern_count": 4,
+  "top_classifications": [
+    [
+      "general_operational_issue",
+      2
+    ],
+    [
+      "vpn_client_failure",
+      1
+    ],
+    [
+      "api_gateway_timeout",
+      1
+    ],
+    [
+      "cpu_saturation",
+      1
+    ]
+  ],
+  "top_associated_scenarios": [
+    [
+      "downstream_dependency_latency_or_outage",
+      3
+    ],
+    [
+      "authentication_or_identity_provider_dependency",
+      1
+    ],
+    [
+      "firewall_policy_change_blocking_downstream_port",
+      1
+    ],
+    [
+      "recent_application_deployment_or_config_change",
+      1
+    ],
+    [
+      "retry_storm_after_dependency_failure",
+      1
+    ],
+    [
+      "endpoint_security_or_antivirus_scan_overlap",
+      1
+    ],
+    [
+      "batch_job_or_scheduled_task_collision",
+      1
+    ],
+    [
+      "dns_or_ip_change_after_workload_migration",
+      1
+    ]
+  ],
+  "output_files": {
+    "enterprise_correlation_patterns": "enterprise_correlation_patterns.json",
+    "pattern_candidates_review": "pattern_candidates_review.json",
+    "pattern_builder_summary": "pattern_builder_summary.json"
+  },
+  "notes": [
+    "All outputs are candidate artifacts and require human review before promotion.",
+    "Client aliases are retained only as anonymized lineage metadata.",
+    "Raw ticket/document text is not included in global pattern output; only sanitized excerpts are retained in evidence sample files if enabled."
+  ]
+}

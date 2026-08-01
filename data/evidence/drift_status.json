@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "evidence_type": "drift_status",
+      "resource": "linux-lab-01",
+      "classification": "container_connection_issue",
+      "status": "pass",
+      "severity": "low",
+      "source_system": "client_file_adapter",
+      "summary": "No infrastructure drift detected for target host/service.",
+      "evidence": "Baseline and runtime state are aligned in onboarding evidence export.",
+      "checked_at": "2026-06-17T15:09:37Z",
+      "confidence": 0.8,
+      "uploaded_via": "client_onboarding_safety_gate_ui",
+      "uploaded_at": "2026-05-20T21:29:18.901491"
+    }
+  ],
+  "status": "pass",
+  "evidence_type": "drift_status",
+  "source_system": "ui_json_upload",
+  "uploaded_via": "client_onboarding_safety_gate_ui",
+  "uploaded_at": "2026-05-20T21:29:18.901504",
+  "checked_at": "2026-06-17T15:09:37Z"
+}

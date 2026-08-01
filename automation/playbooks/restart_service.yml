@@ -1,0 +1,67 @@
+---
+- name: Restart service remediation
+  hosts: all
+  gather_facts: false
+  vars:
+    target_service_name: "{{ target_service_name | default('nginx') }}"
+    remediation_metadata:
+      action: restart_service
+      rollback_supported: true
+      rollback_strategy: "restart previous stable service state if service does not recover"
+      risk_tier: medium
+      approval_mode: manual_approval_required
+      evidence_commands:
+        - "systemctl status {{ target_service_name }}"
+        - "Get-Service {{ target_service_name }}"
+  tasks:
+    - name: Collect service state before restart on Windows
+      win_shell: |
+        Get-Service -Name "{{ target_service_name }}" | Select-Object Name, Status, StartType | ConvertTo-Json -Compress
+      register: service_before_windows
+      when: ansible_os_family == "Windows"
+
+    - name: Collect service state before restart on Linux
+      shell: |
+        systemctl status {{ target_service_name }} --no-pager || true
+      register: service_before_linux
+      when: ansible_os_family != "Windows"
+
+    - name: Restart service on Windows
+      win_service:
+        name: "{{ target_service_name }}"
+        state: restarted
+      register: restart_result_windows
+      when: ansible_os_family == "Windows"
+
+    - name: Restart service on Linux
+      service:
+        name: "{{ target_service_name }}"
+        state: restarted
+      register: restart_result_linux
+      when: ansible_os_family != "Windows"
+
+    - name: Collect service state after restart on Windows
+      win_shell: |
+        Get-Service -Name "{{ target_service_name }}" | Select-Object Name, Status, StartType | ConvertTo-Json -Compress
+      register: service_after_windows
+      when: ansible_os_family == "Windows"
+
+    - name: Collect service state after restart on Linux
+      shell: |
+        systemctl status {{ target_service_name }} --no-pager || true
+      register: service_after_linux
+      when: ansible_os_family != "Windows"
+
+    - name: Show restart evidence on Windows
+      debug:
+        msg:
+          before: "{{ service_before_windows.stdout | default('') }}"
+          after: "{{ service_after_windows.stdout | default('') }}"
+      when: ansible_os_family == "Windows"
+
+    - name: Show restart evidence on Linux
+      debug:
+        msg:
+          before: "{{ service_before_linux.stdout | default('') }}"
+          after: "{{ service_after_linux.stdout | default('') }}"
+      when: ansible_os_family != "Windows"

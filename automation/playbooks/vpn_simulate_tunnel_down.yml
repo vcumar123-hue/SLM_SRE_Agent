@@ -1,0 +1,21 @@
+---
+- name: Simulate VPN tunnel down condition
+  hosts: vpn_lab
+  gather_facts: false
+  tasks:
+    - name: Mark mock VPN tunnel down
+      ansible.builtin.copy:
+        dest: /opt/vpn-lab/tunnel.status
+        content: "down\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Confirm degraded health endpoint returns non-healthy state
+      ansible.builtin.shell: curl -s -o /tmp/vpn_health_down.json -w "%{http_code}" http://127.0.0.1:8088/health || true
+      register: health_code
+      changed_when: false
+
+    - name: Show simulated outage status
+      ansible.builtin.debug:
+        msg: "Mock VPN outage active. HTTP health code={{ health_code.stdout }}. Expected 503 when tunnel.status=down."

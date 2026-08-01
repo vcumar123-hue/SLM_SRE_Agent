@@ -1,0 +1,30 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+      openssh-server \
+      sudo \
+      python3 \
+      curl \
+      vim \
+      procps \
+      nginx \
+      iproute2 \
+      iputils-ping \
+      dnsutils \
+      net-tools \
+      traceroute && \
+    mkdir -p /var/run/sshd && \
+    useradd -m -s /bin/bash ansible && \
+    echo 'ansible:LabPassword123!' | chpasswd && \
+    usermod -aG sudo ansible && \
+    echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible && \
+    chmod 0440 /etc/sudoers.d/ansible && \
+    ssh-keygen -A && \
+    rm -rf /var/lib/apt/lists/*
+
+EXPOSE 22 80
+
+CMD service nginx start && /usr/sbin/sshd -D

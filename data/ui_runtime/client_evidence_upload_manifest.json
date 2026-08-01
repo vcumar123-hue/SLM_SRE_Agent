@@ -1,0 +1,139 @@
+{
+  "evidence": {
+    "change_conflict": {
+      "evidence_type": "change_conflict",
+      "path": "data\\evidence\\change_conflict.json",
+      "filename": "change_conflict.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:07.931209"
+    },
+    "change_conflict.json": {
+      "evidence_type": "change_conflict",
+      "path": "data\\evidence\\change_conflict.json",
+      "filename": "change_conflict.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:07.931209"
+    },
+    "data\\evidence\\change_conflict.json": {
+      "evidence_type": "change_conflict",
+      "path": "data\\evidence\\change_conflict.json",
+      "filename": "change_conflict.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:07.931209"
+    },
+    "error_budget_status": {
+      "evidence_type": "error_budget_status",
+      "path": "data\\evidence\\error_budget_status.json",
+      "filename": "error_budget_status.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:36.790466"
+    },
+    "error_budget_status.json": {
+      "evidence_type": "error_budget_status",
+      "path": "data\\evidence\\error_budget_status.json",
+      "filename": "error_budget_status.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:36.790466"
+    },
+    "data\\evidence\\error_budget_status.json": {
+      "evidence_type": "error_budget_status",
+      "path": "data\\evidence\\error_budget_status.json",
+      "filename": "error_budget_status.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:36.790466"
+    },
+    "concurrent_activity": {
+      "evidence_type": "concurrent_activity",
+      "path": "data\\evidence\\concurrent_activity.json",
+      "filename": "concurrent_activity.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:57.764948"
+    },
+    "concurrent_activity.json": {
+      "evidence_type": "concurrent_activity",
+      "path": "data\\evidence\\concurrent_activity.json",
+      "filename": "concurrent_activity.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:57.764948"
+    },
+    "data\\evidence\\concurrent_activity.json": {
+      "evidence_type": "concurrent_activity",
+      "path": "data\\evidence\\concurrent_activity.json",
+      "filename": "concurrent_activity.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:46:57.764948"
+    },
+    "rollback_readiness": {
+      "evidence_type": "rollback_readiness",
+      "path": "data\\evidence\\rollback_readiness.json",
+      "filename": "rollback_readiness.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:47:20.259412"
+    },
+    "rollback_readiness.json": {
+      "evidence_type": "rollback_readiness",
+      "path": "data\\evidence\\rollback_readiness.json",
+      "filename": "rollback_readiness.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:47:20.259412"
+    },
+    "data\\evidence\\rollback_readiness.json": {
+      "evidence_type": "rollback_readiness",
+      "path": "data\\evidence\\rollback_readiness.json",
+      "filename": "rollback_readiness.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:47:20.259412"
+    },
+    "blast_radius": {
+      "evidence_type": "blast_radius",
+      "path": "data\\evidence\\blast_radius.json",
+      "filename": "blast_radius.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:47:31.278946"
+    },
+    "blast_radius.json": {
+      "evidence_type": "blast_radius",
+      "path": "data\\evidence\\blast_radius.json",
+      "filename": "blast_radius.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:47:31.278946"
+    },
+    "data\\evidence\\blast_radius.json": {
+      "evidence_type": "blast_radius",
+      "path": "data\\evidence\\blast_radius.json",
+      "filename": "blast_radius.json",
+      "mode": "Offline JSON Upload",
+      "source": "ui_json_upload",
+      "client_supplied": true,
+      "updated_at": "2026-05-20T21:47:31.278946"
+    }
+  }
+}

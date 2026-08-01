@@ -1,0 +1,55 @@
+# ── Virtual Environments (install from requirements.txt in Docker) ────────────
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+
+# ── Secrets (injected via docker-compose env_file or --env-file) ─────────────
+.env
+.env.local
+*.env
+!.env.vastai.example
+
+# ── Git / IDE ─────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.claude/
+.idea/
+.vscode/
+*.DS_Store
+
+# ── Large Client Data (volume-mounted or downloaded via import script) ─────────
+data/rag/
+data/clients/
+data/pattern_ingestion/
+data/backtest/incidents_normalised.json
+data/backtest/peer_index.json
+
+# ── Backup & Development Artifacts ───────────────────────────────────────────
+backup_codes/
+bak/
+_docker_excluded_backup/
+*.backup_*
+*.before_*
+*.autosave_*
+docs/
+benchmark_results/
+
+# ── Runtime Logs (written inside container) ───────────────────────────────────
+logs/
+data/debug/
+data/cache/
+data/exports/
+
+# ── Data Package dumps ────────────────────────────────────────────────────────
+data_package/
+*.sql.gz
+*.dump
+
+# ── Unneeded infra variants ───────────────────────────────────────────────────
+infra/docker-compose_may18.yml
+infra/docker-compose.vpn-lab*.yml
+infra/*.py

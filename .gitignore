@@ -1,0 +1,66 @@
+# ── Virtual Environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Secrets & Local Config ────────────────────────────────────────────────────
+.env
+.env.local
+*.env
+!.env.vastai.example
+
+# ── Large Client Data (keep in separate data package, not git) ────────────────
+data/rag/
+data/clients/
+data/pattern_ingestion/
+data/backtest/incidents_normalised.json
+data/backtest/peer_index.json
+
+# ── Generated / Runtime Data (regenerated on startup) ────────────────────────
+data/incidents*.json
+data/incidents_*.json
+data/backtesting/results/backtest_history.jsonl
+data/backtesting/reports/
+data/debug/
+data/cache/
+data/exports/
+logs/
+*.log
+*.jsonl.tmp
+
+# ── Backup & Development Artifacts ───────────────────────────────────────────
+backup_codes/
+bak/
+_docker_excluded_backup/
+*.backup_*
+*.before_*
+*.autosave_*
+*_no_debug.py
+_snip_*.py
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.claude/
+
+# ── Data Package (downloaded separately, see scripts/import_postgres.sh) ──────
+data_package/
+*.sql.gz
+*.dump
+
+# ── Compiled & Binary ─────────────────────────────────────────────────────────
+*.so
+*.dll
+*.dylib
+*.pyd
+*.whl

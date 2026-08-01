@@ -1,0 +1,60 @@
+groups:
+  - name: aiops-demo-rules
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: high
+          metric_name: cpu_percent
+          service_scope: compute
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage above 95% for 2 minutes on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 92
+        for: 2m
+        labels:
+          severity: high
+          metric_name: memory_percent
+          service_scope: compute
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage above 92% for 2 minutes on {{ $labels.instance }}"
+
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: high
+          metric_name: disk_percent
+          service_scope: storage
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage above 90% for 5 minutes on {{ $labels.instance }}"
+
+      - alert: HostDown
+        expr: up{job="node_exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          metric_name: host_down
+          service_scope: compute
+        annotations:
+          summary: "Exporter down on {{ $labels.instance }}"
+          description: "node-exporter target is unreachable"
+
+  - name: aiops-demo-alerts
+    rules:
+      - alert: DemoHighCPUUsage
+        expr: vector(1)
+        for: 15s
+        labels:
+          severity: critical
+          source: prometheus
+          metric_name: cpu_percent
+          service_scope: compute
+        annotations:
+          summary: "Demo CPU Alert"
+          description: "Synthetic alert to test Alertmanager to AI Ops flow"

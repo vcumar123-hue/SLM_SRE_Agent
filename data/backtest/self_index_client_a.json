@@ -1,0 +1,6293 @@
+{
+  "client_id": "client_a",
+  "generated_at": "2026-06-19T17:24:25.345515+00:00",
+  "total_cases": 214,
+  "token_index": {
+    "prb": {
+      "count": 9,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 9
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          3
+        ],
+        [
+          "vpn_client_failure",
+          2
+        ],
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "cpu_saturation",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "date_created": {
+      "count": 57,
+      "resolved_count": 38,
+      "avg_resolve_hours": 269.1,
+      "by_year": {
+        "2025": 57
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          16
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          10
+        ],
+        [
+          "file_transfer_failure",
+          8
+        ],
+        [
+          "disk_full",
+          8
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-08-": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "cpu_saturation",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "multiple": {
+      "count": 5,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 2,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          2
+        ],
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "conference_bridge_call_drop",
+          1
+        ],
+        [
+          "vdi_slowness",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "ris": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "due": {
+      "count": 11,
+      "resolved_count": 1,
+      "avg_resolve_hours": 1.5,
+      "by_year": {
+        "2025": 7,
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          2
+        ],
+        [
+          "vpn_client_failure",
+          2
+        ],
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "network_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "port": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "nat_port_exhaustion",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "application": {
+      "count": 20,
+      "resolved_count": 4,
+      "avg_resolve_hours": 43.6,
+      "by_year": {
+        "2025": 6,
+        "2026": 14
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          3
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          2
+        ],
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "browser_sso_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "service_offering": {
+      "count": 42,
+      "resolved_count": 26,
+      "avg_resolve_hours": 24.7,
+      "by_year": {
+        "2025": 42
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          12
+        ],
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          6
+        ],
+        [
+          "disk_full",
+          5
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "web": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 2,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          2
+        ],
+        [
+          "browser_sso_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "cmp": {
+      "count": 4,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.5,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          2
+        ],
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "abended": {
+      "count": 28,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 28
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          28
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "app": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 22.2,
+      "by_year": {
+        "2025": 4,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "database": {
+      "count": 5,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 2,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "database_performance_issue",
+          1
+        ],
+        [
+          "connection_pool_exhaustion",
+          1
+        ],
+        [
+          "oracle_listener_unavailable",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "mainframe": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          2
+        ],
+        [
+          "batch_job_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "assigned_to": {
+      "count": 18,
+      "resolved_count": 13,
+      "avg_resolve_hours": 9.3,
+      "by_year": {
+        "2025": 18
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          7
+        ],
+        [
+          "file_transfer_failure",
+          4
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          2
+        ],
+        [
+          "memory_pressure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-10-": {
+      "count": 6,
+      "resolved_count": 5,
+      "avg_resolve_hours": 139.5,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          3
+        ],
+        [
+          "api_gateway_timeout",
+          2
+        ],
+        [
+          "batch_job_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "data": {
+      "count": 27,
+      "resolved_count": 15,
+      "avg_resolve_hours": 33.2,
+      "by_year": {
+        "2025": 25,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          13
+        ],
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "vpn_client_failure",
+          3
+        ],
+        [
+          "batch_job_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "network": {
+      "count": 22,
+      "resolved_count": 11,
+      "avg_resolve_hours": 77.6,
+      "by_year": {
+        "2025": 18,
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          13
+        ],
+        [
+          "vpn_client_failure",
+          2
+        ],
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "api_gateway_timeout",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "global": {
+      "count": 6,
+      "resolved_count": 4,
+      "avg_resolve_hours": 58.6,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          4
+        ],
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "connectivity": {
+      "count": 11,
+      "resolved_count": 3,
+      "avg_resolve_hours": 57.4,
+      "by_year": {
+        "2025": 6,
+        "2026": 5
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          3
+        ],
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "toc-risreportingcommunicationoncall-abp": {
+      "count": 14,
+      "resolved_count": 14,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 14
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          14
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pjabp": {
+      "count": 25,
+      "resolved_count": 25,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 25
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          25
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "stc": {
+      "count": 27,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "gc888330": {
+      "count": 12,
+      "resolved_count": 12,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 12
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          12
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "rc1": {
+      "count": 27,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "rc2": {
+      "count": 27,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "abend": {
+      "count": 27,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "prevent": {
+      "count": 29,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ],
+        [
+          "file_share_access_denied",
+          1
+        ],
+        [
+          "iam_policy_block",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "abp": {
+      "count": 27,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "shutdown": {
+      "count": 27,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "fix": {
+      "count": 28,
+      "resolved_count": 28,
+      "avg_resolve_hours": 3.9,
+      "by_year": {
+        "2025": 28
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ],
+        [
+          "file_transfer_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "bypass": {
+      "count": 28,
+      "resolved_count": 28,
+      "avg_resolve_hours": 181.3,
+      "by_year": {
+        "2025": 28
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          27
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pc024920": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "toc-ris-wsrs-bnftevnt-rotation1-abp": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pc877950": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "asa": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pqabp": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.3,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-12-": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "database_performance_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "outage": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "firewall": {
+      "count": 10,
+      "resolved_count": 6,
+      "avg_resolve_hours": 981.8,
+      "by_year": {
+        "2025": 9,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          7
+        ],
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "firewall_rule_block",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "rule": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 5065.4,
+      "by_year": {
+        "2025": 2,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "firewall_rule_block",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "failure": {
+      "count": 12,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 7,
+        "2026": 5
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "ad_replication_failure",
+          1
+        ],
+        [
+          "dns_in_cluster_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "type": {
+      "count": 28,
+      "resolved_count": 19,
+      "avg_resolve_hours": 474.8,
+      "by_year": {
+        "2025": 28
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          14
+        ],
+        [
+          "disk_full",
+          8
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          4
+        ],
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "change": {
+      "count": 29,
+      "resolved_count": 19,
+      "avg_resolve_hours": 474.8,
+      "by_year": {
+        "2025": 28,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          14
+        ],
+        [
+          "disk_full",
+          8
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          4
+        ],
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "chg": {
+      "count": 35,
+      "resolved_count": 25,
+      "avg_resolve_hours": 370.2,
+      "by_year": {
+        "2025": 35
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          14
+        ],
+        [
+          "file_transfer_failure",
+          8
+        ],
+        [
+          "disk_full",
+          8
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "moderate": {
+      "count": 48,
+      "resolved_count": 38,
+      "avg_resolve_hours": 269.1,
+      "by_year": {
+        "2025": 48
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          15
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          10
+        ],
+        [
+          "file_transfer_failure",
+          8
+        ],
+        [
+          "disk_full",
+          8
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-01-": {
+      "count": 27,
+      "resolved_count": 19,
+      "avg_resolve_hours": 474.8,
+      "by_year": {
+        "2025": 27
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          14
+        ],
+        [
+          "disk_full",
+          8
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          3
+        ],
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "date_closed": {
+      "count": 48,
+      "resolved_count": 38,
+      "avg_resolve_hours": 269.1,
+      "by_year": {
+        "2025": 48
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          15
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          10
+        ],
+        [
+          "file_transfer_failure",
+          8
+        ],
+        [
+          "disk_full",
+          8
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "updating": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "test": {
+      "count": 8,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 8
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          5
+        ],
+        [
+          "network_connectivity_issue",
+          2
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "aws": {
+      "count": 13,
+      "resolved_count": 6,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 13
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          8
+        ],
+        [
+          "disk_full",
+          5
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "foundation": {
+      "count": 4,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-02-": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 819.2,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "file_transfer_failure",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "access": {
+      "count": 8,
+      "resolved_count": 3,
+      "avg_resolve_hours": 333.0,
+      "by_year": {
+        "2025": 3,
+        "2026": 5
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "file_share_access_denied",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "inspection-test": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "management": {
+      "count": 8,
+      "resolved_count": 6,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 8
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "cpu_saturation",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "inspection": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "need": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 233.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "blocked": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 329.7,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "image_pull_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "meraki": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "dev": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 7.4,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          2
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "policy": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 263.0,
+      "by_year": {
+        "2025": 1,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "firewall_policy_drift",
+          1
+        ],
+        [
+          "okta_sso_policy_misconfiguration",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "cpu": {
+      "count": 6,
+      "resolved_count": 4,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 5,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "utilization": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "services": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          1
+        ],
+        [
+          "dns_resolution_failure",
+          1
+        ],
+        [
+          "kubernetes_internal_dns_failure",
+          1
+        ],
+        [
+          "o365_authentication_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "harmony": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "mft": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "prod": {
+      "count": 8,
+      "resolved_count": 8,
+      "avg_resolve_hours": 30.8,
+      "by_year": {
+        "2025": 8
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "primary": {
+      "count": 4,
+      "resolved_count": 4,
+      "avg_resolve_hours": 59.5,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "hy1701-hw": {
+      "count": 4,
+      "resolved_count": 4,
+      "avg_resolve_hours": 59.5,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "action": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "lseg_lch_sftp_lchsftp": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "principal.com_pull": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "mymailbox": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "receive": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "warning": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 40.9,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "5.8.0.": {
+      "count": 4,
+      "resolved_count": 4,
+      "avg_resolve_hours": 59.5,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pgi": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 3.7,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "secondary": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 3.7,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "hy1711-ix": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 3.7,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "5.8.": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 3.7,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "signing": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 100.3,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          1
+        ],
+        [
+          "jwt_signing_key_rotation_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "production": {
+      "count": 4,
+      "resolved_count": 2,
+      "avg_resolve_hours": 456.6,
+      "by_year": {
+        "2025": 3,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          2
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ],
+        [
+          "release_regression",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "goanywhere": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 456.6,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-04-": {
+      "count": 7,
+      "resolved_count": 6,
+      "avg_resolve_hours": 39.1,
+      "by_year": {
+        "2025": 7
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "ecpe-19531-code": {
+      "count": 4,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "cleanup": {
+      "count": 4,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "branch": {
+      "count": 5,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 4,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          4
+        ],
+        [
+          "packet_loss_branch",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "file": {
+      "count": 7,
+      "resolved_count": 6,
+      "avg_resolve_hours": 219.2,
+      "by_year": {
+        "2025": 7
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ],
+        [
+          "disk_full",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "transfer": {
+      "count": 6,
+      "resolved_count": 5,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "infrastructure": {
+      "count": 6,
+      "resolved_count": 5,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "assign": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 3.6,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "file_transfer_failure",
+          1
+        ],
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "2025-07-": {
+      "count": 12,
+      "resolved_count": 11,
+      "avg_resolve_hours": 485.6,
+      "by_year": {
+        "2025": 12
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          7
+        ],
+        [
+          "certificate_expiry_warning",
+          3
+        ],
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "add": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 2600.9,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "ssl": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 2543.8,
+      "by_year": {
+        "2025": 2,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "ssl_offload_misconfiguration",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "internet": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 172.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "sites": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 136.4,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "sctask": {
+      "count": 13,
+      "resolved_count": 13,
+      "avg_resolve_hours": 74.8,
+      "by_year": {
+        "2025": 13
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          6
+        ],
+        [
+          "memory_pressure",
+          3
+        ],
+        [
+          "certificate_expiry_warning",
+          3
+        ],
+        [
+          "network_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "vdi": {
+      "count": 7,
+      "resolved_count": 6,
+      "avg_resolve_hours": 11.5,
+      "by_year": {
+        "2025": 6,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          6
+        ],
+        [
+          "vdi_network_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "contractor": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 4.9,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "avinash": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 4.9,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "koltur": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 4.9,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "virtual": {
+      "count": 9,
+      "resolved_count": 8,
+      "avg_resolve_hours": 176.2,
+      "by_year": {
+        "2025": 8,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          6
+        ],
+        [
+          "disk_full",
+          1
+        ],
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "vdi_broker_registration_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "desktops": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 11.5,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "assigne": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 4.9,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "removal": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 23.5,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "citrix": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 7.2,
+      "by_year": {
+        "2025": 1,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "vdi_citrix_connectivity_issue",
+          1
+        ],
+        [
+          "citrix_launch_failure",
+          1
+        ],
+        [
+          "citrix_session_launch_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "tec": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "release": {
+      "count": 4,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 2,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          2
+        ],
+        [
+          "post_change_instability",
+          1
+        ],
+        [
+          "release_regression",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "principalmainframe-emu": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "tec-dbasys-stored-procedure-space-mf": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "centralized": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 5
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          5
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "backup": {
+      "count": 6,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 5,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          5
+        ],
+        [
+          "backup_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "archive": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 5
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          5
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "backups": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.0,
+      "by_year": {
+        "2025": 5
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          5
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "linux": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 1315.2,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "disk_full",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "compute": {
+      "count": 4,
+      "resolved_count": 2,
+      "avg_resolve_hours": 670.5,
+      "by_year": {
+        "2025": 2,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          2
+        ],
+        [
+          "disk_full",
+          1
+        ],
+        [
+          "cpu_saturation",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "load": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "database_performance_issue",
+          1
+        ],
+        [
+          "connection_pool_exhaustion",
+          1
+        ],
+        [
+          "load_balancer_node_issue",
+          1
+        ],
+        [
+          "load_balancer_node_specific_latency",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "slowness": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "database_performance_issue",
+          1
+        ],
+        [
+          "nas_latency_spike",
+          1
+        ],
+        [
+          "slow_query_spike",
+          1
+        ],
+        [
+          "vpn_latency_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "hangs": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "database_performance_issue",
+          1
+        ],
+        [
+          "citrix_launch_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "affecting": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "database_performance_issue",
+          1
+        ],
+        [
+          "cache_staleness_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "maintenance": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "database_performance_issue",
+          1
+        ],
+        [
+          "patch_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "dns": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 184.1,
+      "by_year": {
+        "2025": 2,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          2
+        ],
+        [
+          "dns_in_cluster_failure",
+          1
+        ],
+        [
+          "dns_resolution_delay",
+          1
+        ],
+        [
+          "kubernetes_internal_dns_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "domain": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 184.1,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "ad_replication_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "misconfiguration": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "network_connectivity_issue",
+          1
+        ],
+        [
+          "ssl_offload_misconfiguration",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "threshold": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 1,
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          1
+        ],
+        [
+          "battery_health_alert",
+          1
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "postgresql_replication_lag",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "performance": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 1,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          1
+        ],
+        [
+          "postgresql_vacuum_bloat_issue",
+          1
+        ],
+        [
+          "vdi_slowness",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "saturation": {
+      "count": 4,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.6,
+      "by_year": {
+        "2025": 2,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          3
+        ],
+        [
+          "connection_pool_exhaustion",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "expected": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "gpo_application_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "one": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "load_balancer_node_specific_latency",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "identity": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 335.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "swap": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 335.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "windows": {
+      "count": 5,
+      "resolved_count": 2,
+      "avg_resolve_hours": 13.6,
+      "by_year": {
+        "2025": 2,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "disk_full",
+          1
+        ],
+        [
+          "payroll_sync_service_stoppage",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "endpoint": {
+      "count": 5,
+      "resolved_count": 1,
+      "avg_resolve_hours": 26.4,
+      "by_year": {
+        "2025": 1,
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "battery_health_alert",
+          1
+        ],
+        [
+          "endpoint_agent_unhealthy",
+          1
+        ],
+        [
+          "printer_driver_conflict",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "software": {
+      "count": 3,
+      "resolved_count": 3,
+      "avg_resolve_hours": 0.8,
+      "by_year": {
+        "2025": 3
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "unable": {
+      "count": 2,
+      "resolved_count": 1,
+      "avg_resolve_hours": 1.5,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "mfa_enrollment_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "password": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 2,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          2
+        ],
+        [
+          "password_reset_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "expired": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "productivity": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "workforce": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "token": {
+      "count": 3,
+      "resolved_count": 1,
+      "avg_resolve_hours": 22.2,
+      "by_year": {
+        "2025": 1,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "sso_token_validation_failure",
+          1
+        ],
+        [
+          "token_validation_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "vpn": {
+      "count": 4,
+      "resolved_count": 1,
+      "avg_resolve_hours": 234.4,
+      "by_year": {
+        "2025": 2,
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "vpn_client_failure",
+          3
+        ],
+        [
+          "vpn_latency_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "failed": {
+      "count": 4,
+      "resolved_count": 1,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 1,
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          1
+        ],
+        [
+          "autoscaling_failure",
+          1
+        ],
+        [
+          "quota_exceeded",
+          1
+        ],
+        [
+          "rollback_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "org.springframework.web.client.httpservererrorexception": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "gatewaytimeout": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "gateway": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 2,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          3
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "timeout": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.1,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "original": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.5,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "call": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.5,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "rollback": {
+      "count": 3,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.5,
+      "by_year": {
+        "2025": 2,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ],
+        [
+          "rollback_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pen": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.5,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "cmpappcode": {
+      "count": 2,
+      "resolved_count": 2,
+      "avg_resolve_hours": 0.5,
+      "by_year": {
+        "2025": 2
+      },
+      "top_classifications": [
+        [
+          "api_gateway_timeout",
+          2
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "toc-wsrs-plnonbrdg-pyrl-abp": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 0.2,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pc832690": {
+      "count": 6,
+      "resolved_count": 6,
+      "avg_resolve_hours": 0.2,
+      "by_year": {
+        "2025": 6
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          6
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "asap": {
+      "count": 10,
+      "resolved_count": 10,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 10
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          10
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "toc-wsrs-actmgt-alpha-abp": {
+      "count": 4,
+      "resolved_count": 4,
+      "avg_resolve_hours": 0.6,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pc470430": {
+      "count": 4,
+      "resolved_count": 4,
+      "avg_resolve_hours": 0.6,
+      "by_year": {
+        "2025": 4
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          4
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "failover": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1,
+        "2026": 1
+      },
+      "top_classifications": [
+        [
+          "vpn_client_failure",
+          1
+        ],
+        [
+          "sql_server_availability_group_failover_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "repeated": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "ad_account_lockout_spike",
+          1
+        ],
+        [
+          "deadlock_detected",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "account": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "ad_account_lockout_spike",
+          1
+        ],
+        [
+          "iam_policy_block",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "replication": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "ad_replication_failure",
+          1
+        ],
+        [
+          "postgresql_replication_lag",
+          1
+        ],
+        [
+          "replication_lag",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "increased": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "api_error_spike",
+          1
+        ],
+        [
+          "service_mesh_latency",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "traffic": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "api_error_spike",
+          1
+        ],
+        [
+          "service_mesh_latency",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "middleware": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "app_server_thread_exhaustion",
+          1
+        ],
+        [
+          "batch_job_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "affects": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "app_server_thread_exhaustion",
+          1
+        ],
+        [
+          "nat_port_exhaustion",
+          1
+        ],
+        [
+          "okta_mfa_challenge_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "spike": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "autoscaling_failure",
+          1
+        ],
+        [
+          "load_balancer_node_specific_latency",
+          1
+        ],
+        [
+          "sql_server_deadlock_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "complete": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "backup_failure",
+          1
+        ],
+        [
+          "mfa_enrollment_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "processing": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "oracle_ebs_concurrent_manager_down",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "unsuccessful": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "batch_job_failure",
+          1
+        ],
+        [
+          "canary_validation_failure",
+          1
+        ],
+        [
+          "patch_failure",
+          1
+        ],
+        [
+          "software_install_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "laptop": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "bitlocker_recovery_prompt",
+          1
+        ],
+        [
+          "display_docking_issue",
+          1
+        ],
+        [
+          "laptop_boot_failure",
+          1
+        ],
+        [
+          "software_install_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "unexpectedly": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "bitlocker_recovery_prompt",
+          1
+        ],
+        [
+          "oracle_ebs_concurrent_manager_down",
+          1
+        ],
+        [
+          "release_pipeline_blocked",
+          1
+        ],
+        [
+          "sap_background_job_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "enters": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "bitlocker_recovery_prompt",
+          1
+        ],
+        [
+          "node_not_ready",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "deployment": {
+      "count": 5,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 5
+      },
+      "top_classifications": [
+        [
+          "canary_validation_failure",
+          1
+        ],
+        [
+          "configuration_regression",
+          1
+        ],
+        [
+          "image_pull_failure",
+          1
+        ],
+        [
+          "pod_crash_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "health": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "canary_validation_failure",
+          1
+        ],
+        [
+          "load_balancer_pool_unhealthy",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "checks": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "canary_validation_failure",
+          1
+        ],
+        [
+          "load_balancer_pool_unhealthy",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "certificate": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "certificate_based_auth_failure",
+          1
+        ],
+        [
+          "certificate_expiry_warning",
+          1
+        ],
+        [
+          "certificate_trust_chain_error",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "authentication": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "certificate_based_auth_failure",
+          1
+        ],
+        [
+          "citrix_launch_failure",
+          1
+        ],
+        [
+          "kerberos_authentication_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "integration": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "certificate_trust_chain_error",
+          1
+        ],
+        [
+          "dependency_service_unavailable",
+          1
+        ],
+        [
+          "queue_backlog_growth",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "fails": {
+      "count": 5,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 5
+      },
+      "top_classifications": [
+        [
+          "certificate_trust_chain_error",
+          1
+        ],
+        [
+          "laptop_boot_failure",
+          1
+        ],
+        [
+          "printer_driver_conflict",
+          1
+        ],
+        [
+          "sap_background_job_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "launch": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "citrix_launch_failure",
+          1
+        ],
+        [
+          "vm_boot_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "desktop": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "citrix_session_launch_failure",
+          1
+        ],
+        [
+          "outlook_sync_issue",
+          1
+        ],
+        [
+          "vdi_broker_registration_failure",
+          1
+        ],
+        [
+          "vdi_slowness",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "start": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "citrix_session_launch_failure",
+          1
+        ],
+        [
+          "service_crash_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "observed": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "conference_bridge_call_drop",
+          1
+        ],
+        [
+          "privilege_escalation_attempt",
+          1
+        ],
+        [
+          "token_validation_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "users": {
+      "count": 9,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 9
+      },
+      "top_classifications": [
+        [
+          "conference_bridge_call_drop",
+          1
+        ],
+        [
+          "dns_resolution_failure",
+          1
+        ],
+        [
+          "o365_authentication_failure",
+          1
+        ],
+        [
+          "password_reset_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "drift": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "configuration_regression",
+          1
+        ],
+        [
+          "firewall_policy_drift",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "causes": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "configuration_regression",
+          1
+        ],
+        [
+          "firewall_policy_drift",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "connection": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "connection_pool_exhaustion",
+          1
+        ],
+        [
+          "container_connection_issue",
+          1
+        ],
+        [
+          "vpn_client_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "pool": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "connection_pool_exhaustion",
+          1
+        ],
+        [
+          "load_balancer_pool_unhealthy",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "container": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "container_connection_issue",
+          1
+        ],
+        [
+          "pod_crash_loop",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "host": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "cpu_saturation",
+          1
+        ],
+        [
+          "disk_full",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "deadlock": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "deadlock_detected",
+          1
+        ],
+        [
+          "sql_server_deadlock_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "detected": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "deadlock_detected",
+          1
+        ],
+        [
+          "routing_asymmetry_detected",
+          1
+        ],
+        [
+          "sql_server_availability_group_failover_issue",
+          1
+        ],
+        [
+          "teams_audio_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "workload": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "deadlock_detected",
+          1
+        ],
+        [
+          "disk_detach_issue",
+          1
+        ],
+        [
+          "tempdb_growth_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "unavailable": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "dependency_service_unavailable",
+          1
+        ],
+        [
+          "oracle_listener_unavailable",
+          1
+        ],
+        [
+          "payroll_sync_service_stoppage",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "disk": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "disk_detach_issue",
+          1
+        ],
+        [
+          "disk_full",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "kubernetes": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "dns_in_cluster_failure",
+          1
+        ],
+        [
+          "image_pull_failure",
+          1
+        ],
+        [
+          "kubernetes_internal_dns_failure",
+          1
+        ],
+        [
+          "node_not_ready",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "internal": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "dns_in_cluster_failure",
+          1
+        ],
+        [
+          "dns_resolution_failure",
+          1
+        ],
+        [
+          "kubernetes_internal_dns_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "resolution": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "dns_in_cluster_failure",
+          1
+        ],
+        [
+          "dns_resolution_delay",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "delay": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "dns_resolution_delay",
+          1
+        ],
+        [
+          "exchange_online_mail_flow_delay",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "report": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "dns_resolution_failure",
+          1
+        ],
+        [
+          "post_change_instability",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "managed": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "endpoint_malware_alert",
+          1
+        ],
+        [
+          "software_install_failure",
+          1
+        ],
+        [
+          "wifi_instability",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "workstation": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "endpoint_malware_alert",
+          1
+        ],
+        [
+          "printer_mapping_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "activity": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "endpoint_malware_alert",
+          1
+        ],
+        [
+          "privilege_escalation_attempt",
+          1
+        ],
+        [
+          "suspicious_login_pattern",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "interface": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "erp_interface_queue_stuck",
+          1
+        ],
+        [
+          "ipv6_enabled_interface_connectivity_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "queue": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "erp_interface_queue_stuck",
+          1
+        ],
+        [
+          "queue_backlog_growth",
+          1
+        ],
+        [
+          "sap_idoc_processing_delay",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "mail": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "exchange_online_mail_flow_delay",
+          1
+        ],
+        [
+          "mail_quarantine_confusion",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "flow": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "exchange_online_mail_flow_delay",
+          1
+        ],
+        [
+          "okta_mfa_challenge_failure",
+          1
+        ],
+        [
+          "routing_asymmetry_detected",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "impacts": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "exchange_online_mail_flow_delay",
+          1
+        ],
+        [
+          "session_timeout_anomaly",
+          1
+        ],
+        [
+          "sql_server_deadlock_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "delivery": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "exchange_online_mail_flow_delay",
+          1
+        ],
+        [
+          "exchange_transport_queue_backlog",
+          1
+        ],
+        [
+          "mail_flow_delay_external",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "email": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "exchange_transport_queue_backlog",
+          1
+        ],
+        [
+          "mail_flow_delay_external",
+          1
+        ],
+        [
+          "outlook_sync_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "delayed": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "exchange_transport_queue_backlog",
+          1
+        ],
+        [
+          "mail_flow_delay_external",
+          1
+        ],
+        [
+          "queue_backlog_growth",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "backlog": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "exchange_transport_queue_backlog",
+          1
+        ],
+        [
+          "sap_idoc_processing_delay",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "permissions": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "file_share_access_denied",
+          1
+        ],
+        [
+          "iam_policy_block",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "security": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "firewall_policy_drift",
+          1
+        ],
+        [
+          "suspicious_login_pattern",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "jwt": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "jwt_signing_key_rotation_issue",
+          1
+        ],
+        [
+          "token_validation_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "login": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "kerberos_authentication_failure",
+          1
+        ],
+        [
+          "okta_mfa_challenge_failure",
+          1
+        ],
+        [
+          "profile_corruption",
+          1
+        ],
+        [
+          "suspicious_login_pattern",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "cannot": {
+      "count": 5,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 5
+      },
+      "top_classifications": [
+        [
+          "kubernetes_internal_dns_failure",
+          1
+        ],
+        [
+          "o365_authentication_failure",
+          1
+        ],
+        [
+          "password_reset_loop",
+          1
+        ],
+        [
+          "sap_rfc_connection_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "balancer": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "load_balancer_node_issue",
+          1
+        ],
+        [
+          "load_balancer_node_specific_latency",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "latency": {
+      "count": 4,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 4
+      },
+      "top_classifications": [
+        [
+          "load_balancer_node_specific_latency",
+          1
+        ],
+        [
+          "nas_latency_spike",
+          1
+        ],
+        [
+          "replication_lag",
+          1
+        ],
+        [
+          "service_mesh_latency",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "node": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "load_balancer_node_specific_latency",
+          1
+        ],
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "node_not_ready",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "storage": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "lun_path_degradation",
+          1
+        ],
+        [
+          "nas_latency_spike",
+          1
+        ],
+        [
+          "snapshot_space_exhaustion",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "unstable": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "lun_path_degradation",
+          1
+        ],
+        [
+          "wifi_instability",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "delegated": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "mailbox_permission_sync_delay",
+          1
+        ],
+        [
+          "shared_mailbox_access_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "mailbox": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "mailbox_permission_sync_delay",
+          1
+        ],
+        [
+          "shared_mailbox_access_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "outbound": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "mail_flow_delay_external",
+          1
+        ],
+        [
+          "nat_port_exhaustion",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "severe": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "memory_pressure",
+          1
+        ],
+        [
+          "vpn_latency_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "mfa": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "mfa_enrollment_failure",
+          1
+        ],
+        [
+          "mfa_push_not_received",
+          1
+        ],
+        [
+          "okta_mfa_challenge_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "okta": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "okta_mfa_challenge_failure",
+          1
+        ],
+        [
+          "okta_sso_policy_misconfiguration",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "degraded": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "packet_loss_branch",
+          1
+        ],
+        [
+          "vdi_slowness",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "stopped": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "payroll_sync_service_stoppage",
+          1
+        ],
+        [
+          "windows_service_stoppage",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "unusual": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "post_change_instability",
+          1
+        ],
+        [
+          "suspicious_login_pattern",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "postgresql": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "postgresql_replication_lag",
+          1
+        ],
+        [
+          "postgresql_vacuum_bloat_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "grows": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "postgresql_replication_lag",
+          1
+        ],
+        [
+          "sap_idoc_processing_delay",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "degrades": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "postgresql_vacuum_bloat_issue",
+          1
+        ],
+        [
+          "tempdb_growth_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "sap": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "sap_background_job_failure",
+          1
+        ],
+        [
+          "sap_idoc_processing_delay",
+          1
+        ],
+        [
+          "sap_rfc_connection_failure",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "sql": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "slow_query_spike",
+          1
+        ],
+        [
+          "sql_server_availability_group_failover_issue",
+          1
+        ],
+        [
+          "sql_server_deadlock_spike",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "teams": {
+      "count": 3,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 3
+      },
+      "top_classifications": [
+        [
+          "teams_audio_failure",
+          1
+        ],
+        [
+          "teams_presence_inaccuracy",
+          1
+        ],
+        [
+          "teams_presence_sync_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    },
+    "presence": {
+      "count": 2,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 2
+      },
+      "top_classifications": [
+        [
+          "teams_presence_inaccuracy",
+          1
+        ],
+        [
+          "teams_presence_sync_issue",
+          1
+        ]
+      ],
+      "resolution_snippets": []
+    }
+  },
+  "classification_index": {
+    "batch_job_failure": {
+      "count": 31,
+      "resolved_count": 27,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 30,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Date_Created: 2025-08-20 10:24:23 | Description: Multiple RIS Peris MF Jobs Aben\u2026",
+        "Date_Created: 2025-09-24 07:03:09 | Description: Multiple CMP's getting abended \u2026",
+        "Date_Created: 2025-10-08 01:34:08 | Description: Web Abends and CMP Errors Due t\u2026",
+        "TOC-RISREPORTINGCOMMUNICATIONONCALL-ABP PJABP937 STC36144 ABENDED IN GC888330. R\u2026",
+        "TOC-RISREPORTINGCOMMUNICATIONONCALL-ABP PJABP545 STC35889 ABENDED IN GC888330. R\u2026",
+        "TOC-RISREPORTINGCOMMUNICATIONONCALL-ABP PJABP544 STC35973 ABENDED IN GC888330. R\u2026"
+      ]
+    },
+    "api_gateway_timeout": {
+      "count": 6,
+      "resolved_count": 4,
+      "avg_resolve_hours": 0.3,
+      "by_year": {
+        "2025": 5,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Date_Created: 2025-12-03 12:16:05 | Description: List Manager API outage due to \u2026",
+        "SPONSOREE- java.lang.IllegalStateException: Failed because: org.springframework.\u2026",
+        "DDA- java.util.concurrent.ExecutionException: org.springframework.web.client.Htt\u2026",
+        "Original on call group: TOC-WSRS-CC-PTP-Onboard-Elig-CMP - PROD CMP ROLLBACK 202\u2026",
+        "Original on call group: TOC-WSRSCoreEnablement-CMP - PROD CMP ROLLBACK 2025-10-0\u2026",
+        "Multiple APIs timing out at gateway layer"
+      ]
+    },
+    "network_connectivity_issue": {
+      "count": 16,
+      "resolved_count": 12,
+      "avg_resolve_hours": 133.5,
+      "by_year": {
+        "2025": 16
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Type: Change | Number: CHG0459537 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0459583 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0460012 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0460118 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0460236 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0460250 | Priority: 3 - Moderate | Date_Created: 2025-\u2026"
+      ]
+    },
+    "cpu_saturation": {
+      "count": 6,
+      "resolved_count": 4,
+      "avg_resolve_hours": 0.4,
+      "by_year": {
+        "2025": 5,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Date_Created: 2025-08-15 20:44:01 | Description: High CPU Utilization on clearsw\u2026",
+        "Total CPU Utilization Percentage is too high, Description: The threshold for the\u2026",
+        "SCL_Pilot - ul9608 - CPU saturation",
+        "SCL_Test - ul2692 - CPU saturation",
+        "CPU Core Utilization is above 90%",
+        "Compute host experiencing prolonged CPU saturation"
+      ]
+    },
+    "file_transfer_failure": {
+      "count": 14,
+      "resolved_count": 13,
+      "avg_resolve_hours": 89.1,
+      "by_year": {
+        "2025": 14
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Harmony - MFT01 Prod Primary 'HY1701-HW3058' Action Failure (LSEG_LCH_SFTP_lchsf\u2026",
+        "Harmony - MFT01 Prod PGI Secondary 'HY1711-IX4179' Action Failure (LSEG_LCH_SFTP\u2026",
+        "Type: Change | Number: CHG0460021 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0463099 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Date_Created: 2025-04-02 13:08:24 | Date_Closed: 2025-04-02 13:08:24 | Descripti\u2026",
+        "Date_Created: 2025-04-02 13:13:13 | Date_Closed: 2025-04-02 13:13:15 | Descripti\u2026"
+      ]
+    },
+    "vdi_citrix_connectivity_issue": {
+      "count": 10,
+      "resolved_count": 9,
+      "avg_resolve_hours": 604.7,
+      "by_year": {
+        "2025": 10
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Type: Change | Number: CHG0459477 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0463147 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0464912 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0496605 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Date_Created: 2025-07-01 00:28:17 | Date_Closed: 2025-07-01 07:28:27 | Descripti\u2026",
+        "Date_Created: 2025-07-01 00:30:15 | Date_Closed: 2025-07-01 02:54:26 | Descripti\u2026"
+      ]
+    },
+    "disk_full": {
+      "count": 9,
+      "resolved_count": 3,
+      "avg_resolve_hours": 438.4,
+      "by_year": {
+        "2025": 8,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Type: Change | Number: CHG0463472 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0464044 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0464075 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0464125 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0464905 | Priority: 3 - Moderate | Date_Created: 2025-\u2026",
+        "Type: Change | Number: CHG0466285 | Priority: 3 - Moderate | Date_Created: 2025-\u2026"
+      ]
+    },
+    "database_performance_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2025": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Date_Created: 2025-12-03 10:52:46 | Description: Recurring DB2 load slowness and\u2026"
+      ]
+    },
+    "memory_pressure": {
+      "count": 5,
+      "resolved_count": 4,
+      "avg_resolve_hours": 174.2,
+      "by_year": {
+        "2025": 4,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "plnhlthrst- org.mybatis.spring.MyBatisSystemException: nested exception is org.a\u2026",
+        "Date_Created: 2025-10-01 08:14:52 | Date_Closed: 2025-10-02 09:54:43 | Descripti\u2026",
+        "Date_Created: 2025-10-01 10:20:24 | Date_Closed: 2025-10-28 06:58:57 | Descripti\u2026",
+        "Date_Created: 2025-10-02 12:58:05 | Date_Closed: 2025-10-03 15:23:44 | Descripti\u2026",
+        "Compute node under severe memory pressure"
+      ]
+    },
+    "certificate_expiry_warning": {
+      "count": 5,
+      "resolved_count": 4,
+      "avg_resolve_hours": 6.1,
+      "by_year": {
+        "2025": 4,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Windows Software or Application Issue: SF #00050795: Wee Sern emailed saying tha\u2026",
+        "Date_Created: 2025-07-01 20:21:52 | Date_Closed: 2025-07-01 20:38:03 | Descripti\u2026",
+        "Date_Created: 2025-07-01 21:07:40 | Date_Closed: 2025-07-01 21:36:54 | Descripti\u2026",
+        "Date_Created: 2025-07-02 02:07:42 | Date_Closed: 2025-07-03 00:20:02 | Descripti\u2026",
+        "TLS certificate expiring within threshold"
+      ]
+    },
+    "vpn_client_failure": {
+      "count": 4,
+      "resolved_count": 1,
+      "avg_resolve_hours": 234.4,
+      "by_year": {
+        "2025": 3,
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Date_Created: 2025-04-04 14:00:39 | Date_Closed: 2025-04-14 08:23:44 | Descripti\u2026",
+        "Date_Created: 2025-07-21 03:39:10 | Description: Sev1 Intermittent internet conn\u2026",
+        "Date_Created: 2025-08-30 16:37:20 | Description: RIS APP Annuities - ALIP produc\u2026",
+        "VPN connection fails after credential entry"
+      ]
+    },
+    "ad_account_lockout_spike": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Repeated account lockouts from stale credentials"
+      ]
+    },
+    "ad_replication_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Active Directory replication failure between domain controllers"
+      ]
+    },
+    "api_error_spike": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "5xx error rate increased after traffic rise"
+      ]
+    },
+    "app_server_thread_exhaustion": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Middleware thread starvation affects requests"
+      ]
+    },
+    "autoscaling_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Cloud autoscaling failed during demand spike"
+      ]
+    },
+    "backup_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Scheduled backup did not complete successfully"
+      ]
+    },
+    "battery_health_alert": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Endpoint battery capacity dropped below threshold"
+      ]
+    },
+    "bitlocker_recovery_prompt": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Laptop unexpectedly enters BitLocker recovery"
+      ]
+    },
+    "browser_sso_loop": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Web application redirects endlessly to sign-in page"
+      ]
+    },
+    "cache_staleness_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Cache invalidation issue affecting business data"
+      ]
+    },
+    "canary_validation_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Canary deployment health checks unsuccessful"
+      ]
+    },
+    "certificate_based_auth_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Client certificate authentication not accepted"
+      ]
+    },
+    "certificate_trust_chain_error": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application integration fails due to certificate trust issue"
+      ]
+    },
+    "citrix_launch_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Citrix application launch hangs after authentication"
+      ]
+    },
+    "citrix_session_launch_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Citrix published desktop will not start"
+      ]
+    },
+    "conference_bridge_call_drop": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Audio conference disconnect observed for multiple users"
+      ]
+    },
+    "configuration_regression": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Environment drift after deployment causes failures"
+      ]
+    },
+    "connection_pool_exhaustion": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Database connection pool saturation under load"
+      ]
+    },
+    "container_connection_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Container Connection Issue"
+      ]
+    },
+    "deadlock_detected": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Repeated deadlock detected in transactional workload"
+      ]
+    },
+    "dependency_service_unavailable": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Critical integration service unavailable to app"
+      ]
+    },
+    "disk_detach_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Disk remains attached after workload termination"
+      ]
+    },
+    "display_docking_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Laptop dock connected but monitors remain blank"
+      ]
+    },
+    "dns_in_cluster_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Kubernetes internal DNS resolution failure"
+      ]
+    },
+    "dns_resolution_delay": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Dns Resolution Delay"
+      ]
+    },
+    "dns_resolution_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Users report failure resolving internal services"
+      ]
+    },
+    "endpoint_agent_unhealthy": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Endpoint protection agent not reporting status"
+      ]
+    },
+    "endpoint_malware_alert": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Managed workstation reports malicious activity"
+      ]
+    },
+    "erp_interface_queue_stuck": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "ERP interface queue is stuck"
+      ]
+    },
+    "exchange_online_mail_flow_delay": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Exchange Online mail flow delay impacts delivery"
+      ]
+    },
+    "exchange_transport_queue_backlog": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Email delivery delayed by transport backlog"
+      ]
+    },
+    "file_share_access_denied": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Shared drive permissions prevent access"
+      ]
+    },
+    "firewall_policy_drift": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Security policy drift causes network denial"
+      ]
+    },
+    "firewall_rule_block": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application connectivity broken by firewall rule"
+      ]
+    },
+    "gpo_application_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Expected GPO settings are missing"
+      ]
+    },
+    "iam_policy_block": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Service account permissions prevent operation"
+      ]
+    },
+    "image_pull_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Kubernetes deployment blocked by image pull error"
+      ]
+    },
+    "ipv6_enabled_interface_connectivity_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Ipv6 Enabled Interface Connectivity Issue"
+      ]
+    },
+    "jwt_signing_key_rotation_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Jwt Signing Key Rotation Issue"
+      ]
+    },
+    "kerberos_authentication_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Kerberos authentication failure blocks login"
+      ]
+    },
+    "kubernetes_internal_dns_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Internal services cannot resolve cluster DNS in Kubernetes"
+      ]
+    },
+    "laptop_boot_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Corporate laptop fails to boot after update"
+      ]
+    },
+    "load_balancer_node_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application delays isolated to specific load balancer member"
+      ]
+    },
+    "load_balancer_node_specific_latency": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Latency spike only through one load balancer node"
+      ]
+    },
+    "load_balancer_pool_unhealthy": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Backend pool members fail health checks"
+      ]
+    },
+    "lun_path_degradation": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Multipath storage path unstable"
+      ]
+    },
+    "mailbox_permission_sync_delay": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Delegated mailbox permission not applied yet"
+      ]
+    },
+    "mail_flow_delay_external": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Inbound and outbound email delivery delayed externally"
+      ]
+    },
+    "mail_quarantine_confusion": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Mail released from quarantine not visible to user"
+      ]
+    },
+    "mfa_enrollment_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "User unable to complete MFA registration"
+      ]
+    },
+    "mfa_push_not_received": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "User not receiving MFA push notification"
+      ]
+    },
+    "nas_latency_spike": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application slowness linked to network storage latency"
+      ]
+    },
+    "nat_port_exhaustion": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "NAT port exhaustion affects outbound connectivity"
+      ]
+    },
+    "node_not_ready": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Kubernetes node enters NotReady state"
+      ]
+    },
+    "o365_authentication_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Users cannot authenticate to Microsoft 365 services"
+      ]
+    },
+    "okta_mfa_challenge_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Okta MFA challenge failure affects login flow"
+      ]
+    },
+    "okta_sso_policy_misconfiguration": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Okta sign-on policy denies valid user access"
+      ]
+    },
+    "oracle_ebs_concurrent_manager_down": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "EBS concurrent processing stops unexpectedly"
+      ]
+    },
+    "oracle_listener_unavailable": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Oracle listener unavailable for database connections"
+      ]
+    },
+    "outlook_sync_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Email not syncing in Outlook desktop client"
+      ]
+    },
+    "packet_loss_branch": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Branch connectivity degraded due to packet loss"
+      ]
+    },
+    "password_reset_loop": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Users cannot exit forced password reset cycle"
+      ]
+    },
+    "patch_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Server patching unsuccessful during maintenance window"
+      ]
+    },
+    "payroll_sync_service_stoppage": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Payroll application unavailable due to stopped Windows service"
+      ]
+    },
+    "pod_crash_loop": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Container keeps crashing after deployment"
+      ]
+    },
+    "post_change_instability": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Users report unusual behavior after recent release"
+      ]
+    },
+    "postgresql_replication_lag": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "PostgreSQL replication lag grows beyond threshold"
+      ]
+    },
+    "postgresql_vacuum_bloat_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "PostgreSQL vacuum or table bloat issue degrades performance"
+      ]
+    },
+    "printer_driver_conflict": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Printing fails after endpoint driver update"
+      ]
+    },
+    "printer_mapping_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Mapped office printer disappeared from workstation"
+      ]
+    },
+    "privileged_access_request_delay": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Admin elevation workflow approval not completing"
+      ]
+    },
+    "privilege_escalation_attempt": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Unauthorized privilege change activity observed"
+      ]
+    },
+    "profile_corruption": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Corrupted local profile prevents normal login"
+      ]
+    },
+    "queue_backlog_growth": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Integration messages delayed by queue growth"
+      ]
+    },
+    "quota_exceeded": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Provisioning failed due to service quota limit"
+      ]
+    },
+    "release_pipeline_blocked": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Deployment pipeline halted unexpectedly"
+      ]
+    },
+    "release_regression": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Production release introduced service regression"
+      ]
+    },
+    "replication_lag": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Data replication latency exceeds threshold"
+      ]
+    },
+    "rollback_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Rollback failed during remediation"
+      ]
+    },
+    "routing_asymmetry_detected": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Routing asymmetry detected for application flow"
+      ]
+    },
+    "sap_background_job_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "SAP background job fails unexpectedly"
+      ]
+    },
+    "sap_idoc_processing_delay": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "IDoc queue backlog grows in SAP"
+      ]
+    },
+    "sap_rfc_connection_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "SAP RFC destination cannot connect"
+      ]
+    },
+    "service_crash_loop": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application service crashes shortly after start"
+      ]
+    },
+    "service_mesh_latency": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "East-west traffic latency increased in service mesh"
+      ]
+    },
+    "session_timeout_anomaly": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Session persistence anomaly impacts users"
+      ]
+    },
+    "shared_mailbox_access_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "User denied access to delegated mailbox"
+      ]
+    },
+    "slow_query_spike": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application slowness traced to slow SQL execution"
+      ]
+    },
+    "snapshot_space_exhaustion": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Storage snapshots consume allocated reserve"
+      ]
+    },
+    "software_install_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application installation unsuccessful on managed laptop"
+      ]
+    },
+    "sql_server_availability_group_failover_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "SQL Server availability group failover issue detected"
+      ]
+    },
+    "sql_server_deadlock_spike": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "SQL Server deadlock spike impacts transactions"
+      ]
+    },
+    "ssl_offload_misconfiguration": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "SSL offload misconfiguration breaks application access"
+      ]
+    },
+    "sso_token_validation_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Application rejects federated token validation"
+      ]
+    },
+    "suspicious_login_pattern": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Security alert for unusual login activity"
+      ]
+    },
+    "teams_audio_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Teams microphone or speaker not detected"
+      ]
+    },
+    "teams_presence_inaccuracy": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Teams presence inaccurate across users"
+      ]
+    },
+    "teams_presence_sync_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Teams presence does not update correctly"
+      ]
+    },
+    "tempdb_growth_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "High temp database usage degrades workload"
+      ]
+    },
+    "token_validation_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "JWT or access token verification error observed"
+      ]
+    },
+    "vdi_broker_registration_failure": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Virtual desktop broker cannot register machines"
+      ]
+    },
+    "vdi_network_connectivity_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Vdi Network Connectivity Issue"
+      ]
+    },
+    "vdi_slowness": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Hosted desktop performance degraded for multiple users"
+      ]
+    },
+    "vm_boot_issue": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Instance launch completes but operating system does not come up"
+      ]
+    },
+    "vpn_latency_spike": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Users on VPN experience severe slowness"
+      ]
+    },
+    "wifi_instability": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Wireless network unstable on managed endpoint"
+      ]
+    },
+    "windows_service_stoppage": {
+      "count": 1,
+      "resolved_count": 0,
+      "avg_resolve_hours": null,
+      "by_year": {
+        "2026": 1
+      },
+      "resolution_snippets": [],
+      "sample_titles": [
+        "Critical Windows service stopped on server"
+      ]
+    }
+  }
+}

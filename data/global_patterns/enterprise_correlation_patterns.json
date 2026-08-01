@@ -1,0 +1,369 @@
+[
+  {
+    "pattern_id": "ecp_api_gateway_timeout_92ccf347",
+    "classification": "api_gateway_timeout",
+    "domain": "application_network",
+    "primary_symptom": "API gateway timeout, 504, or elevated response latency",
+    "top_associated_scenarios": [
+      {
+        "scenario_id": "firewall_policy_change_blocking_downstream_port",
+        "scenario": "Firewall Policy Change Blocking Downstream Port",
+        "association_type": "change_network_dependency",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "0 to 4 hours before incident",
+        "evidence_signals": [
+          "connection timeout",
+          "port connectivity failure",
+          "firewall deny logs",
+          "recent firewall or security-group change"
+        ],
+        "validation_checks": [
+          "validate recent firewall/security-group changes",
+          "test source-to-destination port connectivity",
+          "compare deny logs with incident window",
+          "confirm dependency path from topology"
+        ],
+        "recommended_actions": [
+          "rollback or correct policy rule after approval",
+          "restore required downstream port access",
+          "validate recovery with synthetic transaction"
+        ],
+        "triage_priority": 1,
+        "confidence_score": 0.5,
+        "pattern_candidate_id": "ecp_api_gateway_timeout_firewall_policy_change_blocking_downstream_port_eddda44d"
+      },
+      {
+        "scenario_id": "downstream_dependency_latency_or_outage",
+        "scenario": "Downstream Dependency Latency Or Outage",
+        "association_type": "incident_dependency",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "same time to 30 minutes before incident",
+        "evidence_signals": [
+          "downstream latency spike",
+          "dependency error rate increase",
+          "connection pool wait",
+          "queue backlog"
+        ],
+        "validation_checks": [
+          "check downstream dependency health",
+          "inspect dependency latency/error metrics",
+          "review connection pool and retry behavior",
+          "validate topology dependency path"
+        ],
+        "recommended_actions": [
+          "restore or scale dependency",
+          "reduce retry storm if present",
+          "fail over to healthy dependency if approved"
+        ],
+        "triage_priority": 2,
+        "confidence_score": 0.5,
+        "pattern_candidate_id": "ecp_api_gateway_timeout_downstream_dependency_latency_or_outage_0625841d"
+      },
+      {
+        "scenario_id": "recent_application_deployment_or_config_change",
+        "scenario": "Recent Application Deployment Or Config Change",
+        "association_type": "change_application_config",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "0 to 6 hours before incident",
+        "evidence_signals": [
+          "recent app deployment",
+          "configuration change",
+          "error rate increase after release",
+          "new version observed"
+        ],
+        "validation_checks": [
+          "review deployment/change records",
+          "compare error rate before/after release",
+          "inspect changed config keys",
+          "validate rollback candidate"
+        ],
+        "recommended_actions": [
+          "rollback recent release if correlated",
+          "correct bad configuration",
+          "restart affected service after validation"
+        ],
+        "triage_priority": 5,
+        "confidence_score": 0.46,
+        "pattern_candidate_id": "ecp_api_gateway_timeout_recent_application_deployment_or_config_change_1630c8e2"
+      },
+      {
+        "scenario_id": "retry_storm_after_dependency_failure",
+        "scenario": "Retry Storm After Dependency Failure",
+        "association_type": "application_dependency_behavior",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "same time to 1 hour before incident",
+        "evidence_signals": [
+          "retry volume spike",
+          "thread pool saturation",
+          "connection pool exhaustion",
+          "dependency timeout"
+        ],
+        "validation_checks": [
+          "inspect retry metrics",
+          "check thread/connection pool saturation",
+          "validate dependency timeout pattern",
+          "review circuit breaker behavior"
+        ],
+        "recommended_actions": [
+          "restore dependency",
+          "tune retry/circuit breaker settings",
+          "scale affected service if approved"
+        ],
+        "triage_priority": 6,
+        "confidence_score": 0.46,
+        "pattern_candidate_id": "ecp_api_gateway_timeout_retry_storm_after_dependency_failure_3156f016"
+      }
+    ],
+    "recommended_triage_order": [
+      "validate recent firewall/security-group changes",
+      "test source-to-destination port connectivity",
+      "check downstream dependency health",
+      "inspect dependency latency/error metrics",
+      "review deployment/change records",
+      "compare error rate before/after release",
+      "inspect retry metrics",
+      "check thread/connection pool saturation"
+    ],
+    "source_lineage": {
+      "origin": "sanitized_multi_client_pattern_builder",
+      "raw_client_data_removed": true,
+      "approved_for_global_use": false,
+      "observed_client_count": 1,
+      "candidate_count": 4
+    },
+    "build_metadata": {
+      "generated_at": "2026-05-04T16:23:29.618043+00:00",
+      "builder": "scripts/build_enterprise_patterns.py",
+      "status": "candidate_library_requires_review"
+    }
+  },
+  {
+    "pattern_id": "ecp_cpu_saturation_0aed065d",
+    "classification": "cpu_saturation",
+    "domain": "compute",
+    "primary_symptom": "Sustained high CPU or compute saturation",
+    "top_associated_scenarios": [
+      {
+        "scenario_id": "batch_job_or_scheduled_task_collision",
+        "scenario": "Batch Job Or Scheduled Task Collision",
+        "association_type": "process_schedule_telemetry",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "same time to 2 hours before incident",
+        "evidence_signals": [
+          "scheduled job active",
+          "CPU or IO spike",
+          "batch overlap",
+          "long-running process"
+        ],
+        "validation_checks": [
+          "review scheduled job calendar",
+          "check top process during incident",
+          "compare resource spike with job runtime",
+          "inspect batch logs"
+        ],
+        "recommended_actions": [
+          "reschedule or throttle batch job",
+          "terminate runaway job after approval",
+          "separate resource-intensive workloads"
+        ],
+        "triage_priority": 1,
+        "confidence_score": 0.5,
+        "pattern_candidate_id": "ecp_cpu_saturation_batch_job_or_scheduled_task_collision_a9910775"
+      },
+      {
+        "scenario_id": "endpoint_security_or_antivirus_scan_overlap",
+        "scenario": "Endpoint Security Or Antivirus Scan Overlap",
+        "association_type": "security_agent_telemetry",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "same time to 2 hours before incident",
+        "evidence_signals": [
+          "security scan active",
+          "agent CPU spike",
+          "disk IO spike",
+          "overlap with batch window"
+        ],
+        "validation_checks": [
+          "review endpoint security scan schedule",
+          "check security agent process usage",
+          "compare scan window with incident window",
+          "verify approved exclusions"
+        ],
+        "recommended_actions": [
+          "tune approved exclusions",
+          "reschedule scan window",
+          "coordinate scan and batch schedules"
+        ],
+        "triage_priority": 2,
+        "confidence_score": 0.5,
+        "pattern_candidate_id": "ecp_cpu_saturation_endpoint_security_or_antivirus_scan_overlap_55f83016"
+      },
+      {
+        "scenario_id": "dns_or_ip_change_after_workload_migration",
+        "scenario": "DNS Or IP Change After Workload Migration",
+        "association_type": "change_dns_cloud_migration",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "0 to 24 hours before incident",
+        "evidence_signals": [
+          "DNS mismatch",
+          "stale endpoint",
+          "traffic routed to old IP",
+          "cloud cutover or migration change"
+        ],
+        "validation_checks": [
+          "compare DNS records before/after change",
+          "validate resolved IP from affected subnet",
+          "check cloud migration/cutover change record",
+          "verify route table and endpoint target"
+        ],
+        "recommended_actions": [
+          "correct DNS or endpoint mapping",
+          "flush/refresh stale resolver cache where approved",
+          "validate application path after correction"
+        ],
+        "triage_priority": 10,
+        "confidence_score": 0.42,
+        "pattern_candidate_id": "ecp_cpu_saturation_dns_or_ip_change_after_workload_migration_aa088301"
+      }
+    ],
+    "recommended_triage_order": [
+      "review scheduled job calendar",
+      "check top process during incident",
+      "review endpoint security scan schedule",
+      "check security agent process usage",
+      "compare DNS records before/after change",
+      "validate resolved IP from affected subnet"
+    ],
+    "source_lineage": {
+      "origin": "sanitized_multi_client_pattern_builder",
+      "raw_client_data_removed": true,
+      "approved_for_global_use": false,
+      "observed_client_count": 1,
+      "candidate_count": 3
+    },
+    "build_metadata": {
+      "generated_at": "2026-05-04T16:23:29.618212+00:00",
+      "builder": "scripts/build_enterprise_patterns.py",
+      "status": "candidate_library_requires_review"
+    }
+  },
+  {
+    "pattern_id": "ecp_general_operational_issue_0306383c",
+    "classification": "general_operational_issue",
+    "domain": "general",
+    "primary_symptom": "General Operational Issue",
+    "top_associated_scenarios": [
+      {
+        "scenario_id": "downstream_dependency_latency_or_outage",
+        "scenario": "Downstream Dependency Latency Or Outage",
+        "association_type": "incident_dependency",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "same time to 30 minutes before incident",
+        "evidence_signals": [
+          "downstream latency spike",
+          "dependency error rate increase",
+          "connection pool wait",
+          "queue backlog"
+        ],
+        "validation_checks": [
+          "check downstream dependency health",
+          "inspect dependency latency/error metrics",
+          "review connection pool and retry behavior",
+          "validate topology dependency path"
+        ],
+        "recommended_actions": [
+          "restore or scale dependency",
+          "reduce retry storm if present",
+          "fail over to healthy dependency if approved"
+        ],
+        "triage_priority": 10,
+        "confidence_score": 0.43,
+        "pattern_candidate_id": "ecp_general_operational_issue_downstream_dependency_latency_or_outage_1e8ddd02"
+      }
+    ],
+    "recommended_triage_order": [
+      "check downstream dependency health",
+      "inspect dependency latency/error metrics"
+    ],
+    "source_lineage": {
+      "origin": "sanitized_multi_client_pattern_builder",
+      "raw_client_data_removed": true,
+      "approved_for_global_use": false,
+      "observed_client_count": 1,
+      "candidate_count": 1
+    },
+    "build_metadata": {
+      "generated_at": "2026-05-04T16:23:29.618280+00:00",
+      "builder": "scripts/build_enterprise_patterns.py",
+      "status": "candidate_library_requires_review"
+    }
+  },
+  {
+    "pattern_id": "ecp_vpn_client_failure_70c4709a",
+    "classification": "vpn_client_failure",
+    "domain": "network_security",
+    "primary_symptom": "VPN authentication or remote access failure",
+    "top_associated_scenarios": [
+      {
+        "scenario_id": "authentication_or_identity_provider_dependency",
+        "scenario": "Authentication Or Identity Provider Dependency",
+        "association_type": "identity_dependency",
+        "frequency_band": "low",
+        "observed_across_client_count": 1,
+        "observed_incident_count_band": "1-5",
+        "typical_time_window": "same time to 2 hours before incident",
+        "evidence_signals": [
+          "auth failures",
+          "MFA latency",
+          "token validation errors",
+          "identity provider errors"
+        ],
+        "validation_checks": [
+          "check IdP/MFA health",
+          "review conditional access changes",
+          "validate LDAP/RADIUS bind status",
+          "inspect token/certificate errors"
+        ],
+        "recommended_actions": [
+          "restore identity dependency",
+          "rollback conditional-access change if confirmed",
+          "renew/rotate auth certificate if expired"
+        ],
+        "triage_priority": 1,
+        "confidence_score": 0.5,
+        "pattern_candidate_id": "ecp_vpn_client_failure_authentication_or_identity_provider_dependency_880281db"
+      }
+    ],
+    "recommended_triage_order": [
+      "check IdP/MFA health",
+      "review conditional access changes"
+    ],
+    "source_lineage": {
+      "origin": "sanitized_multi_client_pattern_builder",
+      "raw_client_data_removed": true,
+      "approved_for_global_use": false,
+      "observed_client_count": 1,
+      "candidate_count": 1
+    },
+    "build_metadata": {
+      "generated_at": "2026-05-04T16:23:29.618341+00:00",
+      "builder": "scripts/build_enterprise_patterns.py",
+      "status": "candidate_library_requires_review"
+    }
+  }
+]

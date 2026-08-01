@@ -1,0 +1,7 @@
+---
+- name: Clear temp files demo
+  hosts: demo
+  gather_facts: false
+  tasks:
+    - name: Simulate clearing temp files
+      shell: echo Cleared temp files

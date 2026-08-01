@@ -1,0 +1,5717 @@
+{
+  "generated_at": "2026-06-19T18:49:37.451222+00:00",
+  "index": {
+    "unclassified": {
+      "total": 64509,
+      "domain": "unknown",
+      "before_patterns": [
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 61857,
+          "same_ag_count": 11067,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 61623,
+          "same_ag_count": 11688,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 4.1,
+          "avg_gap_label": "4.1h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 59461,
+          "same_ag_count": 7668,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 57866,
+          "same_ag_count": 14282,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 5.5,
+          "avg_gap_label": "5.5h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 55761,
+          "same_ag_count": 11287,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 7.0,
+          "avg_gap_label": "7.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 55439,
+          "same_ag_count": 11074,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 9.2,
+          "avg_gap_label": "9.2h",
+          "confidence": "low",
+          "domain": "identity"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 55349,
+          "same_ag_count": 9613,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 54649,
+          "same_ag_count": 8050,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 7.6,
+          "avg_gap_label": "7.6h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 61981,
+          "same_ag_count": 10843,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 61832,
+          "same_ag_count": 11971,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 4.3,
+          "avg_gap_label": "4.3h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 59209,
+          "same_ag_count": 7401,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 57860,
+          "same_ag_count": 14163,
+          "same_ag_pct": 24,
+          "avg_gap_hours": 5.2,
+          "avg_gap_label": "5.2h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 56568,
+          "same_ag_count": 10831,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 6.9,
+          "avg_gap_label": "6.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 55390,
+          "same_ag_count": 9910,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 3.5,
+          "avg_gap_label": "3.5h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 55292,
+          "same_ag_count": 11082,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 8.8,
+          "avg_gap_label": "8.8h",
+          "confidence": "low",
+          "domain": "identity"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 54924,
+          "same_ag_count": 7980,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 8.0,
+          "avg_gap_label": "8.0h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          54745
+        ],
+        [
+          "Network",
+          47172
+        ],
+        [
+          "Software",
+          37171
+        ],
+        [
+          "Business Application",
+          27576
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          55203
+        ],
+        [
+          "Network",
+          47290
+        ],
+        [
+          "Software",
+          37240
+        ],
+        [
+          "Business Application",
+          27579
+        ]
+      ]
+    },
+    "network_connectivity_issue": {
+      "total": 5157,
+      "domain": "network",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 5155,
+          "same_ag_count": 1829,
+          "same_ag_pct": 35,
+          "avg_gap_hours": 0.4,
+          "avg_gap_label": "0.4h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 5059,
+          "same_ag_count": 604,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 3.1,
+          "avg_gap_label": "3.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 4999,
+          "same_ag_count": 1267,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 2.4,
+          "avg_gap_label": "2.4h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 4963,
+          "same_ag_count": 686,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 4832,
+          "same_ag_count": 427,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 4778,
+          "same_ag_count": 908,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 4.3,
+          "avg_gap_label": "4.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 4585,
+          "same_ag_count": 962,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 4.8,
+          "avg_gap_label": "4.8h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 4490,
+          "same_ag_count": 488,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 11.6,
+          "avg_gap_label": "11.6h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 5154,
+          "same_ag_count": 1739,
+          "same_ag_pct": 34,
+          "avg_gap_hours": 0.4,
+          "avg_gap_label": "0.4h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 5059,
+          "same_ag_count": 563,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 5004,
+          "same_ag_count": 1141,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 4959,
+          "same_ag_count": 667,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 4847,
+          "same_ag_count": 487,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 3.5,
+          "avg_gap_label": "3.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 4843,
+          "same_ag_count": 945,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 4.9,
+          "avg_gap_label": "4.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 4555,
+          "same_ag_count": 435,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 12.2,
+          "avg_gap_label": "12.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "active_directory_issue",
+          "co_occurrence_count": 4424,
+          "same_ag_count": 577,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 9.8,
+          "avg_gap_label": "9.8h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          4469
+        ],
+        [
+          "Network",
+          4080
+        ],
+        [
+          "Monitoring and Event Management",
+          3025
+        ],
+        [
+          "Software / Application Issues",
+          3025
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          4403
+        ],
+        [
+          "Network",
+          4150
+        ],
+        [
+          "Monitoring and Event Management",
+          3025
+        ],
+        [
+          "Software / Application Issues",
+          3023
+        ]
+      ]
+    },
+    "memory_pressure": {
+      "total": 8425,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 8414,
+          "same_ag_count": 919,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 0.7,
+          "avg_gap_label": "0.7h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 8374,
+          "same_ag_count": 637,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 4.0,
+          "avg_gap_label": "4.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 8133,
+          "same_ag_count": 3300,
+          "same_ag_pct": 41,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 7933,
+          "same_ag_count": 2914,
+          "same_ag_pct": 37,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 7913,
+          "same_ag_count": 827,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 3.9,
+          "avg_gap_label": "3.9h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 7851,
+          "same_ag_count": 1369,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 5.5,
+          "avg_gap_label": "5.5h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 7732,
+          "same_ag_count": 491,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 12.3,
+          "avg_gap_label": "12.3h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 7548,
+          "same_ag_count": 371,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 8421,
+          "same_ag_count": 897,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 8379,
+          "same_ag_count": 718,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 3.7,
+          "avg_gap_label": "3.7h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 8142,
+          "same_ag_count": 3224,
+          "same_ag_pct": 40,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 7910,
+          "same_ag_count": 1484,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 5.8,
+          "avg_gap_label": "5.8h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 7901,
+          "same_ag_count": 705,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 4.2,
+          "avg_gap_label": "4.2h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 7773,
+          "same_ag_count": 2969,
+          "same_ag_pct": 38,
+          "avg_gap_hours": 3.8,
+          "avg_gap_label": "3.8h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 7731,
+          "same_ag_count": 415,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 11.9,
+          "avg_gap_label": "11.9h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 7589,
+          "same_ag_count": 367,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 5.1,
+          "avg_gap_label": "5.1h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          6396
+        ],
+        [
+          "Hardware",
+          6278
+        ],
+        [
+          "Monitoring and Event Management",
+          5576
+        ],
+        [
+          "Software / Application Issues",
+          5575
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          6432
+        ],
+        [
+          "Network",
+          6332
+        ],
+        [
+          "Monitoring and Event Management",
+          5576
+        ],
+        [
+          "Software / Application Issues",
+          5576
+        ]
+      ]
+    },
+    "vdi_citrix_connectivity_issue": {
+      "total": 11509,
+      "domain": "endpoint",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 11496,
+          "same_ag_count": 1475,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 1.0,
+          "avg_gap_label": "1.0h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 11276,
+          "same_ag_count": 2086,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 10360,
+          "same_ag_count": 1276,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 7.4,
+          "avg_gap_label": "7.4h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 10028,
+          "same_ag_count": 1961,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 9.2,
+          "avg_gap_label": "9.2h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 9913,
+          "same_ag_count": 1104,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 8.3,
+          "avg_gap_label": "8.3h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 9898,
+          "same_ag_count": 2446,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 8.3,
+          "avg_gap_label": "8.3h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 9466,
+          "same_ag_count": 1024,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 5.8,
+          "avg_gap_label": "5.8h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 9466,
+          "same_ag_count": 643,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 11499,
+          "same_ag_count": 1330,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 1.2,
+          "avg_gap_label": "1.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 11242,
+          "same_ag_count": 1742,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 10418,
+          "same_ag_count": 1817,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 9.6,
+          "avg_gap_label": "9.6h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 10219,
+          "same_ag_count": 1396,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 6.5,
+          "avg_gap_label": "6.5h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 10159,
+          "same_ag_count": 2494,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 7.8,
+          "avg_gap_label": "7.8h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 10106,
+          "same_ag_count": 983,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 7.5,
+          "avg_gap_label": "7.5h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 9743,
+          "same_ag_count": 589,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 13.3,
+          "avg_gap_label": "13.3h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 9556,
+          "same_ag_count": 1184,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 5.9,
+          "avg_gap_label": "5.9h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          10505
+        ],
+        [
+          "Hardware",
+          7825
+        ],
+        [
+          "Software",
+          5906
+        ],
+        [
+          "Business Application",
+          5796
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          10375
+        ],
+        [
+          "Hardware",
+          7738
+        ],
+        [
+          "Software",
+          5938
+        ],
+        [
+          "Business Application",
+          5805
+        ]
+      ]
+    },
+    "certificate_expiry_warning": {
+      "total": 88,
+      "domain": "identity",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 87,
+          "same_ag_count": 24,
+          "same_ag_pct": 28,
+          "avg_gap_hours": 1.0,
+          "avg_gap_label": "1.0h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 85,
+          "same_ag_count": 10,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.1,
+          "avg_gap_label": "2.1h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 83,
+          "same_ag_count": 18,
+          "same_ag_pct": 22,
+          "avg_gap_hours": 6.8,
+          "avg_gap_label": "6.8h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 82,
+          "same_ag_count": 15,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 80,
+          "same_ag_count": 33,
+          "same_ag_pct": 41,
+          "avg_gap_hours": 10.8,
+          "avg_gap_label": "10.8h",
+          "confidence": "high",
+          "domain": "identity"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 79,
+          "same_ag_count": 7,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 9.3,
+          "avg_gap_label": "9.3h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 77,
+          "same_ag_count": 14,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 6.7,
+          "avg_gap_label": "6.7h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 75,
+          "same_ag_count": 9,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 5.8,
+          "avg_gap_label": "5.8h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 88,
+          "same_ag_count": 28,
+          "same_ag_pct": 32,
+          "avg_gap_hours": 0.4,
+          "avg_gap_label": "0.4h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 86,
+          "same_ag_count": 6,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 83,
+          "same_ag_count": 15,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 3.9,
+          "avg_gap_label": "3.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 78,
+          "same_ag_count": 3,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 4.9,
+          "avg_gap_label": "4.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 77,
+          "same_ag_count": 15,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 6.4,
+          "avg_gap_label": "6.4h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 76,
+          "same_ag_count": 19,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 5.9,
+          "avg_gap_label": "5.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 75,
+          "same_ag_count": 5,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 11.0,
+          "avg_gap_label": "11.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 73,
+          "same_ag_count": 1,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 5.2,
+          "avg_gap_label": "5.2h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          67
+        ],
+        [
+          "Network",
+          52
+        ],
+        [
+          "Software",
+          40
+        ],
+        [
+          "Monitoring and Event Management",
+          31
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          66
+        ],
+        [
+          "Network",
+          49
+        ],
+        [
+          "Software",
+          43
+        ],
+        [
+          "Monitoring and Event Management",
+          31
+        ]
+      ]
+    },
+    "teams_meeting_issue": {
+      "total": 1021,
+      "domain": "endpoint",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 1012,
+          "same_ag_count": 205,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 958,
+          "same_ag_count": 244,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 946,
+          "same_ag_count": 180,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 4.7,
+          "avg_gap_label": "4.7h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 918,
+          "same_ag_count": 205,
+          "same_ag_pct": 22,
+          "avg_gap_hours": 4.1,
+          "avg_gap_label": "4.1h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 904,
+          "same_ag_count": 159,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 5.3,
+          "avg_gap_label": "5.3h",
+          "confidence": "low",
+          "domain": "identity"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 882,
+          "same_ag_count": 130,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 5.3,
+          "avg_gap_label": "5.3h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 822,
+          "same_ag_count": 157,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 6.8,
+          "avg_gap_label": "6.8h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 770,
+          "same_ag_count": 118,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 11.4,
+          "avg_gap_label": "11.4h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 1012,
+          "same_ag_count": 202,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 983,
+          "same_ag_count": 250,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 958,
+          "same_ag_count": 180,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 6.1,
+          "avg_gap_label": "6.1h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 938,
+          "same_ag_count": 186,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 4.8,
+          "avg_gap_label": "4.8h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 881,
+          "same_ag_count": 203,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 5.3,
+          "avg_gap_label": "5.3h",
+          "confidence": "low",
+          "domain": "identity"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 847,
+          "same_ag_count": 112,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 831,
+          "same_ag_count": 121,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 7.2,
+          "avg_gap_label": "7.2h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 766,
+          "same_ag_count": 113,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 4.0,
+          "avg_gap_label": "4.0h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Software",
+          826
+        ],
+        [
+          "Hardware",
+          812
+        ],
+        [
+          "Network",
+          708
+        ],
+        [
+          "Business Application",
+          547
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          836
+        ],
+        [
+          "Software",
+          812
+        ],
+        [
+          "Network",
+          693
+        ],
+        [
+          "Business Application",
+          546
+        ]
+      ]
+    },
+    "email_delivery_failure": {
+      "total": 12415,
+      "domain": "endpoint",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 12397,
+          "same_ag_count": 4519,
+          "same_ag_pct": 36,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 11963,
+          "same_ag_count": 6363,
+          "same_ag_pct": 53,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 11925,
+          "same_ag_count": 6333,
+          "same_ag_pct": 53,
+          "avg_gap_hours": 5.3,
+          "avg_gap_label": "5.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 11386,
+          "same_ag_count": 2287,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 8.3,
+          "avg_gap_label": "8.3h",
+          "confidence": "low",
+          "domain": "identity"
+        },
+        {
+          "classification": "teams_meeting_issue",
+          "co_occurrence_count": 9611,
+          "same_ag_count": 3025,
+          "same_ag_pct": 31,
+          "avg_gap_hours": 11.5,
+          "avg_gap_label": "11.5h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "api_gateway_timeout",
+          "co_occurrence_count": 9302,
+          "same_ag_count": 113,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.5,
+          "avg_gap_label": "7.5h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 8868,
+          "same_ag_count": 1768,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 10.5,
+          "avg_gap_label": "10.5h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 8394,
+          "same_ag_count": 3091,
+          "same_ag_pct": 37,
+          "avg_gap_hours": 10.6,
+          "avg_gap_label": "10.6h",
+          "confidence": "medium",
+          "domain": "network"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 12393,
+          "same_ag_count": 4617,
+          "same_ag_pct": 37,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 12019,
+          "same_ag_count": 6342,
+          "same_ag_pct": 53,
+          "avg_gap_hours": 6.3,
+          "avg_gap_label": "6.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 11903,
+          "same_ag_count": 6377,
+          "same_ag_pct": 54,
+          "avg_gap_hours": 4.7,
+          "avg_gap_label": "4.7h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 11101,
+          "same_ag_count": 2319,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 9.1,
+          "avg_gap_label": "9.1h",
+          "confidence": "low",
+          "domain": "identity"
+        },
+        {
+          "classification": "teams_meeting_issue",
+          "co_occurrence_count": 9865,
+          "same_ag_count": 3256,
+          "same_ag_pct": 33,
+          "avg_gap_hours": 11.4,
+          "avg_gap_label": "11.4h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "api_gateway_timeout",
+          "co_occurrence_count": 9491,
+          "same_ag_count": 50,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 8.4,
+          "avg_gap_label": "8.4h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 8774,
+          "same_ag_count": 2570,
+          "same_ag_pct": 29,
+          "avg_gap_hours": 11.6,
+          "avg_gap_label": "11.6h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 8458,
+          "same_ag_count": 1567,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 9.6,
+          "avg_gap_label": "9.6h",
+          "confidence": "high",
+          "domain": "endpoint"
+        }
+      ],
+      "before_categories": [
+        [
+          "Software",
+          11469
+        ],
+        [
+          "Hardware",
+          9410
+        ],
+        [
+          "Mobile Devices",
+          7832
+        ],
+        [
+          "Email",
+          7760
+        ]
+      ],
+      "after_categories": [
+        [
+          "Software",
+          11422
+        ],
+        [
+          "Hardware",
+          10005
+        ],
+        [
+          "Mobile Devices",
+          7814
+        ],
+        [
+          "Notification Alert",
+          7754
+        ]
+      ]
+    },
+    "authentication_failure": {
+      "total": 6862,
+      "domain": "identity",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 6851,
+          "same_ag_count": 2213,
+          "same_ag_pct": 32,
+          "avg_gap_hours": 0.3,
+          "avg_gap_label": "0.3h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 6763,
+          "same_ag_count": 1818,
+          "same_ag_pct": 27,
+          "avg_gap_hours": 1.9,
+          "avg_gap_label": "1.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 6738,
+          "same_ag_count": 1423,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 6569,
+          "same_ag_count": 1506,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 1.9,
+          "avg_gap_label": "1.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 6566,
+          "same_ag_count": 1352,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 6.2,
+          "avg_gap_label": "6.2h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 6476,
+          "same_ag_count": 1639,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 3.9,
+          "avg_gap_label": "3.9h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 6289,
+          "same_ag_count": 3011,
+          "same_ag_pct": 48,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vpn_client_failure",
+          "co_occurrence_count": 6100,
+          "same_ag_count": 3033,
+          "same_ag_pct": 50,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "high",
+          "domain": "identity"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 6857,
+          "same_ag_count": 2152,
+          "same_ag_pct": 31,
+          "avg_gap_hours": 0.3,
+          "avg_gap_label": "0.3h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 6759,
+          "same_ag_count": 1382,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 6744,
+          "same_ag_count": 1807,
+          "same_ag_pct": 27,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 6641,
+          "same_ag_count": 1295,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 6.2,
+          "avg_gap_label": "6.2h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 6575,
+          "same_ag_count": 1630,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 6432,
+          "same_ag_count": 1702,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "teams_meeting_issue",
+          "co_occurrence_count": 6326,
+          "same_ag_count": 1009,
+          "same_ag_pct": 16,
+          "avg_gap_hours": 6.3,
+          "avg_gap_label": "6.3h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 6316,
+          "same_ag_count": 2941,
+          "same_ag_pct": 47,
+          "avg_gap_hours": 3.1,
+          "avg_gap_label": "3.1h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Software",
+          6540
+        ],
+        [
+          "Hardware",
+          6497
+        ],
+        [
+          "Network",
+          6151
+        ],
+        [
+          "Business Application",
+          5994
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          6595
+        ],
+        [
+          "Software",
+          6534
+        ],
+        [
+          "Network",
+          6134
+        ],
+        [
+          "Business Application",
+          6002
+        ]
+      ]
+    },
+    "application_error": {
+      "total": 8767,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 8766,
+          "same_ag_count": 4272,
+          "same_ag_pct": 49,
+          "avg_gap_hours": 1.1,
+          "avg_gap_label": "1.1h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 8656,
+          "same_ag_count": 5613,
+          "same_ag_pct": 65,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 8050,
+          "same_ag_count": 3929,
+          "same_ag_pct": 49,
+          "avg_gap_hours": 7.2,
+          "avg_gap_label": "7.2h",
+          "confidence": "medium",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 7619,
+          "same_ag_count": 1080,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 12.4,
+          "avg_gap_label": "12.4h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "api_gateway_timeout",
+          "co_occurrence_count": 6851,
+          "same_ag_count": 281,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 8.7,
+          "avg_gap_label": "8.7h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 6673,
+          "same_ag_count": 2785,
+          "same_ag_pct": 42,
+          "avg_gap_hours": 10.6,
+          "avg_gap_label": "10.6h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 6290,
+          "same_ag_count": 1166,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 11.9,
+          "avg_gap_label": "11.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 6149,
+          "same_ag_count": 1667,
+          "same_ag_pct": 27,
+          "avg_gap_hours": 16.5,
+          "avg_gap_label": "16.5h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 8763,
+          "same_ag_count": 4854,
+          "same_ag_pct": 55,
+          "avg_gap_hours": 0.6,
+          "avg_gap_label": "0.6h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 8655,
+          "same_ag_count": 5546,
+          "same_ag_pct": 64,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 7941,
+          "same_ag_count": 3975,
+          "same_ag_pct": 50,
+          "avg_gap_hours": 6.6,
+          "avg_gap_label": "6.6h",
+          "confidence": "medium",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 7243,
+          "same_ag_count": 1214,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 12.5,
+          "avg_gap_label": "12.5h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "api_gateway_timeout",
+          "co_occurrence_count": 6959,
+          "same_ag_count": 103,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 9.2,
+          "avg_gap_label": "9.2h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 6388,
+          "same_ag_count": 2660,
+          "same_ag_pct": 42,
+          "avg_gap_hours": 14.4,
+          "avg_gap_label": "14.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 6113,
+          "same_ag_count": 2959,
+          "same_ag_pct": 48,
+          "avg_gap_hours": 11.5,
+          "avg_gap_label": "11.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 6095,
+          "same_ag_count": 1689,
+          "same_ag_pct": 28,
+          "avg_gap_hours": 17.4,
+          "avg_gap_label": "17.4h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          6952
+        ],
+        [
+          "Software",
+          6059
+        ],
+        [
+          "Notification Alert",
+          5260
+        ],
+        [
+          "Mobile Devices",
+          5178
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          6784
+        ],
+        [
+          "Software",
+          5928
+        ],
+        [
+          "Notification Alert",
+          5260
+        ],
+        [
+          "Mobile Devices",
+          5129
+        ]
+      ]
+    },
+    "cloud_resource_issue": {
+      "total": 1029,
+      "domain": "cloud",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 1027,
+          "same_ag_count": 96,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 0.4,
+          "avg_gap_label": "0.4h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 1018,
+          "same_ag_count": 14,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 1.4,
+          "avg_gap_label": "1.4h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 1017,
+          "same_ag_count": 72,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 4.1,
+          "avg_gap_label": "4.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 1017,
+          "same_ag_count": 68,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 1012,
+          "same_ag_count": 79,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 4.1,
+          "avg_gap_label": "4.1h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 1009,
+          "same_ag_count": 101,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 1.7,
+          "avg_gap_label": "1.7h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 995,
+          "same_ag_count": 156,
+          "same_ag_pct": 16,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 972,
+          "same_ag_count": 99,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 1028,
+          "same_ag_count": 111,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 0.5,
+          "avg_gap_label": "0.5h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 1019,
+          "same_ag_count": 50,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 4.0,
+          "avg_gap_label": "4.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 1018,
+          "same_ag_count": 76,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 1015,
+          "same_ag_count": 10,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 1.4,
+          "avg_gap_label": "1.4h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 1014,
+          "same_ag_count": 141,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 1013,
+          "same_ag_count": 38,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 5.1,
+          "avg_gap_label": "5.1h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 991,
+          "same_ag_count": 122,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.3,
+          "avg_gap_label": "2.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 970,
+          "same_ag_count": 174,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          994
+        ],
+        [
+          "Monitoring and Event Management",
+          904
+        ],
+        [
+          "Software / Application Issues",
+          904
+        ],
+        [
+          "Server - Windows",
+          897
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          983
+        ],
+        [
+          "Monitoring and Event Management",
+          904
+        ],
+        [
+          "Software / Application Issues",
+          904
+        ],
+        [
+          "Server - Windows",
+          902
+        ]
+      ]
+    },
+    "file_transfer_failure": {
+      "total": 200,
+      "domain": "network",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 200,
+          "same_ag_count": 22,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 198,
+          "same_ag_count": 21,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 198,
+          "same_ag_count": 22,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "high",
+          "domain": "network"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 197,
+          "same_ag_count": 23,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 196,
+          "same_ag_count": 23,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 195,
+          "same_ag_count": 29,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 193,
+          "same_ag_count": 33,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 1.8,
+          "avg_gap_label": "1.8h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 192,
+          "same_ag_count": 21,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "medium",
+          "domain": "database"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 200,
+          "same_ag_count": 27,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 0.4,
+          "avg_gap_label": "0.4h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 197,
+          "same_ag_count": 26,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 197,
+          "same_ag_count": 18,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 196,
+          "same_ag_count": 26,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 195,
+          "same_ag_count": 28,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "high",
+          "domain": "network"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 195,
+          "same_ag_count": 34,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 2.3,
+          "avg_gap_label": "2.3h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 194,
+          "same_ag_count": 17,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 7.4,
+          "avg_gap_label": "7.4h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 191,
+          "same_ag_count": 18,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 2.4,
+          "avg_gap_label": "2.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          191
+        ],
+        [
+          "Network",
+          191
+        ],
+        [
+          "Software",
+          180
+        ],
+        [
+          "Business Application",
+          179
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          192
+        ],
+        [
+          "Hardware",
+          192
+        ],
+        [
+          "Software",
+          180
+        ],
+        [
+          "Business Application",
+          179
+        ]
+      ]
+    },
+    "storage_connectivity_issue": {
+      "total": 1730,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 1728,
+          "same_ag_count": 173,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 1.9,
+          "avg_gap_label": "1.9h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 1631,
+          "same_ag_count": 75,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 7.2,
+          "avg_gap_label": "7.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 1618,
+          "same_ag_count": 123,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 6.8,
+          "avg_gap_label": "6.8h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 1613,
+          "same_ag_count": 121,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 6.2,
+          "avg_gap_label": "6.2h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 1538,
+          "same_ag_count": 69,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 6.7,
+          "avg_gap_label": "6.7h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 1458,
+          "same_ag_count": 110,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 12.2,
+          "avg_gap_label": "12.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 1348,
+          "same_ag_count": 164,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 10.9,
+          "avg_gap_label": "10.9h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 1328,
+          "same_ag_count": 114,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 13.1,
+          "avg_gap_label": "13.1h",
+          "confidence": "medium",
+          "domain": "network"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 1730,
+          "same_ag_count": 176,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 1604,
+          "same_ag_count": 79,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 7.3,
+          "avg_gap_label": "7.3h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 1602,
+          "same_ag_count": 122,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 8.0,
+          "avg_gap_label": "8.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 1598,
+          "same_ag_count": 115,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 7.2,
+          "avg_gap_label": "7.2h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 1514,
+          "same_ag_count": 62,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 6.8,
+          "avg_gap_label": "6.8h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 1371,
+          "same_ag_count": 104,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 11.8,
+          "avg_gap_label": "11.8h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 1326,
+          "same_ag_count": 175,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 10.1,
+          "avg_gap_label": "10.1h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 1278,
+          "same_ag_count": 131,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 12.4,
+          "avg_gap_label": "12.4h",
+          "confidence": "medium",
+          "domain": "network"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          1376
+        ],
+        [
+          "Server",
+          1156
+        ],
+        [
+          "Cluster",
+          1030
+        ],
+        [
+          "VMWare",
+          938
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          1393
+        ],
+        [
+          "Server",
+          1128
+        ],
+        [
+          "Cluster",
+          1028
+        ],
+        [
+          "Storage Device",
+          918
+        ]
+      ]
+    },
+    "database_performance_issue": {
+      "total": 15011,
+      "domain": "database",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 15008,
+          "same_ag_count": 2920,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 14666,
+          "same_ag_count": 6226,
+          "same_ag_pct": 42,
+          "avg_gap_hours": 4.8,
+          "avg_gap_label": "4.8h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 13098,
+          "same_ag_count": 2474,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 5.4,
+          "avg_gap_label": "5.4h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 12751,
+          "same_ag_count": 3475,
+          "same_ag_pct": 27,
+          "avg_gap_hours": 7.8,
+          "avg_gap_label": "7.8h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 12662,
+          "same_ag_count": 3028,
+          "same_ag_pct": 24,
+          "avg_gap_hours": 4.8,
+          "avg_gap_label": "4.8h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 12613,
+          "same_ag_count": 2439,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 7.3,
+          "avg_gap_label": "7.3h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 12074,
+          "same_ag_count": 2479,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 15.0,
+          "avg_gap_label": "15.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 12034,
+          "same_ag_count": 1192,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 15.9,
+          "avg_gap_label": "15.9h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 15006,
+          "same_ag_count": 3276,
+          "same_ag_pct": 22,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 14680,
+          "same_ag_count": 5870,
+          "same_ag_pct": 40,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 13255,
+          "same_ag_count": 2804,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 12797,
+          "same_ag_count": 2323,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 7.7,
+          "avg_gap_label": "7.7h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 12673,
+          "same_ag_count": 3515,
+          "same_ag_pct": 28,
+          "avg_gap_hours": 7.7,
+          "avg_gap_label": "7.7h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 12608,
+          "same_ag_count": 2846,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 12391,
+          "same_ag_count": 2702,
+          "same_ag_pct": 22,
+          "avg_gap_hours": 15.6,
+          "avg_gap_label": "15.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 12326,
+          "same_ag_count": 1043,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 16.2,
+          "avg_gap_label": "16.2h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          12378
+        ],
+        [
+          "Monitoring and Event Management",
+          9419
+        ],
+        [
+          "Software / Application Issues",
+          9406
+        ],
+        [
+          "Server - Windows",
+          9315
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          12628
+        ],
+        [
+          "Monitoring and Event Management",
+          9418
+        ],
+        [
+          "Software / Application Issues",
+          9413
+        ],
+        [
+          "Server - Windows",
+          9283
+        ]
+      ]
+    },
+    "active_directory_issue": {
+      "total": 802,
+      "domain": "identity",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 801,
+          "same_ag_count": 171,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 0.6,
+          "avg_gap_label": "0.6h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 772,
+          "same_ag_count": 137,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 772,
+          "same_ag_count": 71,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 760,
+          "same_ag_count": 199,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 742,
+          "same_ag_count": 154,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 4.2,
+          "avg_gap_label": "4.2h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 728,
+          "same_ag_count": 65,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 681,
+          "same_ag_count": 42,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 6.6,
+          "avg_gap_label": "6.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 660,
+          "same_ag_count": 67,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 8.7,
+          "avg_gap_label": "8.7h",
+          "confidence": "low",
+          "domain": "endpoint"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 801,
+          "same_ag_count": 136,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 0.5,
+          "avg_gap_label": "0.5h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 776,
+          "same_ag_count": 143,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 3.8,
+          "avg_gap_label": "3.8h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 773,
+          "same_ag_count": 82,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 3.9,
+          "avg_gap_label": "3.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 756,
+          "same_ag_count": 199,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 746,
+          "same_ag_count": 153,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 4.3,
+          "avg_gap_label": "4.3h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 723,
+          "same_ag_count": 89,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 690,
+          "same_ag_count": 47,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 6.7,
+          "avg_gap_label": "6.7h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 680,
+          "same_ag_count": 121,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 9.7,
+          "avg_gap_label": "9.7h",
+          "confidence": "high",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          704
+        ],
+        [
+          "Network",
+          609
+        ],
+        [
+          "Monitoring and Event Management",
+          377
+        ],
+        [
+          "Software / Application Issues",
+          377
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          707
+        ],
+        [
+          "Network",
+          569
+        ],
+        [
+          "Monitoring and Event Management",
+          377
+        ],
+        [
+          "Software / Application Issues",
+          377
+        ]
+      ]
+    },
+    "high_disk_usage": {
+      "total": 9538,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 9538,
+          "same_ag_count": 1208,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 0.7,
+          "avg_gap_label": "0.7h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 9301,
+          "same_ag_count": 3954,
+          "same_ag_pct": 43,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 9175,
+          "same_ag_count": 816,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 5.5,
+          "avg_gap_label": "5.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 9037,
+          "same_ag_count": 1307,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 8899,
+          "same_ag_count": 3605,
+          "same_ag_pct": 41,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 8855,
+          "same_ag_count": 2174,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 8745,
+          "same_ag_count": 813,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 8569,
+          "same_ag_count": 776,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 13.3,
+          "avg_gap_label": "13.3h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 9536,
+          "same_ag_count": 1200,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 0.7,
+          "avg_gap_label": "0.7h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 9262,
+          "same_ag_count": 3941,
+          "same_ag_pct": 43,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 9197,
+          "same_ag_count": 758,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 5.5,
+          "avg_gap_label": "5.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 9066,
+          "same_ag_count": 1340,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 8976,
+          "same_ag_count": 3747,
+          "same_ag_pct": 42,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 8879,
+          "same_ag_count": 2321,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 5.8,
+          "avg_gap_label": "5.8h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 8777,
+          "same_ag_count": 846,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 8739,
+          "same_ag_count": 823,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 13.1,
+          "avg_gap_label": "13.1h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Monitoring and Event Management",
+          7278
+        ],
+        [
+          "Software / Application Issues",
+          7268
+        ],
+        [
+          "Hardware",
+          7253
+        ],
+        [
+          "Server - Windows",
+          7152
+        ]
+      ],
+      "after_categories": [
+        [
+          "Monitoring and Event Management",
+          7278
+        ],
+        [
+          "Software / Application Issues",
+          7278
+        ],
+        [
+          "Hardware",
+          7175
+        ],
+        [
+          "Server - Windows",
+          7163
+        ]
+      ]
+    },
+    "api_gateway_timeout": {
+      "total": 2050,
+      "domain": "network",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 2050,
+          "same_ag_count": 211,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 2039,
+          "same_ag_count": 44,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 2030,
+          "same_ag_count": 14,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 6.8,
+          "avg_gap_label": "6.8h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 1944,
+          "same_ag_count": 15,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 1725,
+          "same_ag_count": 323,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 14.3,
+          "avg_gap_label": "14.3h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 1444,
+          "same_ag_count": 205,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 16.3,
+          "avg_gap_label": "16.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 1360,
+          "same_ag_count": 34,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 18.5,
+          "avg_gap_label": "18.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "teams_meeting_issue",
+          "co_occurrence_count": 1347,
+          "same_ag_count": 3,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 18.6,
+          "avg_gap_label": "18.6h",
+          "confidence": "low",
+          "domain": "endpoint"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 2048,
+          "same_ag_count": 231,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 2028,
+          "same_ag_count": 44,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 2027,
+          "same_ag_count": 21,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.0,
+          "avg_gap_label": "7.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 1963,
+          "same_ag_count": 16,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 5.9,
+          "avg_gap_label": "5.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 1703,
+          "same_ag_count": 324,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 14.2,
+          "avg_gap_label": "14.2h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 1433,
+          "same_ag_count": 192,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 16.0,
+          "avg_gap_label": "16.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 1314,
+          "same_ag_count": 3,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 18.3,
+          "avg_gap_label": "18.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "teams_meeting_issue",
+          "co_occurrence_count": 1294,
+          "same_ag_count": 2,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 17.9,
+          "avg_gap_label": "17.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        }
+      ],
+      "before_categories": [
+        [
+          "Notification Alert",
+          1813
+        ],
+        [
+          "Mobile Devices",
+          1804
+        ],
+        [
+          "Email",
+          1760
+        ],
+        [
+          "Inquiry / Help",
+          1708
+        ]
+      ],
+      "after_categories": [
+        [
+          "Notification Alert",
+          1812
+        ],
+        [
+          "Mobile Devices",
+          1798
+        ],
+        [
+          "Email",
+          1746
+        ],
+        [
+          "Inquiry / Help",
+          1704
+        ]
+      ]
+    },
+    "printer_issue": {
+      "total": 701,
+      "domain": "endpoint",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 701,
+          "same_ag_count": 153,
+          "same_ag_pct": 22,
+          "avg_gap_hours": 0.3,
+          "avg_gap_label": "0.3h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 697,
+          "same_ag_count": 48,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 696,
+          "same_ag_count": 63,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 679,
+          "same_ag_count": 79,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 671,
+          "same_ag_count": 34,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 648,
+          "same_ag_count": 50,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 638,
+          "same_ag_count": 87,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 4.0,
+          "avg_gap_label": "4.0h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 603,
+          "same_ag_count": 5,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 4.9,
+          "avg_gap_label": "4.9h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 701,
+          "same_ag_count": 126,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 0.4,
+          "avg_gap_label": "0.4h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 696,
+          "same_ag_count": 53,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 691,
+          "same_ag_count": 83,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 675,
+          "same_ag_count": 82,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 3.8,
+          "avg_gap_label": "3.8h",
+          "confidence": "low",
+          "domain": "network"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 661,
+          "same_ag_count": 29,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 6.2,
+          "avg_gap_label": "6.2h",
+          "confidence": "low",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 649,
+          "same_ag_count": 54,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 3.8,
+          "avg_gap_label": "3.8h",
+          "confidence": "low",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 647,
+          "same_ag_count": 88,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "high",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 617,
+          "same_ag_count": 70,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 10.1,
+          "avg_gap_label": "10.1h",
+          "confidence": "low",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          649
+        ],
+        [
+          "Hardware",
+          617
+        ],
+        [
+          "Business Application",
+          489
+        ],
+        [
+          "Software",
+          487
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          646
+        ],
+        [
+          "Hardware",
+          608
+        ],
+        [
+          "Business Application",
+          488
+        ],
+        [
+          "Software",
+          487
+        ]
+      ]
+    },
+    "vpn_client_failure": {
+      "total": 3471,
+      "domain": "identity",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 3470,
+          "same_ag_count": 1035,
+          "same_ag_pct": 30,
+          "avg_gap_hours": 0.1,
+          "avg_gap_label": "0.1h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 3468,
+          "same_ag_count": 681,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 1.0,
+          "avg_gap_label": "1.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 3450,
+          "same_ag_count": 915,
+          "same_ag_pct": 27,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 3447,
+          "same_ag_count": 703,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 3443,
+          "same_ag_count": 1263,
+          "same_ag_pct": 37,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 3412,
+          "same_ag_count": 1547,
+          "same_ag_pct": 45,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "high",
+          "domain": "identity"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 3389,
+          "same_ag_count": 937,
+          "same_ag_pct": 28,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 3365,
+          "same_ag_count": 572,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 6.4,
+          "avg_gap_label": "6.4h",
+          "confidence": "medium",
+          "domain": "database"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 3471,
+          "same_ag_count": 1022,
+          "same_ag_pct": 29,
+          "avg_gap_hours": 0.1,
+          "avg_gap_label": "0.1h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 3459,
+          "same_ag_count": 727,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 1.0,
+          "avg_gap_label": "1.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 3454,
+          "same_ag_count": 728,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 3446,
+          "same_ag_count": 1284,
+          "same_ag_pct": 37,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 3445,
+          "same_ag_count": 897,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 3427,
+          "same_ag_count": 1548,
+          "same_ag_pct": 45,
+          "avg_gap_hours": 1.6,
+          "avg_gap_label": "1.6h",
+          "confidence": "high",
+          "domain": "identity"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 3424,
+          "same_ag_count": 897,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 1.9,
+          "avg_gap_label": "1.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 3393,
+          "same_ag_count": 549,
+          "same_ag_pct": 16,
+          "avg_gap_hours": 6.1,
+          "avg_gap_label": "6.1h",
+          "confidence": "medium",
+          "domain": "database"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          3432
+        ],
+        [
+          "Network",
+          3388
+        ],
+        [
+          "Software",
+          3250
+        ],
+        [
+          "Business Application",
+          3232
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          3443
+        ],
+        [
+          "Network",
+          3378
+        ],
+        [
+          "Software",
+          3246
+        ],
+        [
+          "Business Application",
+          3232
+        ]
+      ]
+    },
+    "batch_job_failure": {
+      "total": 5416,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 5416,
+          "same_ag_count": 170,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 5404,
+          "same_ag_count": 134,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 5401,
+          "same_ag_count": 41,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 5214,
+          "same_ag_count": 5,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 5.1,
+          "avg_gap_label": "5.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 5201,
+          "same_ag_count": 76,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.2,
+          "avg_gap_label": "7.2h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 5147,
+          "same_ag_count": 64,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.0,
+          "avg_gap_label": "7.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 5116,
+          "same_ag_count": 125,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 10.5,
+          "avg_gap_label": "10.5h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 4977,
+          "same_ag_count": 8,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 5415,
+          "same_ag_count": 111,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 0.7,
+          "avg_gap_label": "0.7h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 5398,
+          "same_ag_count": 130,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 5378,
+          "same_ag_count": 81,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 6.4,
+          "avg_gap_label": "6.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 5250,
+          "same_ag_count": 9,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 5.2,
+          "avg_gap_label": "5.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 5209,
+          "same_ag_count": 42,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.6,
+          "avg_gap_label": "7.6h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 5064,
+          "same_ag_count": 71,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.3,
+          "avg_gap_label": "7.3h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 4992,
+          "same_ag_count": 142,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 10.5,
+          "avg_gap_label": "10.5h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 4969,
+          "same_ag_count": 8,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.1,
+          "avg_gap_label": "3.1h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          5356
+        ],
+        [
+          "Hardware",
+          4777
+        ],
+        [
+          "Business Application",
+          4672
+        ],
+        [
+          "Software",
+          4672
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          5350
+        ],
+        [
+          "Hardware",
+          4797
+        ],
+        [
+          "Business Application",
+          4669
+        ],
+        [
+          "Software",
+          4660
+        ]
+      ]
+    },
+    "kubernetes_issue": {
+      "total": 30,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 30,
+          "same_ag_count": 7,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 30,
+          "same_ag_count": 2,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 29,
+          "same_ag_count": 7,
+          "same_ag_pct": 24,
+          "avg_gap_hours": 6.4,
+          "avg_gap_label": "6.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 29,
+          "same_ag_count": 5,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 5.5,
+          "avg_gap_label": "5.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 29,
+          "same_ag_count": 6,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 28,
+          "same_ag_count": 6,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 4.2,
+          "avg_gap_label": "4.2h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 28,
+          "same_ag_count": 6,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 5.8,
+          "avg_gap_label": "5.8h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 27,
+          "same_ag_count": 4,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 30,
+          "same_ag_count": 9,
+          "same_ag_pct": 30,
+          "avg_gap_hours": 0.3,
+          "avg_gap_label": "0.3h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 30,
+          "same_ag_count": 2,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 29,
+          "same_ag_count": 5,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 2.9,
+          "avg_gap_label": "2.9h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 29,
+          "same_ag_count": 5,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 29,
+          "same_ag_count": 5,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 28,
+          "same_ag_count": 4,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 5.7,
+          "avg_gap_label": "5.7h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 28,
+          "same_ag_count": 7,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 25,
+          "same_ag_count": 5,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 5.0,
+          "avg_gap_label": "5.0h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          28
+        ],
+        [
+          "Hardware",
+          25
+        ],
+        [
+          "Business Application",
+          19
+        ],
+        [
+          "Software",
+          19
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          27
+        ],
+        [
+          "Hardware",
+          24
+        ],
+        [
+          "Business Application",
+          19
+        ],
+        [
+          "Software",
+          19
+        ]
+      ]
+    },
+    "backup_failure": {
+      "total": 250,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 250,
+          "same_ag_count": 9,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 0.3,
+          "avg_gap_label": "0.3h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 249,
+          "same_ag_count": 3,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 244,
+          "same_ag_count": 6,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 3.3,
+          "avg_gap_label": "3.3h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 243,
+          "same_ag_count": 9,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 5.4,
+          "avg_gap_label": "5.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 243,
+          "same_ag_count": 4,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 241,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 241,
+          "same_ag_count": 4,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 6.8,
+          "avg_gap_label": "6.8h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "vpn_client_failure",
+          "co_occurrence_count": 231,
+          "same_ag_count": 1,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.5,
+          "avg_gap_label": "3.5h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 250,
+          "same_ag_count": 11,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 0.3,
+          "avg_gap_label": "0.3h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 242,
+          "same_ag_count": 20,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 242,
+          "same_ag_count": 5,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 3.8,
+          "avg_gap_label": "3.8h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 241,
+          "same_ag_count": 1,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.8,
+          "avg_gap_label": "3.8h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 240,
+          "same_ag_count": 8,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 4.7,
+          "avg_gap_label": "4.7h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 236,
+          "same_ag_count": 3,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 7.0,
+          "avg_gap_label": "7.0h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 233,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 2.4,
+          "avg_gap_label": "2.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "vpn_client_failure",
+          "co_occurrence_count": 231,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          238
+        ],
+        [
+          "Hardware",
+          231
+        ],
+        [
+          "Software",
+          220
+        ],
+        [
+          "Business Application",
+          216
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          245
+        ],
+        [
+          "Hardware",
+          234
+        ],
+        [
+          "Software",
+          215
+        ],
+        [
+          "Business Application",
+          214
+        ]
+      ]
+    },
+    "dns_resolution_failure": {
+      "total": 56,
+      "domain": "network",
+      "before_patterns": [
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 56,
+          "same_ag_count": 4,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 1.1,
+          "avg_gap_label": "1.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 56,
+          "same_ag_count": 7,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 56,
+          "same_ag_count": 7,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "high",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 56,
+          "same_ag_count": 7,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 4.3,
+          "avg_gap_label": "4.3h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 55,
+          "same_ag_count": 3,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 1.6,
+          "avg_gap_label": "1.6h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 55,
+          "same_ag_count": 3,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 1.7,
+          "avg_gap_label": "1.7h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 55,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 5.9,
+          "avg_gap_label": "5.9h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 54,
+          "same_ag_count": 1,
+          "same_ag_pct": 2,
+          "avg_gap_hours": 1.8,
+          "avg_gap_label": "1.8h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 56,
+          "same_ag_count": 8,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 56,
+          "same_ag_count": 3,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 56,
+          "same_ag_count": 5,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 55,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 1.9,
+          "avg_gap_label": "1.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 54,
+          "same_ag_count": 6,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 0.5,
+          "avg_gap_label": "0.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 54,
+          "same_ag_count": 5,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "high",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 54,
+          "same_ag_count": 6,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 6.9,
+          "avg_gap_label": "6.9h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "teams_meeting_issue",
+          "co_occurrence_count": 53,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 5.0,
+          "avg_gap_label": "5.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          55
+        ],
+        [
+          "Software",
+          52
+        ],
+        [
+          "Hardware",
+          52
+        ],
+        [
+          "Business Application",
+          51
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          55
+        ],
+        [
+          "Hardware",
+          52
+        ],
+        [
+          "Software",
+          52
+        ],
+        [
+          "Business Application",
+          51
+        ]
+      ]
+    },
+    "service_unavailable": {
+      "total": 80,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 80,
+          "same_ag_count": 25,
+          "same_ag_pct": 31,
+          "avg_gap_hours": 0.1,
+          "avg_gap_label": "0.1h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 80,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 1.3,
+          "avg_gap_label": "1.3h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 80,
+          "same_ag_count": 13,
+          "same_ag_pct": 16,
+          "avg_gap_hours": 0.7,
+          "avg_gap_label": "0.7h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 80,
+          "same_ag_count": 8,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 80,
+          "same_ag_count": 26,
+          "same_ag_pct": 32,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 78,
+          "same_ag_count": 15,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 6.7,
+          "avg_gap_label": "6.7h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 78,
+          "same_ag_count": 11,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 1.1,
+          "avg_gap_label": "1.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 78,
+          "same_ag_count": 20,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 0.7,
+          "avg_gap_label": "0.7h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 80,
+          "same_ag_count": 19,
+          "same_ag_pct": 24,
+          "avg_gap_hours": 0.1,
+          "avg_gap_label": "0.1h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 80,
+          "same_ag_count": 7,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 80,
+          "same_ag_count": 6,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 0.9,
+          "avg_gap_label": "0.9h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 80,
+          "same_ag_count": 17,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 80,
+          "same_ag_count": 1,
+          "same_ag_pct": 1,
+          "avg_gap_hours": 1.8,
+          "avg_gap_label": "1.8h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 79,
+          "same_ag_count": 14,
+          "same_ag_pct": 18,
+          "avg_gap_hours": 2.4,
+          "avg_gap_label": "2.4h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "authentication_failure",
+          "co_occurrence_count": 78,
+          "same_ag_count": 30,
+          "same_ag_pct": 38,
+          "avg_gap_hours": 0.9,
+          "avg_gap_label": "0.9h",
+          "confidence": "medium",
+          "domain": "identity"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 78,
+          "same_ag_count": 13,
+          "same_ag_pct": 17,
+          "avg_gap_hours": 1.4,
+          "avg_gap_label": "1.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          80
+        ],
+        [
+          "Hardware",
+          77
+        ],
+        [
+          "Business Application",
+          76
+        ],
+        [
+          "Software",
+          76
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          80
+        ],
+        [
+          "Hardware",
+          77
+        ],
+        [
+          "Business Application",
+          76
+        ],
+        [
+          "Software",
+          76
+        ]
+      ]
+    },
+    "cpu_saturation": {
+      "total": 10475,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 10475,
+          "same_ag_count": 2483,
+          "same_ag_pct": 24,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 10349,
+          "same_ag_count": 3630,
+          "same_ag_pct": 35,
+          "avg_gap_hours": 2.1,
+          "avg_gap_label": "2.1h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 10338,
+          "same_ag_count": 743,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 6.1,
+          "avg_gap_label": "6.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 10209,
+          "same_ag_count": 3332,
+          "same_ag_pct": 33,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 10000,
+          "same_ag_count": 1237,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 9891,
+          "same_ag_count": 2045,
+          "same_ag_pct": 21,
+          "avg_gap_hours": 6.0,
+          "avg_gap_label": "6.0h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 9703,
+          "same_ag_count": 575,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 13.4,
+          "avg_gap_label": "13.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 9462,
+          "same_ag_count": 351,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 3.9,
+          "avg_gap_label": "3.9h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 10474,
+          "same_ag_count": 2734,
+          "same_ag_pct": 26,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 10360,
+          "same_ag_count": 3567,
+          "same_ag_pct": 34,
+          "avg_gap_hours": 2.1,
+          "avg_gap_label": "2.1h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 10295,
+          "same_ag_count": 935,
+          "same_ag_pct": 9,
+          "avg_gap_hours": 5.1,
+          "avg_gap_label": "5.1h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 10195,
+          "same_ag_count": 3486,
+          "same_ag_pct": 34,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 9927,
+          "same_ag_count": 1050,
+          "same_ag_pct": 11,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 9864,
+          "same_ag_count": 2313,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 5.9,
+          "avg_gap_label": "5.9h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 9626,
+          "same_ag_count": 416,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 4.3,
+          "avg_gap_label": "4.3h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 9534,
+          "same_ag_count": 617,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 14.3,
+          "avg_gap_label": "14.3h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Monitoring and Event Management",
+          8445
+        ],
+        [
+          "Software / Application Issues",
+          8436
+        ],
+        [
+          "Server - Windows",
+          8408
+        ],
+        [
+          "Hardware",
+          8193
+        ]
+      ],
+      "after_categories": [
+        [
+          "Monitoring and Event Management",
+          8445
+        ],
+        [
+          "Software / Application Issues",
+          8445
+        ],
+        [
+          "Server - Windows",
+          8383
+        ],
+        [
+          "Hardware",
+          8359
+        ]
+      ]
+    },
+    "security_alert": {
+      "total": 31,
+      "domain": "security",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 31,
+          "same_ag_count": 7,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 31,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 6.2,
+          "avg_gap_label": "6.2h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 31,
+          "same_ag_count": 2,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 31,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 2.7,
+          "avg_gap_label": "2.7h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 31,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 3.1,
+          "avg_gap_label": "3.1h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 30,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 1.2,
+          "avg_gap_label": "1.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 30,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 1.2,
+          "avg_gap_label": "1.2h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 30,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 31,
+          "same_ag_count": 4,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 31,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 4.6,
+          "avg_gap_label": "4.6h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 31,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 3.5,
+          "avg_gap_label": "3.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 31,
+          "same_ag_count": 2,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 31,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 2.2,
+          "avg_gap_label": "2.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 31,
+          "same_ag_count": 1,
+          "same_ag_pct": 3,
+          "avg_gap_hours": 1.1,
+          "avg_gap_label": "1.1h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 30,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "vpn_client_failure",
+          "co_occurrence_count": 30,
+          "same_ag_count": 8,
+          "same_ag_pct": 27,
+          "avg_gap_hours": 11.1,
+          "avg_gap_label": "11.1h",
+          "confidence": "medium",
+          "domain": "identity"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          31
+        ],
+        [
+          "Network",
+          27
+        ],
+        [
+          "Monitoring and Event Management",
+          26
+        ],
+        [
+          "Access Issue",
+          26
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          29
+        ],
+        [
+          "Network",
+          28
+        ],
+        [
+          "Monitoring and Event Management",
+          26
+        ],
+        [
+          "Software / Application Issues",
+          26
+        ]
+      ]
+    },
+    "patch_failure": {
+      "total": 27,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 27,
+          "same_ag_count": 12,
+          "same_ag_pct": 44,
+          "avg_gap_hours": 0.6,
+          "avg_gap_label": "0.6h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 27,
+          "same_ag_count": 9,
+          "same_ag_pct": 33,
+          "avg_gap_hours": 1.7,
+          "avg_gap_label": "1.7h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 27,
+          "same_ag_count": 2,
+          "same_ag_pct": 7,
+          "avg_gap_hours": 15.0,
+          "avg_gap_label": "15.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 27,
+          "same_ag_count": 1,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 2.3,
+          "avg_gap_label": "2.3h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 26,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 4.7,
+          "avg_gap_label": "4.7h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 26,
+          "same_ag_count": 11,
+          "same_ag_pct": 42,
+          "avg_gap_hours": 5.6,
+          "avg_gap_label": "5.6h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 25,
+          "same_ag_count": 10,
+          "same_ag_pct": 40,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 25,
+          "same_ag_count": 1,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 10.1,
+          "avg_gap_label": "10.1h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 27,
+          "same_ag_count": 13,
+          "same_ag_pct": 48,
+          "avg_gap_hours": 0.2,
+          "avg_gap_label": "0.2h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 27,
+          "same_ag_count": 10,
+          "same_ag_pct": 37,
+          "avg_gap_hours": 1.5,
+          "avg_gap_label": "1.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 27,
+          "same_ag_count": 9,
+          "same_ag_pct": 33,
+          "avg_gap_hours": 2.1,
+          "avg_gap_label": "2.1h",
+          "confidence": "medium",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 27,
+          "same_ag_count": 5,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 5.7,
+          "avg_gap_label": "5.7h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "email_delivery_failure",
+          "co_occurrence_count": 26,
+          "same_ag_count": 3,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.5,
+          "avg_gap_label": "2.5h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "batch_job_failure",
+          "co_occurrence_count": 26,
+          "same_ag_count": 1,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 14.4,
+          "avg_gap_label": "14.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 26,
+          "same_ag_count": 6,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 4.5,
+          "avg_gap_label": "4.5h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 25,
+          "same_ag_count": 1,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 11.5,
+          "avg_gap_label": "11.5h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          27
+        ],
+        [
+          "Server",
+          16
+        ],
+        [
+          "Cluster",
+          16
+        ],
+        [
+          "Database Instance",
+          16
+        ]
+      ],
+      "after_categories": [
+        [
+          "Network",
+          27
+        ],
+        [
+          "Server",
+          16
+        ],
+        [
+          "Cluster",
+          16
+        ],
+        [
+          "Storage Networks",
+          16
+        ]
+      ]
+    },
+    "disk_full": {
+      "total": 50,
+      "domain": "server",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 50,
+          "same_ag_count": 4,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 1.4,
+          "avg_gap_label": "1.4h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 49,
+          "same_ag_count": 8,
+          "same_ag_pct": 16,
+          "avg_gap_hours": 4.4,
+          "avg_gap_label": "4.4h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 49,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 48,
+          "same_ag_count": 7,
+          "same_ag_pct": 15,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 48,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 47,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 5.5,
+          "avg_gap_label": "5.5h",
+          "confidence": "medium",
+          "domain": "network"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 46,
+          "same_ag_count": 14,
+          "same_ag_pct": 30,
+          "avg_gap_hours": 5.1,
+          "avg_gap_label": "5.1h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 45,
+          "same_ag_count": 6,
+          "same_ag_pct": 13,
+          "avg_gap_hours": 2.8,
+          "avg_gap_label": "2.8h",
+          "confidence": "medium",
+          "domain": "database"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 50,
+          "same_ag_count": 3,
+          "same_ag_pct": 6,
+          "avg_gap_hours": 0.8,
+          "avg_gap_label": "0.8h",
+          "confidence": "low",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 49,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 49,
+          "same_ag_count": 4,
+          "same_ag_pct": 8,
+          "avg_gap_hours": 2.0,
+          "avg_gap_label": "2.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 49,
+          "same_ag_count": 6,
+          "same_ag_pct": 12,
+          "avg_gap_hours": 2.3,
+          "avg_gap_label": "2.3h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 47,
+          "same_ag_count": 13,
+          "same_ag_pct": 28,
+          "avg_gap_hours": 4.1,
+          "avg_gap_label": "4.1h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 47,
+          "same_ag_count": 2,
+          "same_ag_pct": 4,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "high",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 44,
+          "same_ag_count": 6,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 3.2,
+          "avg_gap_label": "3.2h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 44,
+          "same_ag_count": 11,
+          "same_ag_pct": 25,
+          "avg_gap_hours": 9.5,
+          "avg_gap_label": "9.5h",
+          "confidence": "high",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Network",
+          42
+        ],
+        [
+          "Hardware",
+          40
+        ],
+        [
+          "Monitoring and Event Management",
+          38
+        ],
+        [
+          "Software / Application Issues",
+          38
+        ]
+      ],
+      "after_categories": [
+        [
+          "Monitoring and Event Management",
+          38
+        ],
+        [
+          "Software / Application Issues",
+          38
+        ],
+        [
+          "Server - Windows",
+          38
+        ],
+        [
+          "Hardware - PC",
+          37
+        ]
+      ]
+    },
+    "load_balancer_issue": {
+      "total": 22,
+      "domain": "network",
+      "before_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 22,
+          "same_ag_count": 7,
+          "same_ag_pct": 32,
+          "avg_gap_hours": 2.4,
+          "avg_gap_label": "2.4h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 22,
+          "same_ag_count": 1,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 3.6,
+          "avg_gap_label": "3.6h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 22,
+          "same_ag_count": 5,
+          "same_ag_pct": 23,
+          "avg_gap_hours": 6.7,
+          "avg_gap_label": "6.7h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 22,
+          "same_ag_count": 1,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 22,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 6.5,
+          "avg_gap_label": "6.5h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "network_connectivity_issue",
+          "co_occurrence_count": 21,
+          "same_ag_count": 2,
+          "same_ag_pct": 10,
+          "avg_gap_hours": 2.6,
+          "avg_gap_label": "2.6h",
+          "confidence": "high",
+          "domain": "network"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 21,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.4,
+          "avg_gap_label": "3.4h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 21,
+          "same_ag_count": 3,
+          "same_ag_pct": 14,
+          "avg_gap_hours": 1.9,
+          "avg_gap_label": "1.9h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "after_patterns": [
+        {
+          "classification": "unclassified",
+          "co_occurrence_count": 22,
+          "same_ag_count": 7,
+          "same_ag_pct": 32,
+          "avg_gap_hours": 1.4,
+          "avg_gap_label": "1.4h",
+          "confidence": "medium",
+          "domain": "unknown"
+        },
+        {
+          "classification": "vdi_citrix_connectivity_issue",
+          "co_occurrence_count": 22,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 3.0,
+          "avg_gap_label": "3.0h",
+          "confidence": "low",
+          "domain": "endpoint"
+        },
+        {
+          "classification": "database_performance_issue",
+          "co_occurrence_count": 22,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 9.8,
+          "avg_gap_label": "9.8h",
+          "confidence": "medium",
+          "domain": "database"
+        },
+        {
+          "classification": "memory_pressure",
+          "co_occurrence_count": 22,
+          "same_ag_count": 1,
+          "same_ag_pct": 5,
+          "avg_gap_hours": 4.2,
+          "avg_gap_label": "4.2h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "high_disk_usage",
+          "co_occurrence_count": 21,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 6.6,
+          "avg_gap_label": "6.6h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "storage_connectivity_issue",
+          "co_occurrence_count": 21,
+          "same_ag_count": 0,
+          "same_ag_pct": 0,
+          "avg_gap_hours": 11.5,
+          "avg_gap_label": "11.5h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "cpu_saturation",
+          "co_occurrence_count": 21,
+          "same_ag_count": 4,
+          "same_ag_pct": 19,
+          "avg_gap_hours": 4.8,
+          "avg_gap_label": "4.8h",
+          "confidence": "medium",
+          "domain": "server"
+        },
+        {
+          "classification": "application_error",
+          "co_occurrence_count": 20,
+          "same_ag_count": 4,
+          "same_ag_pct": 20,
+          "avg_gap_hours": 5.3,
+          "avg_gap_label": "5.3h",
+          "confidence": "medium",
+          "domain": "server"
+        }
+      ],
+      "before_categories": [
+        [
+          "Hardware",
+          18
+        ],
+        [
+          "Network",
+          18
+        ],
+        [
+          "Monitoring and Event Management",
+          15
+        ],
+        [
+          "Software / Application Issues",
+          15
+        ]
+      ],
+      "after_categories": [
+        [
+          "Hardware",
+          18
+        ],
+        [
+          "Network",
+          15
+        ],
+        [
+          "Monitoring and Event Management",
+          15
+        ],
+        [
+          "Software / Application Issues",
+          15
+        ]
+      ]
+    }
+  }
+}

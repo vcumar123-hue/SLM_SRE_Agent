@@ -1,0 +1,10 @@
+{
+  "iis_configuration_or_connectivity_issue": {
+    "actions": [
+      "restart_iis"
+    ],
+    "learned_by": "Vijay",
+    "source": "manual_approval",
+    "updated_at": "2026-04-16T02:19:49.216444+00:00"
+  }
+}

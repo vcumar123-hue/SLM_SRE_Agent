@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "tenant_id": "client_a",
+    "display_name": "PFG",
+    "backtest_mode": "client_local",
+    "data_scope": "client_private",
+    "description": "Seed client-local backtesting cases for AI Ops Copilot. Replace or extend with anonymized ITSM exports.",
+    "version": "1.0",
+    "knowledge_layers_to_compare": [
+      "base_only",
+      "client_private",
+      "client_private_plus_global_patterns"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "bt_client_a_vpn_001",
+      "tenant_id": "client_a",
+      "mode": "client_local",
+      "source": {
+        "system": "manual_seed",
+        "record_type": "incident",
+        "original_ticket_id": "ANON-INC-VPN-001",
+        "client_alias": "client_a"
+      },
+      "input": {
+        "title": "VPN users cannot connect after password reset",
+        "ticket_text": "VPN users cannot connect after password reset. MFA prompt loops and RADIUS authentication errors are observed.",
+        "environment": "production",
+        "affected_ci": "vpn_gateway_or_user_endpoint",
+        "severity": "high"
+      },
+      "expected": {
+        "domain": "network",
+        "classification": "vpn_client_failure",
+        "root_cause": "cached credential or identity-provider authentication issue after password reset",
+        "associated_scenario": "authentication_or_identity_provider_dependency",
+        "resolution_action": "clear cached VPN credentials, validate MFA/IdP health, and refresh VPN client profile",
+        "recommended_checks": [
+          "check IdP/MFA health",
+          "review conditional access changes",
+          "validate LDAP/RADIUS bind status",
+          "inspect VPN client logs"
+        ],
+        "recommended_actions": [
+          "clear cached VPN credentials",
+          "refresh VPN client profile",
+          "restore identity dependency if degraded"
+        ]
+      },
+      "scoring_weights": {
+        "classification_match": 0.25,
+        "domain_match": 0.1,
+        "root_cause_match": 0.2,
+        "recommended_action_match": 0.2,
+        "associated_scenario_match": 0.15,
+        "retrieval_quality": 0.1
+      },
+      "tags": [
+        "vpn",
+        "mfa",
+        "password_reset",
+        "identity"
+      ]
+    },
+    {
+      "case_id": "bt_client_a_api_001",
+      "tenant_id": "client_a",
+      "mode": "client_local",
+      "source": {
+        "system": "manual_seed",
+        "record_type": "incident_change",
+        "original_ticket_id": "ANON-INC-API-001",
+        "client_alias": "client_a"
+      },
+      "input": {
+        "title": "API gateway timeout after firewall policy change",
+        "ticket_text": "API gateway timeout with HTTP 504 after firewall policy change. Downstream service port connectivity failed.",
+        "environment": "production",
+        "affected_ci": "api_gateway",
+        "severity": "high"
+      },
+      "expected": {
+        "domain": "application_network",
+        "classification": "api_gateway_timeout",
+        "root_cause": "firewall policy change blocked downstream service port",
+        "associated_scenario": "firewall_policy_change_blocking_downstream_port",
+        "resolution_action": "validate firewall rule, restore downstream port access, and confirm recovery using synthetic transaction",
+        "recommended_checks": [
+          "validate recent firewall/security-group changes",
+          "test source-to-destination port connectivity",
+          "compare deny logs with incident window",
+          "confirm dependency path from topology"
+        ],
+        "recommended_actions": [
+          "rollback or correct policy rule after approval",
+          "restore required downstream port access",
+          "validate recovery with synthetic transaction"
+        ]
+      },
+      "scoring_weights": {
+        "classification_match": 0.25,
+        "domain_match": 0.1,
+        "root_cause_match": 0.2,
+        "recommended_action_match": 0.2,
+        "associated_scenario_match": 0.15,
+        "retrieval_quality": 0.1
+      },
+      "tags": [
+        "api",
+        "timeout",
+        "firewall",
+        "change",
+        "port"
+      ]
+    },
+    {
+      "case_id": "bt_client_a_cpu_001",
+      "tenant_id": "client_a",
+      "mode": "client_local",
+      "source": {
+        "system": "manual_seed",
+        "record_type": "telemetry_incident",
+        "original_ticket_id": "ANON-INC-CPU-001",
+        "client_alias": "client_a"
+      },
+      "input": {
+        "title": "High CPU on application server during nightly batch",
+        "ticket_text": "High CPU on application server during nightly batch job and endpoint security scan overlap.",
+        "environment": "production",
+        "affected_ci": "app_server",
+        "severity": "high",
+        "telemetry": {
+          "metric": "cpu_percent",
+          "value": 97.0,
+          "rule": "cpu_sustained_high"
+        }
+      },
+      "expected": {
+        "domain": "compute",
+        "classification": "cpu_saturation",
+        "root_cause": "scheduled batch job collision with endpoint security scan",
+        "associated_scenario": "batch_job_or_scheduled_task_collision",
+        "secondary_associated_scenarios": [
+          "endpoint_security_or_antivirus_scan_overlap"
+        ],
+        "resolution_action": "review scheduled job window, check top CPU processes, and reschedule scan or batch job",
+        "recommended_checks": [
+          "review scheduled job calendar",
+          "check top process during incident",
+          "review endpoint security scan schedule",
+          "compare scan window with incident window"
+        ],
+        "recommended_actions": [
+          "reschedule or throttle batch job",
+          "reschedule scan window",
+          "coordinate scan and batch schedules"
+        ]
+      },
+      "scoring_weights": {
+        "classification_match": 0.25,
+        "domain_match": 0.1,
+        "root_cause_match": 0.2,
+        "recommended_action_match": 0.2,
+        "associated_scenario_match": 0.15,
+        "retrieval_quality": 0.1
+      },
+      "tags": [
+        "cpu",
+        "batch",
+        "security_scan",
+        "telemetry"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1921 @@
+[
+  {
+    "candidate_id": "ac_a7cf388061",
+    "incident_id": "test_candidate_001",
+    "classification": "api_gateway_timeout",
+    "source": "manual_api_smoke_test",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-05-18T19:19:14.539255+00:00",
+    "updated_at": "2026-05-18T20:08:25.053379+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_gateway_downstream_connectivity",
+    "suggested_playbook": "gateway_downstream_connectivity_check.yml",
+    "target_host": "network-lab-01",
+    "target_group": "",
+    "draft_runbook": {},
+    "draft_steps": [
+      "Collect gateway timeout evidence",
+      "Validate downstream connectivity",
+      "Check firewall or load balancer path",
+      "Run synthetic transaction after remediation"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_2b6518be9b",
+        "tested_at": "2026-05-18T20:04:02.281945+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Candidate lifecycle API smoke test passed."
+      },
+      {
+        "test_id": "act_850aaa31f3",
+        "tested_at": "2026-05-18T20:08:12.239749+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Candidate lifecycle API smoke test passed after playbook details were added."
+      }
+    ],
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-05-18T20:08:19.114220+00:00",
+      "approval_notes": "Candidate approved for registry enablement smoke test."
+    },
+    "enabled": true,
+    "notes": "Playbook details added for candidate lifecycle smoke test.",
+    "updated_by": "Vijay",
+    "enabled_at": "2026-05-18T20:08:25.051137+00:00",
+    "enabled_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-18T20:08:19.114220+00:00"
+  },
+  {
+    "candidate_id": "ac_2b49dfa157",
+    "incident_id": "62178b9f-4a78-4025-ba1c-9913e44c4026",
+    "classification": "disk_usage_exceeds_threshold_due_to_temporary_files",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-05-18T20:17:07.775746+00:00",
+    "updated_at": "2026-05-18T21:03:10.095338+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "cleanup_linux_temp_files",
+    "suggested_playbook": "linux_disk_cleanup.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Draft playbook generated from fallback analysis for disk usage exceeds threshold due to temporary files. Review before operational use.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Disk Usage Exceeds Threshold Due To Temporary Files Is Likely Driven By Excessive Temporary File Creation, Insufficient Log Rotation, Inadequate Disk Space Management."
+      ],
+      "validation_checks": [
+        "Monitor Disk Usage For Threshold Exceedance",
+        "Review Log Rotation Configuration"
+      ],
+      "remediation_steps": [
+        "Monitor Disk Usage For Threshold Exceedance",
+        "Review Log Rotation Configuration"
+      ],
+      "automation_steps": [
+        "Validate Disk Usage Statistics",
+        "Inspect Tmp Directory Contents",
+        "Review Log Rotation Configuration",
+        "Monitor Disk Usage For Threshold Exceedance"
+      ],
+      "linked_resolution": {
+        "resolution_id": "res_f07c29a0b2ca",
+        "created_at": "2026-05-18T20:16:34.697313+00:00",
+        "updated_at": "2026-05-18T20:16:34.697331+00:00",
+        "classification": "disk_usage_exceeds_threshold_due_to_temporary_files",
+        "root_cause": "Disk Usage Exceeds Threshold Due To Temporary Files is likely driven by excessive temporary file creation, insufficient log rotation, inadequate disk space management.",
+        "validated_checks": [
+          "validate_disk_usage_statistics",
+          "inspect_tmp_directory_contents",
+          "review_log_rotation_configuration"
+        ],
+        "validated_actions": [
+          "monitor_disk_usage_for_threshold_exceedance"
+        ],
+        "engineer_confirmed": true,
+        "confirmed_by": "system_draft",
+        "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+        "automation_ready": false,
+        "linked_candidate_id": "kc_82ed139a7b5e",
+        "linked_playbook_id": "pb_75948fbe5459"
+      },
+      "linked_playbook": {
+        "playbook_id": "pb_75948fbe5459",
+        "created_at": "2026-05-18T20:16:34.659833+00:00",
+        "updated_at": "2026-05-18T20:16:34.659854+00:00",
+        "name": "Disk Usage Exceeds Threshold Due To Temporary Files Recovery",
+        "classification": "disk_usage_exceeds_threshold_due_to_temporary_files",
+        "description": "Draft playbook generated from fallback analysis for disk usage exceeds threshold due to temporary files. Review before operational use.",
+        "steps": [
+          "validate_disk_usage_statistics",
+          "inspect_tmp_directory_contents",
+          "review_log_rotation_configuration",
+          "monitor_disk_usage_for_threshold_exceedance"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "enabled": true,
+        "status": "draft",
+        "source": "manual",
+        "linked_incident_id": "",
+        "linked_rca_id": "",
+        "created_by": "Vijay",
+        "review": {
+          "reviewed": false,
+          "reviewed_by": "",
+          "reviewed_at": "",
+          "review_notes": ""
+        }
+      }
+    },
+    "draft_steps": [
+      "Validate Disk Usage Statistics",
+      "Inspect Tmp Directory Contents",
+      "Review Log Rotation Configuration",
+      "Monitor Disk Usage For Threshold Exceedance"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_986cc1653f",
+        "tested_at": "2026-05-18T20:18:03.230274+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after engineer validation."
+      },
+      {
+        "test_id": "act_a3e128c685",
+        "tested_at": "2026-05-18T21:03:05.876638+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after engineer validation."
+      }
+    ],
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-05-18T21:03:07.850638+00:00",
+      "approval_notes": "Approved from Automation Development stage."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue draft package.",
+    "updated_by": "Vijay",
+    "enabled_at": "2026-05-18T21:03:10.090929+00:00",
+    "enabled_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-18T21:03:07.850638+00:00"
+  },
+  {
+    "candidate_id": "ac_eaee1bab75",
+    "incident_id": "e6081d9d-3139-459f-b7b8-43ac5c4c0be4",
+    "classification": "disk_usage_exceeding_threshold",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-05-18T21:28:34.822086+00:00",
+    "updated_at": "2026-05-18T21:36:02.910388+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "cleanup_linux_temp_files",
+    "suggested_playbook": "linux_disk_cleanup.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Draft playbook generated from fallback analysis for disk usage exceeding threshold. Review before operational use.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Disk Usage Exceeding Threshold Is Likely Driven By Excessive Temporary Files, Unmanaged Log File Growth, Insufficient Disk Space Allocation."
+      ],
+      "validation_checks": [
+        "Review And Adjust Disk Space Allocation",
+        "Review Log Rotation Configuration"
+      ],
+      "remediation_steps": [
+        "Review And Adjust Disk Space Allocation",
+        "Review Log Rotation Configuration"
+      ],
+      "automation_steps": [
+        "Validate Disk Usage Statistics",
+        "Inspect Tmp Directory Contents",
+        "Review Log Rotation Configuration",
+        "Review And Adjust Disk Space Allocation"
+      ],
+      "linked_resolution": {
+        "resolution_id": "res_8c85e07b549b",
+        "created_at": "2026-05-18T21:26:37.421755+00:00",
+        "updated_at": "2026-05-18T21:26:37.421786+00:00",
+        "classification": "disk_usage_exceeding_threshold",
+        "root_cause": "Disk Usage Exceeding Threshold is likely driven by excessive temporary files, unmanaged log file growth, insufficient disk space allocation.",
+        "validated_checks": [
+          "validate_disk_usage_statistics",
+          "inspect_tmp_directory_contents",
+          "review_log_rotation_configuration"
+        ],
+        "validated_actions": [
+          "review_and_adjust_disk_space_allocation"
+        ],
+        "engineer_confirmed": true,
+        "confirmed_by": "system_draft",
+        "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+        "automation_ready": false,
+        "linked_candidate_id": "kc_43a8f7f41969",
+        "linked_playbook_id": "pb_d4743f2c0707"
+      },
+      "linked_playbook": {
+        "playbook_id": "pb_d4743f2c0707",
+        "created_at": "2026-05-18T21:26:37.375928+00:00",
+        "updated_at": "2026-05-18T21:26:37.375959+00:00",
+        "name": "Disk Usage Exceeding Threshold Recovery",
+        "classification": "disk_usage_exceeding_threshold",
+        "description": "Draft playbook generated from fallback analysis for disk usage exceeding threshold. Review before operational use.",
+        "steps": [
+          "validate_disk_usage_statistics",
+          "inspect_tmp_directory_contents",
+          "review_log_rotation_configuration",
+          "review_and_adjust_disk_space_allocation"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "enabled": true,
+        "status": "draft",
+        "source": "manual",
+        "linked_incident_id": "",
+        "linked_rca_id": "",
+        "created_by": "Vijay",
+        "review": {
+          "reviewed": false,
+          "reviewed_by": "",
+          "reviewed_at": "",
+          "review_notes": ""
+        }
+      }
+    },
+    "draft_steps": [
+      "Validate Disk Usage Statistics",
+      "Inspect Tmp Directory Contents",
+      "Review Log Rotation Configuration",
+      "Review And Adjust Disk Space Allocation"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_ad86b81a82",
+        "tested_at": "2026-05-18T21:35:52.103290+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-05-18T21:31:13.318660+00:00",
+      "playbook": "linux_disk_cleanup.yml",
+      "target_host": "linux-lab-01",
+      "action": "cleanup_linux_temp_files",
+      "content": "---\n- name: Validate and clean approved temporary files for Linux disk pressure\n  hosts: linux-lab-01\n  gather_facts: false\n  become: false\n\n  vars:\n    cleanup_path: /tmp\n    min_file_age: 2d\n\n  tasks:\n    - name: Show current root filesystem usage\n      ansible.builtin.shell: |\n        df -h /\n      register: disk_before\n      changed_when: false\n\n    - name: Display current disk usage\n      ansible.builtin.debug:\n        var: disk_before.stdout_lines\n\n    - name: Show largest entries under cleanup path\n      ansible.builtin.shell: |\n        du -ah {{ cleanup_path }} 2>/dev/null | sort -rh | head -20\n      register: largest_temp_entries\n      changed_when: false\n      failed_when: false\n\n    - name: Display largest temp entries\n      ansible.builtin.debug:\n        var: largest_temp_entries.stdout_lines\n\n    - name: Find old temporary files eligible for cleanup\n      ansible.builtin.find:\n        paths: \"{{ cleanup_path }}\"\n        age: \"{{ min_file_age }}\"\n        file_type: file\n      register: old_temp_files\n\n    - name: Display cleanup candidate count\n      ansible.builtin.debug:\n        msg: \"Found {{ old_temp_files.matched }} files older than {{ min_file_age }} under {{ cleanup_path }}.\"\n\n    - name: Remove old temporary files only\n      ansible.builtin.file:\n        path: \"{{ item.path }}\"\n        state: absent\n      loop: \"{{ old_temp_files.files }}\"\n      when: old_temp_files.matched | int > 0\n\n    - name: Show root filesystem usage after cleanup\n      ansible.builtin.shell: |\n        df -h /\n      register: disk_after\n      changed_when: false\n\n    - name: Display final disk usage\n      ansible.builtin.debug:\n        var: disk_after.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/linux_disk_cleanup.yml",
+      "saved_at": "2026-05-18T21:33:09.516982+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-05-18T21:33:09.517737+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-05-18T21:35:57.882526+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue draft package.",
+    "updated_by": "Vijay",
+    "enabled_at": "2026-05-18T21:36:02.902260+00:00",
+    "enabled_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-18T21:35:57.882526+00:00"
+  },
+  {
+    "candidate_id": "ac_96208ed793",
+    "incident_id": "c2f4abbb-3740-41a0-81d9-6af1a24d503b",
+    "classification": "container_connection_issue",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-05-18T21:43:19.085884+00:00",
+    "updated_at": "2026-05-18T21:47:59.467984+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "recover_vpn_connectivity",
+    "suggested_playbook": "vpn_recover_client_connectivity.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate container connection issue using approved operational steps.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Container Service Connectivity Failed Because Traffic Is Not Reaching A Healthy Container Target",
+        "Security Group, Load-Balancer Target Registration, Or Listener Rule Mismatch Is Blocking Container Traffic",
+        "Container Port Mapping, Service Selector, Endpoint Registration, Or Task Networking Is Misconfigured"
+      ],
+      "validation_checks": [
+        "Validate Security Group Ingress And Source-To-Target Network Path",
+        "Inspect Load Balancer Listener Rules And Target Group Registration/Health Checks",
+        "Verify Container Port Mapping, Host Port Binding, And Service Definition",
+        "Check Ecs Task Networking Or Kubernetes Service Selector, Pod Labels, Endpoints, And Network Policy",
+        "Confirm DNS/Vpn Only As Dependencies And Do Not Treat Them As Primary If They Are Healthy"
+      ],
+      "remediation_steps": [
+        "Correct Security Group, Listener, Or Target Group Registration After Approval",
+        "Fix Container Port Mapping/Service Definition And Redeploy Or Restart Only If Validated",
+        "Repair Kubernetes Service Selector/Endpoints Or Ecs Service Networking Configuration",
+        "Run Synthetic Transaction Through The Load Balancer And Container Port After Remediation",
+        "Closely Monitor Affected Services"
+      ],
+      "automation_steps": [
+        "Verify Security Group Rules",
+        "Inspect Container Port Bindings",
+        "Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause"
+      ],
+      "linked_resolution": {
+        "resolution_id": "res_a6f2d3337d71",
+        "classification": "container_connection_issue",
+        "root_cause": "Container traffic is not reaching a healthy container target due to security group, load-balancer target registration, listener rule, port mapping, service definition, ECS/Kubernetes endpoint, or task networking issue.",
+        "validated_checks": [
+          "verify_security_group_rules",
+          "inspect_container_port_bindings",
+          "confirm_dns_vpn_dependencies_healthy_non_primary"
+        ],
+        "validated_actions": [],
+        "engineer_confirmed": true,
+        "confirmed_by": "Vijay",
+        "success_notes": "Validated via UI-guided approval flow.",
+        "automation_ready": false,
+        "linked_candidate_id": "kc_23e80979c3f5",
+        "linked_playbook_id": "",
+        "created_at": "2026-04-15T14:09:12.584800+00:00",
+        "updated_at": "2026-04-15T16:30:02.271937+00:00"
+      },
+      "linked_playbook": {
+        "playbook_id": "pb_db91a5e095c5",
+        "name": "Container Connection Issue Recovery",
+        "classification": "container_connection_issue",
+        "description": "Validate, isolate, and remediate container connection issue using approved operational steps.",
+        "steps": [
+          "Verify Security Group Rules",
+          "Inspect Container Port Bindings",
+          "Confirm DNS/VPN Are Healthy Dependencies And Not Primary Cause"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "enabled": true,
+        "created_at": "2026-04-15T14:09:12.582019+00:00",
+        "updated_at": "2026-04-15T16:30:02.297361+00:00"
+      }
+    },
+    "draft_steps": [
+      "Verify Security Group Rules",
+      "Inspect Container Port Bindings",
+      "Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_52c6f0d1bd",
+        "tested_at": "2026-05-18T21:47:16.604750+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      },
+      {
+        "test_id": "act_9ef6ccd83f",
+        "tested_at": "2026-05-18T21:47:30.936582+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      },
+      {
+        "test_id": "act_925eb3c7db",
+        "tested_at": "2026-05-18T21:47:56.149094+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-05-18T21:47:51.469128+00:00",
+      "playbook": "vpn_recover_client_connectivity.yml",
+      "target_host": "vpn-lab-01",
+      "action": "recover_vpn_connectivity",
+      "content": "---\n- name: Governed diagnostic playbook for container_connection_issue\n  hosts: vpn-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for container_connection_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Verify Security Group Rules'\\n        echo '- Inspect Container Port Bindings'\\n        echo '- Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/vpn_recover_client_connectivity.yml",
+      "saved_at": "2026-05-18T21:47:53.859332+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-05-18T21:47:53.859371+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-05-18T21:47:57.984955+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Incident Console draft automation package.",
+    "updated_by": "Vijay",
+    "enabled_at": "2026-05-18T21:47:59.459362+00:00",
+    "enabled_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-18T21:47:57.984955+00:00"
+  },
+  {
+    "candidate_id": "ac_f0b871085d",
+    "incident_id": "b2efd1b4-eeab-460a-8511-199a5301600c",
+    "classification": "cpu_saturation",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-05-18T23:44:54.590343+00:00",
+    "updated_at": "2026-05-18T23:50:29.287220+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_cpu_saturation",
+    "suggested_playbook": "validate_cpu_saturation.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "safety": "Restart/kill process only after confirming owner, impact, and approved remediation path.",
+      "probable_causes": [
+        "Scheduled Batch Job Collision With Endpoint Security Scan",
+        "Runaway Process Or Capacity Saturation Caused High CPU"
+      ],
+      "validation_checks": [
+        "Review Scheduled Job Calendar",
+        "Check Top Process During Incident",
+        "Review Endpoint Security Scan Schedule",
+        "Compare Scan Window With Incident Window",
+        "Inspect Batch Logs"
+      ],
+      "remediation_steps": [
+        "Review Scheduled Job Window",
+        "Check Top CPU Processes",
+        "Reschedule Scan Or Batch Job",
+        "Reschedule Or Throttle Batch Job",
+        "Coordinate Scan And Batch Schedules"
+      ],
+      "automation_steps": [
+        "Inspect System Logs",
+        "Verify Resource Allocation",
+        "Analyze CPU Usage Patterns",
+        "Optimize Resource Allocation If Necessary"
+      ],
+      "linked_resolution": {
+        "resolution_id": "res_3c72cbcdbf22",
+        "classification": "cpu_saturation",
+        "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+        "validated_checks": [
+          "inspect_system_logs",
+          "verify_resource_allocation",
+          "analyze_cpu_usage_patterns"
+        ],
+        "validated_actions": [
+          "optimize_resource_allocation_if_necessary"
+        ],
+        "engineer_confirmed": true,
+        "confirmed_by": "system_draft",
+        "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+        "automation_ready": false,
+        "linked_candidate_id": "kc_efc633d18cc1",
+        "linked_playbook_id": "pb_f2904b0f8484",
+        "created_at": "2026-04-29T02:44:57.624710+00:00",
+        "updated_at": "2026-04-29T02:44:57.624742+00:00"
+      },
+      "linked_playbook": {
+        "playbook_id": "pb_f2904b0f8484",
+        "name": "Cpu Saturation Recovery",
+        "classification": "cpu_saturation",
+        "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+        "steps": [
+          "inspect_system_logs",
+          "verify_resource_allocation",
+          "analyze_cpu_usage_patterns",
+          "optimize_resource_allocation_if_necessary"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "enabled": true,
+        "created_at": "2026-04-29T02:44:57.584910+00:00",
+        "updated_at": "2026-04-29T02:44:57.584953+00:00"
+      }
+    },
+    "draft_steps": [
+      "Inspect System Logs",
+      "Verify Resource Allocation",
+      "Analyze CPU Usage Patterns",
+      "Optimize Resource Allocation If Necessary"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_5c580b70db",
+        "tested_at": "2026-05-18T23:50:24.909092+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-05-18T23:50:20.899563+00:00",
+      "playbook": "validate_cpu_saturation.yml",
+      "target_host": "linux-lab-01",
+      "action": "validate_cpu_saturation",
+      "content": "---\n- name: Governed diagnostic playbook for cpu_saturation\n  hosts: linux-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for cpu_saturation on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Inspect System Logs'\\n        echo '- Verify Resource Allocation'\\n        echo '- Analyze CPU Usage Patterns'\\n        echo '- Optimize Resource Allocation If Necessary'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/validate_cpu_saturation.yml",
+      "saved_at": "2026-05-18T23:50:22.361898+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-05-18T23:50:22.361983+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-05-18T23:50:27.458328+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue guided control lane.",
+    "updated_by": "Vijay",
+    "enabled_at": "2026-05-18T23:50:29.223915+00:00",
+    "enabled_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-18T23:50:27.458328+00:00"
+  },
+  {
+    "candidate_id": "ac_4ea6dca17b",
+    "incident_id": "1c2b1cfc-3dd6-47c5-894d-5a47403e9aee",
+    "classification": "cpu_utilization_high",
+    "source": "ui_draft_from_analysis",
+    "status": "draft",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-06-04T02:31:35.274847+00:00",
+    "updated_at": "2026-06-04T02:31:35.274867+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_cpu_utilization_high",
+    "suggested_playbook": "validate_cpu_utilization_high.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Runaway Process",
+        "Batch Job Spike",
+        "Capacity Saturation"
+      ],
+      "validation_checks": [
+        "Check Top Processes",
+        "Review Recent Jobs",
+        "Inspect Host Metrics"
+      ],
+      "remediation_steps": [
+        "Isolate High CPU Process",
+        "Scale Compute Capacity",
+        "Restart Impacted Service If Approved"
+      ],
+      "automation_steps": [
+        "Inspect System Logs",
+        "Verify Resource Allocation",
+        "Analyze CPU Usage Patterns",
+        "Optimize Resource Allocation If Necessary"
+      ],
+      "linked_resolution": {
+        "resolution_id": "res_3c72cbcdbf22",
+        "classification": "cpu_saturation",
+        "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+        "validated_checks": [
+          "inspect_system_logs",
+          "verify_resource_allocation",
+          "analyze_cpu_usage_patterns"
+        ],
+        "validated_actions": [
+          "optimize_resource_allocation_if_necessary"
+        ],
+        "engineer_confirmed": true,
+        "confirmed_by": "system_draft",
+        "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+        "automation_ready": false,
+        "linked_candidate_id": "kc_efc633d18cc1",
+        "linked_playbook_id": "pb_f2904b0f8484",
+        "created_at": "2026-04-29T02:44:57.624710+00:00",
+        "updated_at": "2026-04-29T02:44:57.624742+00:00"
+      },
+      "linked_playbook": {
+        "playbook_id": "pb_f2904b0f8484",
+        "name": "Cpu Saturation Recovery",
+        "classification": "cpu_saturation",
+        "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+        "steps": [
+          "inspect_system_logs",
+          "verify_resource_allocation",
+          "analyze_cpu_usage_patterns",
+          "optimize_resource_allocation_if_necessary"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "enabled": true,
+        "created_at": "2026-04-29T02:44:57.584910+00:00",
+        "updated_at": "2026-04-29T02:44:57.584953+00:00"
+      }
+    },
+    "draft_steps": [
+      "Inspect System Logs",
+      "Verify Resource Allocation",
+      "Analyze CPU Usage Patterns",
+      "Optimize Resource Allocation If Necessary"
+    ],
+    "test_results": [],
+    "generated_playbook": {},
+    "playbook_review": {},
+    "approval": {},
+    "enabled": false,
+    "notes": "Created from Automation Queue guided control lane."
+  },
+  {
+    "candidate_id": "ac_5cc4041179",
+    "incident_id": "e54d36aa-1a3d-4ad4-991d-8b47f181d9a1",
+    "classification": "database_performance_issue",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-06-16T20:34:49.838589+00:00",
+    "updated_at": "2026-06-17T14:51:37.339690+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_database_performance_issue",
+    "suggested_playbook": "validate_database_performance_issue.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate database performance issue safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Database Lock Contention",
+        "Slow Query Or Transaction Issue"
+      ],
+      "validation_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "remediation_steps": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "automation_steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_database_performance_issue_e54d36aa1a3d",
+        "classification": "database_performance_issue",
+        "root_cause": "Database Lock Contention",
+        "validated_checks": [
+          "Inspect Database Wait Events",
+          "Review Deadlock Logs",
+          "Check Long Running Queries"
+        ],
+        "validated_actions": [
+          "Tune Or Terminate Blocking Transaction",
+          "Adjust Connection Pooling",
+          "Optimize Query Plan"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "e54d36aa-1a3d-4ad4-991d-8b47f181d9a1",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_database_performance_issue_e54d36aa1a3d",
+        "name": "Database Performance Issue Investigation and Recovery",
+        "classification": "database_performance_issue",
+        "description": "Validate, isolate, and remediate database performance issue safely.",
+        "steps": [
+          "Inspect Database Wait Events",
+          "Review Deadlock Logs",
+          "Check Long Running Queries",
+          "Tune Or Terminate Blocking Transaction",
+          "Adjust Connection Pooling",
+          "Optimize Query Plan"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Inspect Database Wait Events",
+      "Review Deadlock Logs",
+      "Check Long Running Queries",
+      "Tune Or Terminate Blocking Transaction",
+      "Adjust Connection Pooling",
+      "Optimize Query Plan"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_d776464859",
+        "tested_at": "2026-06-16T20:35:26.708746+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-06-16T20:35:17.947130+00:00",
+      "playbook": "validate_database_performance_issue.yml",
+      "target_host": "linux-lab-01",
+      "action": "validate_database_performance_issue",
+      "content": "---\n- name: Governed diagnostic playbook for database_performance_issue\n  hosts: linux-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for database_performance_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Inspect Database Wait Events'\\n        echo '- Review Deadlock Logs'\\n        echo '- Check Long Running Queries'\\n        echo '- Tune Or Terminate Blocking Transaction'\\n        echo '- Adjust Connection Pooling'\\n        echo '- Optimize Query Plan'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/validate_database_performance_issue.yml",
+      "saved_at": "2026-06-16T20:35:22.111242+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-06-16T20:35:22.111440+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-06-16T20:35:28.784884+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue guided control lane.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-16T20:35:28.784884+00:00",
+    "enabled_at": "2026-06-16T20:35:31.143126+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_0bc0f10a4a",
+    "incident_id": "e54d36aa-1a3d-4ad4-991d-8b47f181d9a1",
+    "classification": "database_performance_issue",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-06-16T20:35:03.043508+00:00",
+    "updated_at": "2026-06-16T20:37:22.323447+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_database_performance_issue",
+    "suggested_playbook": "validate_database_performance_issue.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate database performance issue safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Database Lock Contention",
+        "Slow Query Or Transaction Issue"
+      ],
+      "validation_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "remediation_steps": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "automation_steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_database_performance_issue_e54d36aa1a3d",
+        "classification": "database_performance_issue",
+        "root_cause": "Database Lock Contention",
+        "validated_checks": [
+          "Inspect Database Wait Events",
+          "Review Deadlock Logs",
+          "Check Long Running Queries"
+        ],
+        "validated_actions": [
+          "Tune Or Terminate Blocking Transaction",
+          "Adjust Connection Pooling",
+          "Optimize Query Plan"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "e54d36aa-1a3d-4ad4-991d-8b47f181d9a1",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_database_performance_issue_e54d36aa1a3d",
+        "name": "Database Performance Issue Investigation and Recovery",
+        "classification": "database_performance_issue",
+        "description": "Validate, isolate, and remediate database performance issue safely.",
+        "steps": [
+          "Inspect Database Wait Events",
+          "Review Deadlock Logs",
+          "Check Long Running Queries",
+          "Tune Or Terminate Blocking Transaction",
+          "Adjust Connection Pooling",
+          "Optimize Query Plan"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Inspect Database Wait Events",
+      "Review Deadlock Logs",
+      "Check Long Running Queries",
+      "Tune Or Terminate Blocking Transaction",
+      "Adjust Connection Pooling",
+      "Optimize Query Plan"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_4307032521",
+        "tested_at": "2026-06-16T20:37:18.881221+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-06-16T20:37:12.449976+00:00",
+      "playbook": "validate_database_performance_issue.yml",
+      "target_host": "linux-lab-01",
+      "action": "validate_database_performance_issue",
+      "content": "---\n- name: Governed diagnostic playbook for database_performance_issue\n  hosts: linux-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for database_performance_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Inspect Database Wait Events'\\n        echo '- Review Deadlock Logs'\\n        echo '- Check Long Running Queries'\\n        echo '- Tune Or Terminate Blocking Transaction'\\n        echo '- Adjust Connection Pooling'\\n        echo '- Optimize Query Plan'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/validate_database_performance_issue.yml",
+      "saved_at": "2026-06-16T20:37:16.432427+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-06-16T20:37:16.432454+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-06-16T20:37:20.421621+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Development backlog after engineer requested a new candidate.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-16T20:37:20.421621+00:00",
+    "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_2b1fd9e2c1",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-06-17T15:18:13.730893+00:00",
+    "updated_at": "2026-06-17T15:18:36.595230+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_database_performance_issue",
+    "suggested_playbook": "validate_database_performance_issue.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate database performance issue safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Database Lock Contention",
+        "Slow Query Or Transaction Issue"
+      ],
+      "validation_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "remediation_steps": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "automation_steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+        "classification": "database_performance_issue",
+        "root_cause": "Database Lock Contention",
+        "validated_checks": [
+          "Inspect Database Wait Events",
+          "Review Deadlock Logs",
+          "Check Long Running Queries"
+        ],
+        "validated_actions": [
+          "Tune Or Terminate Blocking Transaction",
+          "Adjust Connection Pooling",
+          "Optimize Query Plan"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+        "name": "Database Performance Issue Investigation and Recovery",
+        "classification": "database_performance_issue",
+        "description": "Validate, isolate, and remediate database performance issue safely.",
+        "steps": [
+          "Inspect Database Wait Events",
+          "Review Deadlock Logs",
+          "Check Long Running Queries",
+          "Tune Or Terminate Blocking Transaction",
+          "Adjust Connection Pooling",
+          "Optimize Query Plan"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Inspect Database Wait Events",
+      "Review Deadlock Logs",
+      "Check Long Running Queries",
+      "Tune Or Terminate Blocking Transaction",
+      "Adjust Connection Pooling",
+      "Optimize Query Plan"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_b4cbcc321e",
+        "tested_at": "2026-06-17T15:18:33.195231+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-06-17T15:18:28.121021+00:00",
+      "playbook": "validate_database_performance_issue.yml",
+      "target_host": "linux-lab-01",
+      "action": "validate_database_performance_issue",
+      "content": "---\n- name: Governed diagnostic playbook for database_performance_issue\n  hosts: linux-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for database_performance_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Inspect Database Wait Events'\\n        echo '- Review Deadlock Logs'\\n        echo '- Check Long Running Queries'\\n        echo '- Tune Or Terminate Blocking Transaction'\\n        echo '- Adjust Connection Pooling'\\n        echo '- Optimize Query Plan'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/validate_database_performance_issue.yml",
+      "saved_at": "2026-06-17T15:18:31.066484+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-06-17T15:18:31.066514+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-06-17T15:18:34.650656+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Development backlog after engineer requested a new candidate.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-17T15:18:34.650656+00:00",
+    "enabled_at": "2026-06-17T15:18:36.555570+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_b0e880b8f3",
+    "incident_id": "23043c94-643e-4bea-b5da-32e197f91d51",
+    "classification": "certificate_expiry_warning",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-06-17T23:55:50.835742+00:00",
+    "updated_at": "2026-06-18T00:21:23.871565+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "recover_vpn_connectivity",
+    "suggested_playbook": "certificate_expiry_warning_candidate.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate certificate expiry warning safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "Vpn Gateway Or Network Path Issue Prevented Remote Access"
+      ],
+      "validation_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "remediation_steps": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "automation_steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_certificate_expiry_warning_23043c94643e",
+        "classification": "certificate_expiry_warning",
+        "root_cause": "cached credential or identity-provider authentication issue after password reset",
+        "validated_checks": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors"
+        ],
+        "validated_actions": [
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "23043c94-643e-4bea-b5da-32e197f91d51",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_certificate_expiry_warning_23043c94643e",
+        "name": "Certificate Expiry Warning Investigation and Recovery",
+        "classification": "certificate_expiry_warning",
+        "description": "Validate, isolate, and remediate certificate expiry warning safely.",
+        "steps": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors",
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Check Idp/MFA Health",
+      "Review Conditional Access Changes",
+      "Validate Ldap/Radius Bind Status",
+      "Inspect Vpn Client Logs",
+      "Inspect Token/Certificate Errors",
+      "Clear Cached Vpn Credentials",
+      "Validate MFA/Idp Health",
+      "Refresh Vpn Client Profile",
+      "Restore Identity Dependency If Degraded",
+      "Rollback Conditional-Access Change If Confirmed"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_6bf0f02a51",
+        "tested_at": "2026-06-18T00:19:20.001077+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      },
+      {
+        "test_id": "act_c058f431d1",
+        "tested_at": "2026-06-18T00:21:15.869086+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": ""
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-06-17T23:56:06.809632+00:00",
+      "playbook": "vpn_recover_client_connectivity.yml",
+      "target_host": "vpn-lab-01",
+      "action": "recover_vpn_connectivity",
+      "content": "---\n- name: Governed diagnostic playbook for certificate_expiry_warning\n  hosts: vpn-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for certificate_expiry_warning on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Check Idp/MFA Health'\\n        echo '- Review Conditional Access Changes'\\n        echo '- Validate Ldap/Radius Bind Status'\\n        echo '- Inspect Vpn Client Logs'\\n        echo '- Inspect Token/Certificate Errors'\\n        echo '- Clear Cached Vpn Credentials'\\n        echo '- Validate MFA/Idp Health'\\n        echo '- Refresh Vpn Client Profile'\\n        echo '- Restore Identity Dependency If Degraded'\\n        echo '- Rollback Conditional-Access Change If Confirmed'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/certificate_expiry_warning_candidate.yml",
+      "saved_at": "2026-06-18T00:20:59.135472+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-06-18T00:20:59.135497+00:00",
+      "review_notes": "approved"
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-06-18T00:21:16.308099+00:00",
+      "approval_notes": "approved"
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue guided control lane.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-18T00:21:16.308099+00:00",
+    "enabled_at": "2026-06-18T00:21:23.810036+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_95c245a7bf",
+    "incident_id": "32f5541e-1c1a-468f-9c26-ddc036cbfff4",
+    "classification": "pod_crash_loop",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-06-18T16:24:02.195757+00:00",
+    "updated_at": "2026-06-18T16:24:30.508858+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "validate_container_connectivity",
+    "suggested_playbook": "pod_crash_loop_candidate.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Draft playbook generated from fallback analysis for pod crash loop. Review before operational use.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Pod Crash Loop Is Likely Driven By Container Resource Exhaustion, Pod Configuration Error, Image Incompatibility."
+      ],
+      "validation_checks": [
+        "Inspect Pod Logs",
+        "Isolate And Redeploy Pod If Necessary",
+        "Compare Pod Configuration With Baseline"
+      ],
+      "remediation_steps": [
+        "Isolate And Redeploy Pod If Necessary"
+      ],
+      "automation_steps": [
+        "Inspect Pod Logs",
+        "Verify Container Resource Limits",
+        "Compare Pod Configuration With Baseline",
+        "Isolate And Redeploy Pod If Necessary"
+      ],
+      "linked_resolution": {
+        "created_at": "2026-06-18T16:23:47.768310+00:00",
+        "root_cause": "Pod Crash Loop is likely driven by container resource exhaustion, pod configuration error, image incompatibility.",
+        "updated_at": "2026-06-18T16:23:47.768326+00:00",
+        "confirmed_by": "system_draft",
+        "resolution_id": "res_d686667042a3",
+        "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+        "classification": "pod_crash_loop",
+        "automation_ready": false,
+        "validated_checks": [
+          "inspect_pod_logs",
+          "verify_container_resource_limits",
+          "compare_pod_configuration_with_baseline"
+        ],
+        "validated_actions": [
+          "isolate_and_redeploy_pod_if_necessary"
+        ],
+        "engineer_confirmed": true,
+        "linked_playbook_id": "pb_44b65aa368bc",
+        "linked_candidate_id": "kc_86108af726c8"
+      },
+      "linked_playbook": {
+        "name": "Pod Crash Loop Recovery",
+        "steps": [
+          "inspect_pod_logs",
+          "verify_container_resource_limits",
+          "compare_pod_configuration_with_baseline",
+          "isolate_and_redeploy_pod_if_necessary"
+        ],
+        "review": {
+          "reviewed": false,
+          "reviewed_at": "",
+          "reviewed_by": "",
+          "review_notes": ""
+        },
+        "source": "manual",
+        "status": "draft",
+        "enabled": true,
+        "scripts": [],
+        "risk_tier": "medium",
+        "created_at": "2026-06-18T16:23:47.737938+00:00",
+        "created_by": "Vijay",
+        "updated_at": "2026-06-18T16:23:47.737956+00:00",
+        "description": "Draft playbook generated from fallback analysis for pod crash loop. Review before operational use.",
+        "playbook_id": "pb_44b65aa368bc",
+        "approval_mode": "manual_approval_required",
+        "linked_rca_id": "",
+        "classification": "pod_crash_loop",
+        "linked_incident_id": "",
+        "rollback_available": true
+      }
+    },
+    "draft_steps": [
+      "Inspect Pod Logs",
+      "Verify Container Resource Limits",
+      "Compare Pod Configuration With Baseline",
+      "Isolate And Redeploy Pod If Necessary"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_e5d97c6491",
+        "tested_at": "2026-06-18T16:24:21.974631+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-06-18T16:24:15.671554+00:00",
+      "playbook": "container_connectivity_check.yml",
+      "target_host": "linux-lab-01",
+      "action": "validate_container_connectivity",
+      "content": "---\n- name: Governed diagnostic playbook for pod_crash_loop\n  hosts: linux-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for pod_crash_loop on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Inspect Pod Logs'\\n        echo '- Verify Container Resource Limits'\\n        echo '- Compare Pod Configuration With Baseline'\\n        echo '- Isolate And Redeploy Pod If Necessary'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/pod_crash_loop_candidate.yml",
+      "saved_at": "2026-06-18T16:24:19.765221+00:00",
+      "saved_by": "Vijay"
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-06-18T16:24:19.765546+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-06-18T16:24:28.236799+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue guided control lane.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-18T16:24:28.236799+00:00",
+    "enabled_at": "2026-06-18T16:24:30.466628+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_5cbdfadf6e",
+    "incident_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+    "classification": "vpn_client_failure",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-07-01T15:18:47.584141+00:00",
+    "updated_at": "2026-07-01T15:21:34.748576+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "recover_vpn_connectivity",
+    "suggested_playbook": "vpn_recover_client_connectivity.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate vpn client failure safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "MFA Or Radius Authentication Dependency Issue",
+        "Unknown Contributing Factor"
+      ],
+      "validation_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "remediation_steps": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "automation_steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_vpn_client_failure_3bb362e384f8",
+        "classification": "vpn_client_failure",
+        "root_cause": "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "validated_checks": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors"
+        ],
+        "validated_actions": [
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_vpn_client_failure_3bb362e384f8",
+        "name": "Vpn Client Failure Investigation and Recovery",
+        "classification": "vpn_client_failure",
+        "description": "Validate, isolate, and remediate vpn client failure safely.",
+        "steps": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors",
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Check Idp/MFA Health",
+      "Review Conditional Access Changes",
+      "Validate Ldap/Radius Bind Status",
+      "Inspect Vpn Client Logs",
+      "Inspect Token/Certificate Errors",
+      "Clear Cached Vpn Credentials",
+      "Validate MFA/Idp Health",
+      "Refresh Vpn Client Profile",
+      "Restore Identity Dependency If Degraded",
+      "Rollback Conditional-Access Change If Confirmed"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_4ace3a7c3b",
+        "tested_at": "2026-07-01T15:19:06.755677+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-07-01T15:19:03.077356+00:00",
+      "playbook": "vpn_recover_client_connectivity.yml",
+      "target_host": "vpn-lab-01",
+      "action": "recover_vpn_connectivity",
+      "content": "---\n- name: Governed diagnostic playbook for container_connection_issue\n  hosts: vpn-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for container_connection_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Verify Security Group Rules'\\n        echo '- Inspect Container Port Bindings'\\n        echo '- Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/vpn_recover_client_connectivity.yml",
+      "saved_at": "2026-07-01T15:19:05.169677+00:00",
+      "saved_by": "Vijay",
+      "existing_playbook_preserved": true
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-07-01T15:19:05.169707+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-07-01T15:19:08.693844+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Queue guided control lane.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-07-01T15:19:08.693844+00:00",
+    "enabled_at": "2026-07-01T15:19:14.764778+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_d6e84a32b1",
+    "incident_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+    "classification": "vpn_client_failure",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-07-01T15:18:55.998717+00:00",
+    "updated_at": "2026-07-01T15:21:49.692914+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "recover_vpn_connectivity",
+    "suggested_playbook": "vpn_recover_client_connectivity.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate vpn client failure safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "MFA Or Radius Authentication Dependency Issue",
+        "Unknown Contributing Factor"
+      ],
+      "validation_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "remediation_steps": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "automation_steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_vpn_client_failure_3bb362e384f8",
+        "classification": "vpn_client_failure",
+        "root_cause": "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "validated_checks": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors"
+        ],
+        "validated_actions": [
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_vpn_client_failure_3bb362e384f8",
+        "name": "Vpn Client Failure Investigation and Recovery",
+        "classification": "vpn_client_failure",
+        "description": "Validate, isolate, and remediate vpn client failure safely.",
+        "steps": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors",
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Check Idp/MFA Health",
+      "Review Conditional Access Changes",
+      "Validate Ldap/Radius Bind Status",
+      "Inspect Vpn Client Logs",
+      "Inspect Token/Certificate Errors",
+      "Clear Cached Vpn Credentials",
+      "Validate MFA/Idp Health",
+      "Refresh Vpn Client Profile",
+      "Restore Identity Dependency If Degraded",
+      "Rollback Conditional-Access Change If Confirmed"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_4b4e005b5f",
+        "tested_at": "2026-07-01T15:20:12.016765+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "simulation",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-07-01T15:20:07.587649+00:00",
+      "playbook": "vpn_recover_client_connectivity.yml",
+      "target_host": "vpn-lab-01",
+      "action": "recover_vpn_connectivity",
+      "content": "---\n- name: Governed diagnostic playbook for container_connection_issue\n  hosts: vpn-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for container_connection_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Verify Security Group Rules'\\n        echo '- Inspect Container Port Bindings'\\n        echo '- Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/vpn_recover_client_connectivity.yml",
+      "saved_at": "2026-07-01T15:20:10.668108+00:00",
+      "saved_by": "Vijay",
+      "existing_playbook_preserved": true
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-07-01T15:20:10.668156+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-07-01T15:20:13.191573+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Development backlog after engineer requested a new candidate.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-07-01T15:20:13.191573+00:00",
+    "enabled_at": "2026-07-01T15:20:15.027643+00:00",
+    "enabled_by": "Vijay"
+  },
+  {
+    "candidate_id": "ac_74eaae4145",
+    "incident_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+    "classification": "vpn_client_failure",
+    "source": "ui_draft_from_analysis",
+    "status": "enabled",
+    "lifecycle_stage": "automation_candidate",
+    "created_by": "Vijay",
+    "created_at": "2026-07-01T15:22:20.100365+00:00",
+    "updated_at": "2026-07-01T15:22:32.542090+00:00",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "suggested_action": "recover_vpn_connectivity",
+    "suggested_playbook": "vpn_recover_client_connectivity.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "draft_runbook": {
+      "objective": "Validate, isolate, and remediate vpn client failure safely.",
+      "safety": "Validate evidence and obtain approval before executing any state-changing remediation.",
+      "probable_causes": [
+        "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "MFA Or Radius Authentication Dependency Issue",
+        "Unknown Contributing Factor"
+      ],
+      "validation_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "remediation_steps": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "automation_steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "linked_resolution": {
+        "resolution_id": "draft_res_vpn_client_failure_3bb362e384f8",
+        "classification": "vpn_client_failure",
+        "root_cause": "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+        "validated_checks": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors"
+        ],
+        "validated_actions": [
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "confirmed_by": "engineer_review_pending",
+        "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+        "linked_candidate_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+        "automation_ready": false,
+        "source": "ui_draft_from_analysis"
+      },
+      "linked_playbook": {
+        "playbook_id": "draft_pb_vpn_client_failure_3bb362e384f8",
+        "name": "Vpn Client Failure Investigation and Recovery",
+        "classification": "vpn_client_failure",
+        "description": "Validate, isolate, and remediate vpn client failure safely.",
+        "steps": [
+          "Check Idp/MFA Health",
+          "Review Conditional Access Changes",
+          "Validate Ldap/Radius Bind Status",
+          "Inspect Vpn Client Logs",
+          "Inspect Token/Certificate Errors",
+          "Clear Cached Vpn Credentials",
+          "Validate MFA/Idp Health",
+          "Refresh Vpn Client Profile",
+          "Restore Identity Dependency If Degraded",
+          "Rollback Conditional-Access Change If Confirmed"
+        ],
+        "scripts": [],
+        "approval_mode": "manual_approval_required",
+        "rollback_available": true,
+        "risk_tier": "medium",
+        "source": "ui_draft_from_analysis",
+        "engineer_review_required": true
+      }
+    },
+    "draft_steps": [
+      "Check Idp/MFA Health",
+      "Review Conditional Access Changes",
+      "Validate Ldap/Radius Bind Status",
+      "Inspect Vpn Client Logs",
+      "Inspect Token/Certificate Errors",
+      "Clear Cached Vpn Credentials",
+      "Validate MFA/Idp Health",
+      "Refresh Vpn Client Profile",
+      "Restore Identity Dependency If Degraded",
+      "Rollback Conditional-Access Change If Confirmed"
+    ],
+    "test_results": [
+      {
+        "test_id": "act_b7359f7fc4",
+        "tested_at": "2026-07-01T15:22:30.058352+00:00",
+        "tested_by": "Vijay",
+        "execution_mode": "live",
+        "test_status": "pass",
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "notes": "Marked tested from UI after reviewed playbook validation."
+      }
+    ],
+    "generated_playbook": {
+      "generated": true,
+      "generated_by": "Vijay",
+      "generated_at": "2026-07-01T15:22:25.932272+00:00",
+      "playbook": "vpn_recover_client_connectivity.yml",
+      "target_host": "vpn-lab-01",
+      "action": "recover_vpn_connectivity",
+      "content": "---\n- name: Governed diagnostic playbook for container_connection_issue\n  hosts: vpn-lab-01\n  gather_facts: false\n  become: false\n\n  tasks:\n    - name: Show target host\n      ansible.builtin.debug:\n        msg: \"Running governed diagnostic automation for container_connection_issue on {{ inventory_hostname }}.\"\n\n    - name: Validate host reachability\n      ansible.builtin.ping:\n\n    - name: Print reviewed candidate steps\n      ansible.builtin.shell: |\n        echo '- Verify Security Group Rules'\\n        echo '- Inspect Container Port Bindings'\\n        echo '- Confirm DNS/Vpn Are Healthy Dependencies And Not Primary Cause'\n      register: candidate_steps\n      changed_when: false\n      failed_when: false\n\n    - name: Display reviewed candidate steps\n      ansible.builtin.debug:\n        var: candidate_steps.stdout_lines",
+      "saved": true,
+      "saved_path": "/automation/playbooks/vpn_recover_client_connectivity.yml",
+      "saved_at": "2026-07-01T15:22:28.691966+00:00",
+      "saved_by": "Vijay",
+      "existing_playbook_preserved": true
+    },
+    "playbook_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-07-01T15:22:28.691985+00:00",
+      "review_notes": "Reviewed and saved from Automation Development UI."
+    },
+    "approval": {
+      "approved": true,
+      "approved_by": "Vijay",
+      "approved_at": "2026-07-01T15:22:31.343288+00:00",
+      "approval_notes": "Approved from Automation Development stage after reviewed playbook save/test."
+    },
+    "enabled": true,
+    "notes": "Created from Automation Development backlog after engineer requested a new candidate.",
+    "updated_by": "Vijay",
+    "approved": true,
+    "approved_by": "Vijay",
+    "approved_at": "2026-07-01T15:22:31.343288+00:00",
+    "enabled_at": "2026-07-01T15:22:32.509921+00:00",
+    "enabled_by": "Vijay"
+  }
+]

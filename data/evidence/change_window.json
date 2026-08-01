@@ -1,0 +1,8 @@
+{
+  "status": "pass",
+  "severity": "low",
+  "summary": "Within approved change window.",
+  "evidence": "Manually verified.",
+  "source_system": "manual",
+  "checked_at": "2026-06-17T15:00:00Z"
+}

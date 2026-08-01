@@ -1,0 +1,2315 @@
+[
+  {
+    "event_id": "evt_29791f110d74",
+    "timestamp": "2026-06-18T22:29:30.571530+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_a08680384eb2",
+    "timestamp": "2026-06-18T22:29:31.029205+00:00",
+    "metric": "host_down",
+    "value": 0.0,
+    "resource": "node-exporter:9100",
+    "service": "node_exporter",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "HostDown",
+      "instance": "node-exporter:9100",
+      "job": "node_exporter",
+      "metric_name": "host_down",
+      "service_scope": "compute",
+      "severity": "critical",
+      "summary": "Exporter down on node-exporter:9100",
+      "description": "node-exporter target is unreachable",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_55681125c0ea",
+    "timestamp": "2026-06-19T01:48:06.540770+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_8d9246e8d2a8",
+    "timestamp": "2026-06-19T01:48:15.938483+00:00",
+    "metric": "host_down",
+    "value": 0.0,
+    "resource": "node-exporter:9100",
+    "service": "node_exporter",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "HostDown",
+      "instance": "node-exporter:9100",
+      "job": "node_exporter",
+      "metric_name": "host_down",
+      "service_scope": "compute",
+      "severity": "critical",
+      "summary": "Exporter down on node-exporter:9100",
+      "description": "node-exporter target is unreachable",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_cab7ca739598",
+    "timestamp": "2026-06-19T01:48:34.959772+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_5e870d75d25a",
+    "timestamp": "2026-06-19T01:48:45.953852+00:00",
+    "metric": "host_down",
+    "value": 0.0,
+    "resource": "node-exporter:9100",
+    "service": "node_exporter",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "HostDown",
+      "instance": "node-exporter:9100",
+      "job": "node_exporter",
+      "metric_name": "host_down",
+      "service_scope": "compute",
+      "severity": "critical",
+      "summary": "Exporter down on node-exporter:9100",
+      "description": "node-exporter target is unreachable",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_3934a991239c",
+    "timestamp": "2026-06-19T09:06:35.139706+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_2c08df44b817",
+    "timestamp": "2026-06-19T09:06:43.690914+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_72c9e8237546",
+    "timestamp": "2026-06-19T15:55:47.144352+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_f5a0a17655ef",
+    "timestamp": "2026-06-19T19:55:56.024601+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_6287326bfdb4",
+    "timestamp": "2026-06-19T23:56:24.546303+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_6d06d9df94fb",
+    "timestamp": "2026-06-20T14:19:12.402839+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_ddb48fe7b2cc",
+    "timestamp": "2026-06-21T03:54:12.529052+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_a9ab7ea2f900",
+    "timestamp": "2026-06-21T04:54:22.109895+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_99415bb6213b",
+    "timestamp": "2026-06-21T08:54:48.291102+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_9057bc1100e8",
+    "timestamp": "2026-06-21T12:55:16.431229+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_fc308efb44fe",
+    "timestamp": "2026-06-21T22:35:21.136966+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_78717813b7a2",
+    "timestamp": "2026-06-22T14:47:50.262865+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_14902764047a",
+    "timestamp": "2026-06-22T18:48:14.084652+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_91ba26289d59",
+    "timestamp": "2026-06-22T22:48:42.553690+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_2e538d7a9bad",
+    "timestamp": "2026-06-23T02:49:11.009937+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_caccf0f4279a",
+    "timestamp": "2026-06-23T06:49:39.249434+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_570b20e425f0",
+    "timestamp": "2026-06-23T10:50:07.718323+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_a033428e029a",
+    "timestamp": "2026-06-23T13:45:26.800328+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_0ab138effc27",
+    "timestamp": "2026-06-23T13:45:58.562412+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_b7e0f1094fef",
+    "timestamp": "2026-06-23T17:46:04.966028+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_ca42924b84bb",
+    "timestamp": "2026-06-23T21:46:31.868104+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_3cb7306199e0",
+    "timestamp": "2026-06-24T04:51:58.954512+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_3889ea7ab6cc",
+    "timestamp": "2026-06-24T04:52:18.406553+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_40448dd22436",
+    "timestamp": "2026-06-24T07:00:46.499547+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_95fc2910a174",
+    "timestamp": "2026-06-24T07:15:32.900602+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_6f6fb67701c7",
+    "timestamp": "2026-06-24T15:49:43.583780+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_40dde7d24069",
+    "timestamp": "2026-06-24T19:49:50.677921+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_40bd58f7d398",
+    "timestamp": "2026-06-25T01:49:57.610139+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_d8ccf76c92bf",
+    "timestamp": "2026-06-25T11:42:14.148560+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_658a12ca58b9",
+    "timestamp": "2026-06-25T13:06:38.780610+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_d71409324745",
+    "timestamp": "2026-06-25T13:07:03.540718+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_894bcb948891",
+    "timestamp": "2026-06-25T17:07:33.328051+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_a37e24a6515d",
+    "timestamp": "2026-06-25T21:08:01.649442+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_59a310072458",
+    "timestamp": "2026-06-26T01:08:30.166891+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_0e2b2ef35ab2",
+    "timestamp": "2026-06-26T05:08:57.298310+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_bee7ea3a3cb6",
+    "timestamp": "2026-06-26T09:09:25.540243+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_78b203b18f7a",
+    "timestamp": "2026-06-26T13:09:53.964482+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_8920221c5d5f",
+    "timestamp": "2026-06-26T17:10:22.377380+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_427b8884457d",
+    "timestamp": "2026-06-26T21:10:50.711225+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_d19ea4b0b9a8",
+    "timestamp": "2026-06-29T13:27:29.922992+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_e29fca2d6ae4",
+    "timestamp": "2026-06-29T13:27:49.254581+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_032fb5b4eb06",
+    "timestamp": "2026-06-29T17:28:06.925604+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_cb5b1a5e1ba3",
+    "timestamp": "2026-06-29T21:28:35.105211+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_aa95c8b849ed",
+    "timestamp": "2026-06-30T14:07:32.109838+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_cd236cc9ca04",
+    "timestamp": "2026-06-30T14:46:49.158757+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_8e258e568935",
+    "timestamp": "2026-06-30T14:47:07.111072+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_08546e4e82d5",
+    "timestamp": "2026-06-30T18:47:32.308823+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_bb7eabd704fe",
+    "timestamp": "2026-06-30T22:48:00.137132+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_1f22579f47b4",
+    "timestamp": "2026-07-01T14:09:58.341160+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_7e48ce1daf2a",
+    "timestamp": "2026-07-01T14:10:16.670680+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_85c18823298b",
+    "timestamp": "2026-07-01T18:10:44.654094+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_5071da9880af",
+    "timestamp": "2026-07-01T22:11:13.097499+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_be2ad25a7a01",
+    "timestamp": "2026-07-02T02:11:41.449318+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_f8567a75fd52",
+    "timestamp": "2026-07-02T06:12:09.793635+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_5389fb0d945e",
+    "timestamp": "2026-07-02T10:12:38.233957+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_9034e13b68e4",
+    "timestamp": "2026-07-02T14:13:06.759896+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_1fa327206f0b",
+    "timestamp": "2026-07-02T18:13:34.994940+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_a24a85e60b62",
+    "timestamp": "2026-07-02T22:14:03.528590+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_5abe89157da9",
+    "timestamp": "2026-07-03T02:14:31.728562+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_547d890a11ef",
+    "timestamp": "2026-07-08T20:21:42.591730+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_d46857a708bb",
+    "timestamp": "2026-07-09T04:06:10.495044+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_4c0923c3713e",
+    "timestamp": "2026-07-09T14:29:00.474911+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_6820c803ec0f",
+    "timestamp": "2026-07-11T00:24:31.042156+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_26b5e34766a2",
+    "timestamp": "2026-07-13T13:56:46.918691+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_2fc4319180e0",
+    "timestamp": "2026-07-13T17:56:47.343192+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_7617cd03ee8b",
+    "timestamp": "2026-07-13T21:57:16.405568+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_f76c8832f7f9",
+    "timestamp": "2026-07-14T08:45:56.809038+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_e85283e2b234",
+    "timestamp": "2026-07-14T17:30:07.378293+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_20f3cba77a0a",
+    "timestamp": "2026-07-14T21:30:28.709912+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_f29c80580fcf",
+    "timestamp": "2026-07-15T00:01:37.033938+00:00",
+    "metric": "cpu_percent",
+    "value": 96.5,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_6203e51632e8",
+    "timestamp": "2026-07-15T00:01:37.508438+00:00",
+    "metric": "cpu_percent",
+    "value": 97.2,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_bf489f11d2e8",
+    "timestamp": "2026-07-15T00:01:37.562229+00:00",
+    "metric": "cpu_percent",
+    "value": 95.8,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_297645d216e5",
+    "timestamp": "2026-07-15T00:01:37.706624+00:00",
+    "metric": "memory_percent",
+    "value": 94.1,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "MemoryPressure",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_8733ee8dd63a",
+    "timestamp": "2026-07-15T00:01:37.748219+00:00",
+    "metric": "memory_percent",
+    "value": 93.8,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "MemoryPressure",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_59c829aae6eb",
+    "timestamp": "2026-07-15T00:01:37.790505+00:00",
+    "metric": "memory_percent",
+    "value": 95.2,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "MemoryPressure",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_5b0b31c0207e",
+    "timestamp": "2026-07-15T00:01:37.826945+00:00",
+    "metric": "api_latency_ms",
+    "value": 2900.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_bc0b582f7dea",
+    "timestamp": "2026-07-15T00:01:37.869568+00:00",
+    "metric": "api_latency_ms",
+    "value": 3200.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_822461deee67",
+    "timestamp": "2026-07-15T00:01:37.910956+00:00",
+    "metric": "api_latency_ms",
+    "value": 2600.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_27e97a2cf6f3",
+    "timestamp": "2026-07-15T00:01:37.997259+00:00",
+    "metric": "disk_percent",
+    "value": 91.5,
+    "resource": "network-lab-01",
+    "service": "postgres-db",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "DiskIOPressure",
+      "severity": "medium"
+    }
+  },
+  {
+    "event_id": "evt_f831d14ed925",
+    "timestamp": "2026-07-15T00:01:38.035939+00:00",
+    "metric": "disk_percent",
+    "value": 93.2,
+    "resource": "network-lab-01",
+    "service": "postgres-db",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "DiskIOPressure",
+      "severity": "medium"
+    }
+  },
+  {
+    "event_id": "evt_f54b06a70ddb",
+    "timestamp": "2026-07-22T20:53:56.598463+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_5c055c864436",
+    "timestamp": "2026-07-22T20:55:05.485655+00:00",
+    "metric": "cpu_percent",
+    "value": 96.5,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_314cb38b9dc2",
+    "timestamp": "2026-07-22T20:55:05.522620+00:00",
+    "metric": "cpu_percent",
+    "value": 97.2,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_f8af3a79a64e",
+    "timestamp": "2026-07-22T20:55:05.567561+00:00",
+    "metric": "cpu_percent",
+    "value": 95.8,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_871a114e9493",
+    "timestamp": "2026-07-22T20:55:05.598132+00:00",
+    "metric": "memory_percent",
+    "value": 94.1,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "MemoryPressure",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_5856b040124e",
+    "timestamp": "2026-07-22T20:55:05.646522+00:00",
+    "metric": "memory_percent",
+    "value": 93.8,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "MemoryPressure",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_866347193e23",
+    "timestamp": "2026-07-22T20:55:05.680673+00:00",
+    "metric": "memory_percent",
+    "value": 95.2,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "MemoryPressure",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_495a3b8aa2c6",
+    "timestamp": "2026-07-22T20:55:05.722588+00:00",
+    "metric": "api_latency_ms",
+    "value": 2900.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_600db9bb3c25",
+    "timestamp": "2026-07-22T20:55:05.765378+00:00",
+    "metric": "api_latency_ms",
+    "value": 3200.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_d23e037745b0",
+    "timestamp": "2026-07-22T20:55:05.806110+00:00",
+    "metric": "api_latency_ms",
+    "value": 2600.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_55370a205c02",
+    "timestamp": "2026-07-22T20:55:05.852028+00:00",
+    "metric": "disk_percent",
+    "value": 91.5,
+    "resource": "network-lab-01",
+    "service": "postgres-db",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "DiskIOPressure",
+      "severity": "medium"
+    }
+  },
+  {
+    "event_id": "evt_baed258fb23e",
+    "timestamp": "2026-07-22T20:55:05.889577+00:00",
+    "metric": "disk_percent",
+    "value": 93.2,
+    "resource": "network-lab-01",
+    "service": "postgres-db",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "DiskIOPressure",
+      "severity": "medium"
+    }
+  },
+  {
+    "event_id": "evt_8b61e185cbab",
+    "timestamp": "2026-07-22T21:19:17.416748+00:00",
+    "metric": "cpu_percent",
+    "value": 97.2,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_c91309b8ae8f",
+    "timestamp": "2026-07-22T21:33:54.879107+00:00",
+    "metric": "api_latency_ms",
+    "value": 3200.0,
+    "resource": "linux-lab-01",
+    "service": "web-frontend",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "ApiLatencySpike",
+      "severity": "high"
+    }
+  },
+  {
+    "event_id": "evt_2f45117fff75",
+    "timestamp": "2026-07-22T23:56:12.760040+00:00",
+    "metric": "cpu_percent",
+    "value": 97.2,
+    "resource": "linux-lab-02",
+    "service": "claims-api",
+    "environment": "production",
+    "source": "prometheus",
+    "labels": {
+      "alertname": "CpuSaturation",
+      "severity": "critical"
+    }
+  },
+  {
+    "event_id": "evt_b8205e3fa7d0",
+    "timestamp": "2026-07-23T02:43:59.184825+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_2b03b214fa7c",
+    "timestamp": "2026-07-23T09:40:04.414956+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_578cfa7a0974",
+    "timestamp": "2026-07-23T14:40:52.766273+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_bad81ba75e9d",
+    "timestamp": "2026-07-23T14:40:57.150073+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_fece60fbc5e7",
+    "timestamp": "2026-07-23T18:41:23.450283+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_daada8e345f5",
+    "timestamp": "2026-07-24T03:39:45.382950+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_e190f3db30bc",
+    "timestamp": "2026-07-24T11:32:32.395580+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_4d2e3acc1b7e",
+    "timestamp": "2026-07-27T18:46:51.510845+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_80677e651f50",
+    "timestamp": "2026-07-27T22:46:53.197313+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_07764a460743",
+    "timestamp": "2026-07-28T03:03:46.715414+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_2e0539bbda99",
+    "timestamp": "2026-07-28T11:49:58.829940+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_7af6c5b972c0",
+    "timestamp": "2026-07-28T15:50:06.780637+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_e98ee80f06cb",
+    "timestamp": "2026-07-28T19:50:36.062035+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_6886e32895e8",
+    "timestamp": "2026-07-28T23:51:05.400306+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_b071d6ba1a76",
+    "timestamp": "2026-07-29T19:11:41.422087+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_50b5f0ac16d9",
+    "timestamp": "2026-07-30T02:07:43.950682+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_ec6f6485fca6",
+    "timestamp": "2026-07-31T18:38:45.415961+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "resolved"
+    }
+  },
+  {
+    "event_id": "evt_c1de99495051",
+    "timestamp": "2026-07-31T18:39:11.627872+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_e6f362610c3f",
+    "timestamp": "2026-07-31T22:39:12.053329+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_11d74c74aeee",
+    "timestamp": "2026-08-01T02:56:26.939569+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_4918eaee4924",
+    "timestamp": "2026-08-01T06:56:49.018920+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  },
+  {
+    "event_id": "evt_044b413ce467",
+    "timestamp": "2026-08-01T10:57:17.568278+00:00",
+    "metric": "cpu_percent",
+    "value": 0.0,
+    "resource": "unknown_resource",
+    "service": "",
+    "environment": "production",
+    "source": "alertmanager",
+    "labels": {
+      "alertname": "DemoHighCPUUsage",
+      "metric_name": "cpu_percent",
+      "service_scope": "compute",
+      "severity": "critical",
+      "source": "prometheus",
+      "summary": "Demo CPU Alert",
+      "description": "Synthetic alert to test Alertmanager to AI Ops flow",
+      "status": "firing"
+    }
+  }
+]

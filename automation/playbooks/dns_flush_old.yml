@@ -1,0 +1,13 @@
+---
+- name: DNS remediation demo
+  hosts: demo_linux
+  gather_facts: false
+  tasks:
+    - name: Simulate DNS cache flush
+      ansible.builtin.shell: |
+        echo "Simulating DNS cache flush"
+      register: dns_result
+
+    - name: Show result
+      ansible.builtin.debug:
+        var: dns_result.stdout

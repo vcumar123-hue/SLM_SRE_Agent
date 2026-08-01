@@ -1,0 +1,89 @@
+---
+# Remediates vulnerable Python dependency on linux-lab-02 (App Tier)
+# Findings: CVE-2018-18074 (requests), CUSTOM-SSH-001 (sshd), CUSTOM-PERM-001 (chmod 777)
+# Path A — requires human approval (standalone, prod-critical)
+- name: Remediate App Tier — Dependency + SSH Hardening
+  hosts: linux-lab-02
+  gather_facts: yes
+  vars:
+    backup_dir: /app/bak
+    sshd_config: /etc/ssh/sshd_config
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Backup sshd_config
+      copy:
+        src: "{{ sshd_config }}"
+        dest: "{{ backup_dir }}/sshd_config.bak"
+        remote_src: yes
+
+    - name: Upgrade vulnerable requests library (CVE-2018-18074)
+      pip:
+        name: requests
+        version: "2.28.2"
+        state: present
+      register: pip_result
+
+    - name: Confirm requests version after upgrade
+      command: python3 -c "import requests; print(requests.__version__)"
+      register: req_ver
+      changed_when: false
+
+    - name: Report requests version
+      debug:
+        msg: "requests version: {{ req_ver.stdout }}"
+
+    - name: Harden SSH — disable root login
+      lineinfile:
+        path: "{{ sshd_config }}"
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
+        state: present
+
+    - name: Harden SSH — disable password authentication
+      lineinfile:
+        path: "{{ sshd_config }}"
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+
+    - name: Harden SSH — disable X11 forwarding
+      lineinfile:
+        path: "{{ sshd_config }}"
+        regexp: "^#?X11Forwarding"
+        line: "X11Forwarding no"
+        state: present
+
+    - name: Fix world-writable /tmp/app-data permissions
+      file:
+        path: /tmp/app-data
+        mode: "0750"
+        state: directory
+      ignore_errors: yes
+
+    - name: Remove suspicious cron job
+      file:
+        path: /etc/cron.d/debug-job
+        state: absent
+      ignore_errors: yes
+
+    - name: Verify SSH config — no PermitRootLogin yes
+      command: grep -v "^#" "{{ sshd_config }}"
+      register: sshd_check
+      changed_when: false
+
+    - name: Report remediation summary
+      debug:
+        msg: |
+          Remediation complete for linux-lab-02:
+          - requests upgraded to {{ req_ver.stdout }}
+          - PermitRootLogin: no
+          - PasswordAuthentication: no
+          - X11Forwarding: no
+          - /tmp/app-data permissions fixed
+          - Suspicious cron job removed

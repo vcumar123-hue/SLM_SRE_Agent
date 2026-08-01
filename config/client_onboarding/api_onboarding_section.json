@@ -1,0 +1,53 @@
+{
+  "schema_version": "client_onboarding_api_section_v1",
+  "section_name": "Universal API Adapter Configuration",
+  "rollout_goal": "Start with file-based evidence and enable API adapters progressively without changing safety gate logic.",
+  "day_1_required": {
+    "api_integrations_required": false,
+    "required_files": [
+      "config/client_onboarding/safety_gate_config.json",
+      "config/client_onboarding/api_adapter_config.json",
+      "config/client_onboarding/universal_evidence_contract.json",
+      "data/evidence/drift_status.json",
+      "data/evidence/change_conflict.json",
+      "data/evidence/error_budget_status.json",
+      "data/evidence/concurrent_activity.json",
+      "data/evidence/rollback_readiness.json",
+      "data/evidence/blast_radius.json"
+    ]
+  },
+  "api_enablement_sequence": [
+    {
+      "phase": "P0",
+      "name": "File Evidence",
+      "timeline": "Day 1-3",
+      "description": "Client supplies evidence files or exports. No API dependency."
+    },
+    {
+      "phase": "P1",
+      "name": "Push Evidence API",
+      "timeline": "Week 1",
+      "description": "Client posts normalized evidence to /evidence/submit."
+    },
+    {
+      "phase": "P2",
+      "name": "Priority Pull Adapters",
+      "timeline": "Week 2+",
+      "description": "Enable only high-value APIs such as ITSM change and observability SLO."
+    },
+    {
+      "phase": "P3",
+      "name": "Full Adapter Coverage",
+      "timeline": "As needed",
+      "description": "Add cloud, Kubernetes, Terraform, Git, AWX adapters for richer evidence."
+    }
+  ],
+  "client_inputs_needed": [
+    "Which ITSM tool and change/incident tables are authoritative?",
+    "Which observability platform owns SLO/error budget?",
+    "Which source owns desired infrastructure state: Terraform, GitOps, cloud config, CMDB?",
+    "Which automation runner is used: Ansible CLI, AWX, Ansible Automation Platform?",
+    "Where is rollback metadata stored: SLM/bak, Git, artifact repository, backup system?",
+    "Which tags identify service/environment/resource across systems?"
+  ]
+}

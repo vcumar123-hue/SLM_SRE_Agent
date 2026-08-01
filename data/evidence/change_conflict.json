@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "evidence_type": "change_conflict",
+      "service": "claims-api",
+      "environment": "production",
+      "resource": "linux-lab-01",
+      "classification": "container_connection_issue",
+      "status": "pass",
+      "severity": "low",
+      "source_system": "client_file_adapter",
+      "source_record_id": "CHG_NONE",
+      "summary": "No active conflicting change found for claims-api/linux-lab-01.",
+      "evidence": "Client onboarding file confirms no current freeze/change conflict.",
+      "checked_at": "2026-06-17T15:09:37Z",
+      "confidence": 0.85,
+      "uploaded_via": "client_onboarding_safety_gate_ui",
+      "uploaded_at": "2026-05-20T21:46:07.929368"
+    }
+  ],
+  "status": "pass",
+  "evidence_type": "change_conflict",
+  "source_system": "ui_json_upload",
+  "uploaded_via": "client_onboarding_safety_gate_ui",
+  "uploaded_at": "2026-05-20T21:46:07.929391",
+  "checked_at": "2026-06-17T15:09:37Z"
+}

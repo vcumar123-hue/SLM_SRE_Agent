@@ -1,0 +1,9 @@
+---
+- name: Restart IIS demo
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Restart IIS service
+      win_service:
+        name: W3SVC
+        state: restarted

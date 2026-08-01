@@ -1,0 +1,528 @@
+{
+  "metadata": {
+    "tenant_id": "client_a",
+    "display_name": "PFG",
+    "backtest_mode": "client_local",
+    "data_scope": "client_private",
+    "description": "Client-local contextual backtesting cases for AI Ops Copilot. Includes incident context, related changes/problems/service requests/telemetry/topology, and drift management context for before/after correlation.",
+    "version": "2.0",
+    "knowledge_layers_to_compare": [
+      "base_only",
+      "client_private",
+      "client_private_plus_context",
+      "client_private_plus_global_patterns",
+      "client_private_plus_global_patterns_plus_drift"
+    ],
+    "context_model": {
+      "primary_record": "Primary incident or telemetry incident being replayed",
+      "related_records": [
+        "changes",
+        "problems",
+        "service_requests",
+        "telemetry",
+        "cmdb_topology",
+        "drift_snapshots"
+      ],
+      "context_window": "Before/after window used to correlate related operational records",
+      "drift_context": "Approved-vs-observed state before incident and after resolution"
+    },
+    "backtest_layers": [
+      "incident_only_replay",
+      "client_local_contextual_replay",
+      "client_plus_global_pattern_comparison",
+      "drift_aware_correlation"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "bt_client_a_vpn_001",
+      "tenant_id": "client_a",
+      "mode": "client_local",
+      "source": {
+        "system": "manual_seed",
+        "record_type": "incident",
+        "original_ticket_id": "ANON-INC-VPN-001",
+        "client_alias": "client_a"
+      },
+      "input": {
+        "title": "VPN users cannot connect after password reset",
+        "ticket_text": "VPN users cannot connect after password reset. MFA prompt loops and RADIUS authentication errors are observed.",
+        "environment": "production",
+        "affected_ci": "vpn_gateway_or_user_endpoint",
+        "severity": "high"
+      },
+      "expected": {
+        "domain": "network",
+        "classification": "vpn_client_failure",
+        "root_cause": "cached credential or identity-provider authentication issue after password reset",
+        "associated_scenario": "authentication_or_identity_provider_dependency",
+        "resolution_action": "clear cached VPN credentials, validate MFA/IdP health, and refresh VPN client profile",
+        "recommended_checks": [
+          "check IdP/MFA health",
+          "review conditional access changes",
+          "validate LDAP/RADIUS bind status",
+          "inspect VPN client logs"
+        ],
+        "recommended_actions": [
+          "clear cached VPN credentials",
+          "refresh VPN client profile",
+          "restore identity dependency if degraded"
+        ],
+        "change_correlation": "identity_policy_change",
+        "problem_correlation": "recurring_vpn_login_failure_after_password_reset",
+        "service_request_correlation": "password_reset_and_vpn_access_revalidation",
+        "drift_detected": true,
+        "drift_type": "identity_policy_drift",
+        "timeline_events": [
+          "T-1h45m service request completed for password reset",
+          "T-1h20m identity/MFA policy updated",
+          "T-10m VPN authentication failures spike",
+          "T0 incident opened",
+          "T+45m policy exclusion corrected and VPN profile refreshed"
+        ]
+      },
+      "scoring_weights": {
+        "classification_match": 0.2,
+        "domain_match": 0.08,
+        "root_cause_match": 0.16,
+        "recommended_action_match": 0.16,
+        "associated_scenario_match": 0.14,
+        "retrieval_quality": 0.08,
+        "change_correlation_match": 0.06,
+        "problem_correlation_match": 0.04,
+        "service_request_correlation_match": 0.03,
+        "drift_correlation_match": 0.05
+      },
+      "tags": [
+        "vpn",
+        "mfa",
+        "password_reset",
+        "identity"
+      ],
+      "primary_record": {
+        "type": "incident",
+        "id": "ANON-INC-VPN-001",
+        "opened_at": "2026-03-11T10:30:00Z",
+        "short_description": "VPN users cannot connect after password reset",
+        "description": "VPN users cannot connect after password reset. MFA prompt loops and RADIUS authentication errors are observed.",
+        "environment": "production",
+        "affected_ci": "vpn_gateway_or_user_endpoint",
+        "severity": "high",
+        "resolution_notes": "clear cached VPN credentials, validate MFA/IdP health, and refresh VPN client profile"
+      },
+      "context_window": {
+        "before_hours": 24,
+        "after_hours": 24
+      },
+      "related_records": {
+        "changes": [
+          {
+            "id": "ANON-CHG-VPN-001",
+            "type": "identity_policy_change",
+            "implemented_at": "2026-03-11T09:10:00Z",
+            "description": "Conditional access policy and MFA enforcement rules updated after password reset policy change.",
+            "state": "implemented",
+            "risk": "medium",
+            "correlation_hint": "MFA loop started after identity policy update"
+          }
+        ],
+        "problems": [
+          {
+            "id": "ANON-PRB-VPN-001",
+            "description": "Recurring VPN login failures observed after password reset and MFA policy changes.",
+            "known_error": true,
+            "known_error_summary": "Cached VPN credentials and stale MFA session tokens can cause repeated authentication loops."
+          }
+        ],
+        "service_requests": [
+          {
+            "id": "ANON-REQ-VPN-001",
+            "description": "User password reset and VPN access revalidation request.",
+            "requested_at": "2026-03-11T08:45:00Z",
+            "status": "completed"
+          }
+        ],
+        "telemetry": [
+          {
+            "metric": "vpn_auth_failure_rate",
+            "value": 18.0,
+            "timestamp": "2026-03-11T10:25:00Z",
+            "signal": "RADIUS/MFA authentication failure spike"
+          }
+        ],
+        "cmdb_topology": [
+          {
+            "ci": "vpn_gateway_or_user_endpoint",
+            "depends_on": [
+              "identity_provider",
+              "radius_service",
+              "mfa_provider"
+            ],
+            "dependency_path": "vpn_client -> vpn_gateway -> radius_service -> identity_provider -> mfa_provider"
+          }
+        ],
+        "drift_snapshots": [
+          {
+            "snapshot_id": "ANON-DRIFT-VPN-001",
+            "timestamp": "2026-03-11T10:20:00Z",
+            "approved_state": "MFA conditional access policy excludes reset-validation group until first successful login.",
+            "observed_state": "Reset-validation group exclusion missing from active policy.",
+            "drift_detected": true,
+            "drift_type": "identity_policy_drift",
+            "drift_severity": "medium"
+          }
+        ]
+      },
+      "drift_context": {
+        "enabled": true,
+        "approved_state": {
+          "conditional_access_policy": "reset-validation group excluded during first login after password reset"
+        },
+        "observed_state_before_incident": {
+          "conditional_access_policy": "exclusion missing",
+          "mfa_behavior": "prompt loop"
+        },
+        "observed_state_after_resolution": {
+          "conditional_access_policy": "exclusion restored",
+          "mfa_behavior": "successful challenge completion"
+        },
+        "drift_detected": true,
+        "drift_type": "identity_policy_drift",
+        "drift_severity": "medium"
+      }
+    },
+    {
+      "case_id": "bt_client_a_api_001",
+      "tenant_id": "client_a",
+      "mode": "client_local",
+      "source": {
+        "system": "manual_seed",
+        "record_type": "incident_change",
+        "original_ticket_id": "ANON-INC-API-001",
+        "client_alias": "client_a"
+      },
+      "input": {
+        "title": "API gateway timeout after firewall policy change",
+        "ticket_text": "API gateway timeout with HTTP 504 after firewall policy change. Downstream service port connectivity failed.",
+        "environment": "production",
+        "affected_ci": "api_gateway",
+        "severity": "high"
+      },
+      "expected": {
+        "domain": "application_network",
+        "classification": "api_gateway_timeout",
+        "root_cause": "firewall policy change blocked downstream service port",
+        "associated_scenario": "firewall_policy_change_blocking_downstream_port",
+        "resolution_action": "validate firewall rule, restore downstream port access, and confirm recovery using synthetic transaction",
+        "recommended_checks": [
+          "validate recent firewall/security-group changes",
+          "test source-to-destination port connectivity",
+          "compare deny logs with incident window",
+          "confirm dependency path from topology"
+        ],
+        "recommended_actions": [
+          "rollback or correct policy rule after approval",
+          "restore required downstream port access",
+          "validate recovery with synthetic transaction"
+        ],
+        "change_correlation": "firewall_policy_change",
+        "problem_correlation": "recurring_api_gateway_timeout_after_network_policy_change",
+        "service_request_correlation": "downstream_port_access_request",
+        "drift_detected": true,
+        "drift_type": "firewall_policy_drift",
+        "timeline_events": [
+          "T-18h service request fulfilled for downstream access",
+          "T-45m firewall policy change implemented",
+          "T-10m 5xx and downstream connectivity failures spike",
+          "T0 API gateway timeout incident opened",
+          "T+60m missing subnet rule corrected and synthetic transaction passed"
+        ]
+      },
+      "scoring_weights": {
+        "classification_match": 0.2,
+        "domain_match": 0.08,
+        "root_cause_match": 0.16,
+        "recommended_action_match": 0.16,
+        "associated_scenario_match": 0.14,
+        "retrieval_quality": 0.08,
+        "change_correlation_match": 0.06,
+        "problem_correlation_match": 0.04,
+        "service_request_correlation_match": 0.03,
+        "drift_correlation_match": 0.05
+      },
+      "tags": [
+        "api",
+        "timeout",
+        "firewall",
+        "change",
+        "port"
+      ],
+      "primary_record": {
+        "type": "incident",
+        "id": "ANON-INC-API-001",
+        "opened_at": "2026-03-11T10:30:00Z",
+        "short_description": "API gateway timeout after firewall policy change",
+        "description": "API gateway timeout with HTTP 504 after firewall policy change. Downstream service port connectivity failed.",
+        "environment": "production",
+        "affected_ci": "api_gateway",
+        "severity": "high",
+        "resolution_notes": "validate firewall rule, restore downstream port access, and confirm recovery using synthetic transaction"
+      },
+      "context_window": {
+        "before_hours": 24,
+        "after_hours": 24
+      },
+      "related_records": {
+        "changes": [
+          {
+            "id": "ANON-CHG-API-001",
+            "type": "firewall_policy_change",
+            "implemented_at": "2026-03-11T09:45:00Z",
+            "description": "Firewall policy updated for API gateway to downstream service connectivity on port 8443.",
+            "state": "implemented",
+            "risk": "high",
+            "correlation_hint": "API 504 began within one hour of firewall rule implementation"
+          }
+        ],
+        "problems": [
+          {
+            "id": "ANON-PRB-API-001",
+            "description": "Recurring API gateway timeout after network security policy changes.",
+            "known_error": true,
+            "known_error_summary": "Firewall/security-group drift can block downstream service ports and produce gateway 504 errors."
+          }
+        ],
+        "service_requests": [
+          {
+            "id": "ANON-REQ-API-001",
+            "description": "Request access from API gateway subnet to downstream service port 8443.",
+            "requested_at": "2026-03-10T16:00:00Z",
+            "status": "fulfilled"
+          }
+        ],
+        "telemetry": [
+          {
+            "metric": "api_gateway_5xx_rate",
+            "value": 18.2,
+            "timestamp": "2026-03-11T10:28:00Z",
+            "signal": "HTTP 504 spike"
+          },
+          {
+            "metric": "downstream_connectivity_failure_count",
+            "value": 42,
+            "timestamp": "2026-03-11T10:29:00Z",
+            "signal": "port connectivity failures to downstream service"
+          }
+        ],
+        "cmdb_topology": [
+          {
+            "ci": "api_gateway",
+            "depends_on": [
+              "downstream_service",
+              "firewall_policy",
+              "load_balancer"
+            ],
+            "dependency_path": "api_gateway -> firewall_policy -> downstream_service:8443"
+          }
+        ],
+        "drift_snapshots": [
+          {
+            "snapshot_id": "ANON-DRIFT-API-001",
+            "timestamp": "2026-03-11T10:20:00Z",
+            "approved_state": "api_gateway subnet can reach downstream_service on TCP/8443",
+            "observed_state": "firewall rule missing for subnet_b; TCP/8443 denied",
+            "drift_detected": true,
+            "drift_type": "firewall_policy_drift",
+            "drift_severity": "high"
+          }
+        ]
+      },
+      "drift_context": {
+        "enabled": true,
+        "approved_state": {
+          "firewall_rule": "api_gateway -> downstream_service:8443 allowed"
+        },
+        "observed_state_before_incident": {
+          "firewall_rule": "missing for subnet_b",
+          "connectivity": "TCP/8443 denied"
+        },
+        "observed_state_after_resolution": {
+          "firewall_rule": "api_gateway -> downstream_service:8443 allowed",
+          "connectivity": "synthetic transaction successful"
+        },
+        "drift_detected": true,
+        "drift_type": "firewall_policy_drift",
+        "drift_severity": "high"
+      }
+    },
+    {
+      "case_id": "bt_client_a_cpu_001",
+      "tenant_id": "client_a",
+      "mode": "client_local",
+      "source": {
+        "system": "manual_seed",
+        "record_type": "telemetry_incident",
+        "original_ticket_id": "ANON-INC-CPU-001",
+        "client_alias": "client_a"
+      },
+      "input": {
+        "title": "High CPU on application server during nightly batch",
+        "ticket_text": "High CPU on application server during nightly batch job and endpoint security scan overlap.",
+        "environment": "production",
+        "affected_ci": "app_server",
+        "severity": "high",
+        "telemetry": {
+          "metric": "cpu_percent",
+          "value": 97.0,
+          "rule": "cpu_sustained_high"
+        }
+      },
+      "expected": {
+        "domain": "compute",
+        "classification": "cpu_saturation",
+        "root_cause": "scheduled batch job collision with endpoint security scan",
+        "associated_scenario": "batch_job_or_scheduled_task_collision",
+        "secondary_associated_scenarios": [
+          "endpoint_security_or_antivirus_scan_overlap"
+        ],
+        "resolution_action": "review scheduled job window, check top CPU processes, and reschedule scan or batch job",
+        "recommended_checks": [
+          "review scheduled job calendar",
+          "check top process during incident",
+          "review endpoint security scan schedule",
+          "compare scan window with incident window"
+        ],
+        "recommended_actions": [
+          "reschedule or throttle batch job",
+          "reschedule scan window",
+          "coordinate scan and batch schedules"
+        ],
+        "change_correlation": "batch_schedule_change",
+        "problem_correlation": "recurring_cpu_saturation_from_batch_and_endpoint_scan_overlap",
+        "service_request_correlation": "batch_window_adjustment_request",
+        "drift_detected": true,
+        "drift_type": "operational_schedule_drift",
+        "timeline_events": [
+          "T-9h service request approved to move batch window",
+          "T-1h batch schedule change active",
+          "T0 CPU telemetry threshold breached while endpoint scan active",
+          "T+30m overlap identified",
+          "T+2h scan/batch schedule separated"
+        ]
+      },
+      "scoring_weights": {
+        "classification_match": 0.2,
+        "domain_match": 0.08,
+        "root_cause_match": 0.16,
+        "recommended_action_match": 0.16,
+        "associated_scenario_match": 0.14,
+        "retrieval_quality": 0.08,
+        "change_correlation_match": 0.06,
+        "problem_correlation_match": 0.04,
+        "service_request_correlation_match": 0.03,
+        "drift_correlation_match": 0.05
+      },
+      "tags": [
+        "cpu",
+        "batch",
+        "security_scan",
+        "telemetry"
+      ],
+      "primary_record": {
+        "type": "telemetry_incident",
+        "id": "ANON-INC-CPU-001",
+        "opened_at": "2026-03-11T10:30:00Z",
+        "short_description": "High CPU on application server during nightly batch",
+        "description": "High CPU on application server during nightly batch job and endpoint security scan overlap.",
+        "environment": "production",
+        "affected_ci": "app_server",
+        "severity": "high",
+        "resolution_notes": "review scheduled job window, check top CPU processes, and reschedule scan or batch job"
+      },
+      "context_window": {
+        "before_hours": 24,
+        "after_hours": 24
+      },
+      "related_records": {
+        "changes": [
+          {
+            "id": "ANON-CHG-CPU-001",
+            "type": "batch_schedule_change",
+            "implemented_at": "2026-03-11T01:00:00Z",
+            "description": "Nightly batch schedule moved closer to endpoint security scan window.",
+            "state": "implemented",
+            "risk": "medium",
+            "correlation_hint": "CPU spike began during overlap of batch job and endpoint scan"
+          }
+        ],
+        "problems": [
+          {
+            "id": "ANON-PRB-CPU-001",
+            "description": "Recurring CPU saturation when batch processing overlaps with endpoint security scans.",
+            "known_error": true,
+            "known_error_summary": "Batch and AV/EDR overlap causes CPU contention on application servers."
+          }
+        ],
+        "service_requests": [
+          {
+            "id": "ANON-REQ-CPU-001",
+            "description": "Request to adjust batch processing window for reporting workload.",
+            "requested_at": "2026-03-10T17:00:00Z",
+            "status": "implemented"
+          }
+        ],
+        "telemetry": [
+          {
+            "metric": "cpu_percent",
+            "value": 97.0,
+            "timestamp": "2026-03-11T02:15:00Z",
+            "signal": "sustained high CPU"
+          },
+          {
+            "metric": "security_agent_cpu_percent",
+            "value": 38.0,
+            "timestamp": "2026-03-11T02:15:00Z",
+            "signal": "endpoint security scan active"
+          }
+        ],
+        "cmdb_topology": [
+          {
+            "ci": "app_server",
+            "depends_on": [
+              "batch_scheduler",
+              "endpoint_security_agent",
+              "reporting_database"
+            ],
+            "dependency_path": "batch_scheduler -> app_server -> reporting_database"
+          }
+        ],
+        "drift_snapshots": [
+          {
+            "snapshot_id": "ANON-DRIFT-CPU-001",
+            "timestamp": "2026-03-11T02:10:00Z",
+            "approved_state": "batch job and endpoint security scan windows must not overlap",
+            "observed_state": "batch job and endpoint security scan ran concurrently",
+            "drift_detected": true,
+            "drift_type": "operational_schedule_drift",
+            "drift_severity": "medium"
+          }
+        ]
+      },
+      "drift_context": {
+        "enabled": true,
+        "approved_state": {
+          "schedule_policy": "batch job and endpoint security scan windows do not overlap"
+        },
+        "observed_state_before_incident": {
+          "schedule_policy": "batch and endpoint scan overlap detected"
+        },
+        "observed_state_after_resolution": {
+          "schedule_policy": "batch job moved outside scan window"
+        },
+        "drift_detected": true,
+        "drift_type": "operational_schedule_drift",
+        "drift_severity": "medium"
+      }
+    }
+  ]
+}

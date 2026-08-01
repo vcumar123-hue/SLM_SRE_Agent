@@ -1,0 +1,122 @@
+{
+  "schema_version": "safety_gate_config_v1",
+  "client_id": "client_a",
+  "client_name": "Client A",
+  "rollout_model": "universal_evidence_docking_layer",
+  "adapter_strategy": "file_first_api_later",
+  "evidence_store_dir": "data/evidence",
+  "rollback": {
+    "backup_dir": "./bak",
+    "storage_mode": "local_slm_bak_folder",
+    "default_available_for_read_only_playbooks": true
+  },
+  "pilot_defaults": {
+    "missing_evidence_status": "pass",
+    "missing_evidence_severity": "low",
+    "missing_evidence_note": "Pilot mode: no external integration evidence provided yet; treated as PASS for human-in-loop validation. Change to WARN/FAIL for production readiness."
+  },
+  "policy": {
+    "simulation": {
+      "missing_evidence": "warn",
+      "fail_blocks": false,
+      "warn_blocks": false
+    },
+    "live_human_approved": {
+      "missing_evidence": "warn",
+      "fail_blocks": true,
+      "warn_blocks": false
+    },
+    "autonomous": {
+      "missing_evidence": "fail",
+      "fail_blocks": true,
+      "warn_blocks": true
+    }
+  },
+  "checks": {
+    "infrastructure_drift": {
+      "enabled": true,
+      "evidence_type": "drift_status",
+      "adapter_mode": "file",
+      "source_file": "drift_status.json",
+      "integration_owner": "Infrastructure / Cloud Platform",
+      "system_examples": [
+        "Terraform state",
+        "AWS Config",
+        "Azure Resource Graph",
+        "CMDB",
+        "GitOps"
+      ],
+      "onboarding_required": false
+    },
+    "error_budget_slo": {
+      "enabled": true,
+      "evidence_type": "error_budget_status",
+      "adapter_mode": "file",
+      "source_file": "error_budget_status.json",
+      "integration_owner": "SRE / Observability",
+      "system_examples": [
+        "Prometheus",
+        "Grafana",
+        "Datadog",
+        "Dynatrace",
+        "New Relic"
+      ],
+      "onboarding_required": false
+    },
+    "concurrent_activity": {
+      "enabled": true,
+      "evidence_type": "concurrent_activity",
+      "adapter_mode": "file",
+      "source_file": "concurrent_activity.json",
+      "integration_owner": "Operations / Command Center",
+      "system_examples": [
+        "Open incidents",
+        "Active deployments",
+        "AWX/Ansible jobs",
+        "PagerDuty"
+      ],
+      "onboarding_required": false
+    },
+    "change_window": {
+      "enabled": true,
+      "evidence_type": "change_conflict",
+      "adapter_mode": "file",
+      "source_file": "change_conflict.json",
+      "integration_owner": "ITSM / Change Management",
+      "system_examples": [
+        "ServiceNow Change",
+        "Jira Service Management",
+        "Remedy",
+        "Release calendar"
+      ],
+      "onboarding_required": false
+    },
+    "rollback_readiness": {
+      "enabled": true,
+      "evidence_type": "rollback_readiness",
+      "adapter_mode": "file",
+      "source_file": "rollback_readiness.json",
+      "integration_owner": "Automation Engineering",
+      "system_examples": [
+        "Playbook metadata",
+        "Rollback manifest",
+        "./bak metadata"
+      ],
+      "onboarding_required": false
+    },
+    "blast_radius": {
+      "enabled": true,
+      "evidence_type": "blast_radius",
+      "adapter_mode": "derived_then_file",
+      "source_file": "blast_radius.json",
+      "integration_owner": "Service Owner / CMDB Owner",
+      "system_examples": [
+        "ServiceNow CMDB",
+        "Backstage",
+        "Kubernetes",
+        "Service graph"
+      ],
+      "onboarding_required": false
+    }
+  }
+}

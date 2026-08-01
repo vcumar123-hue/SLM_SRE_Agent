@@ -1,0 +1,20 @@
+﻿---
+- name: Restart nginx and validate service
+  hosts: linux_lab
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Restart nginx
+      ansible.builtin.shell: service nginx restart
+      register: restart_result
+      changed_when: true
+
+    - name: Validate nginx responds locally
+      ansible.builtin.shell: curl -I http://localhost || true
+      register: nginx_check
+      changed_when: false
+
+    - name: Show validation output
+      ansible.builtin.debug:
+        var: nginx_check.stdout_lines

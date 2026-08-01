@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for cpu_utilization_high
+  hosts: linux-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for cpu_utilization_high on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Inspect System Logs'\n        echo '- Verify Resource Allocation'\n        echo '- Analyze CPU Usage Patterns'\n        echo '- Optimize Resource Allocation If Necessary'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "evidence_type": "error_budget_status",
+      "service": "claims-api",
+      "environment": "production",
+      "resource": "linux-lab-01",
+      "status": "pass",
+      "severity": "low",
+      "source_system": "client_file_adapter",
+      "summary": "No active SLO burn-rate block.",
+      "evidence": "Error budget and burn-rate are within onboarding thresholds.",
+      "checked_at": "2026-06-17T15:09:37Z",
+      "confidence": 0.82,
+      "uploaded_via": "client_onboarding_safety_gate_ui",
+      "uploaded_at": "2026-05-20T21:46:36.788376"
+    }
+  ],
+  "status": "pass",
+  "evidence_type": "error_budget_status",
+  "source_system": "ui_json_upload",
+  "uploaded_via": "client_onboarding_safety_gate_ui",
+  "uploaded_at": "2026-05-20T21:46:36.788399",
+  "checked_at": "2026-06-17T15:09:37Z"
+}

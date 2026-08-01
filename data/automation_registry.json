@@ -1,0 +1,197 @@
+{
+  "api_gateway_timeout": {
+    "classification": "api_gateway_timeout",
+    "action": "validate_gateway_downstream_connectivity",
+    "actions": [
+      "validate_gateway_downstream_connectivity"
+    ],
+    "connector": "ansible",
+    "playbook": "gateway_downstream_connectivity_check.yml",
+    "target_host": "network-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_a7cf388061",
+    "enabled_by": "system_autoheal",
+    "enabled_at": "2026-05-18T22:19:02.486488+00:00"
+  },
+  "disk_usage_exceeds_threshold_due_to_temporary_files": {
+    "classification": "disk_usage_exceeds_threshold_due_to_temporary_files",
+    "action": "cleanup_linux_temp_files",
+    "actions": [
+      "cleanup_linux_temp_files"
+    ],
+    "connector": "ansible",
+    "playbook": "linux_disk_cleanup.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_2b49dfa157",
+    "enabled_by": "system_autoheal",
+    "enabled_at": "2026-05-18T22:19:02.486556+00:00"
+  },
+  "disk_usage_exceeding_threshold": {
+    "classification": "disk_usage_exceeding_threshold",
+    "action": "cleanup_linux_temp_files",
+    "actions": [
+      "cleanup_linux_temp_files"
+    ],
+    "connector": "ansible",
+    "playbook": "linux_disk_cleanup.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_eaee1bab75",
+    "enabled_by": "system_autoheal",
+    "enabled_at": "2026-05-18T22:19:02.486584+00:00"
+  },
+  "container_connection_issue": {
+    "classification": "container_connection_issue",
+    "action": "validate_container_connectivity",
+    "actions": [
+      "validate_container_connectivity"
+    ],
+    "connector": "ansible",
+    "playbook": "container_connectivity_check.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_abf6250d7b",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-05-18T23:10:00.236179+00:00"
+  },
+  "cpu_saturation": {
+    "classification": "cpu_saturation",
+    "action": "validate_cpu_saturation",
+    "actions": [
+      "validate_cpu_saturation"
+    ],
+    "connector": "ansible",
+    "playbook": "validate_cpu_saturation_v2_candidate.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_e9852e796e",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+  },
+  "cpu_utilization_high": {
+    "classification": "cpu_utilization_high",
+    "action": "validate_cpu_utilization_high",
+    "actions": [
+      "validate_cpu_utilization_high"
+    ],
+    "connector": "ansible",
+    "playbook": "validate_cpu_utilization_high.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_d773f10b08",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-06-04T02:32:18.511878+00:00",
+    "autonomous_enabled": false,
+    "autonomy_mode": "human_in_the_loop",
+    "telemetry_autonomous_allowed": false
+  },
+  "database_performance_issue": {
+    "classification": "database_performance_issue",
+    "action": "validate_database_performance_issue",
+    "actions": [
+      "validate_database_performance_issue"
+    ],
+    "connector": "ansible",
+    "playbook": "validate_database_performance_issue.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_2b1fd9e2c1",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-06-17T15:18:36.555570+00:00",
+    "autonomous_enabled": false,
+    "autonomy_mode": "human_in_the_loop",
+    "telemetry_autonomous_allowed": false
+  },
+  "certificate_expiry_warning": {
+    "classification": "certificate_expiry_warning",
+    "action": "recover_vpn_connectivity",
+    "actions": [
+      "recover_vpn_connectivity"
+    ],
+    "connector": "ansible",
+    "playbook": "certificate_expiry_warning_candidate.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_b0e880b8f3",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-06-18T00:21:23.810036+00:00",
+    "autonomous_enabled": false,
+    "autonomy_mode": "human_in_the_loop",
+    "telemetry_autonomous_allowed": false
+  },
+  "pod_crash_loop": {
+    "classification": "pod_crash_loop",
+    "action": "validate_container_connectivity",
+    "actions": [
+      "validate_container_connectivity"
+    ],
+    "connector": "ansible",
+    "playbook": "pod_crash_loop_candidate.yml",
+    "target_host": "linux-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_95c245a7bf",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-06-18T16:24:30.466628+00:00",
+    "autonomous_enabled": false,
+    "autonomy_mode": "human_in_the_loop",
+    "telemetry_autonomous_allowed": false
+  },
+  "vpn_client_failure": {
+    "classification": "vpn_client_failure",
+    "action": "recover_vpn_connectivity",
+    "actions": [
+      "recover_vpn_connectivity"
+    ],
+    "connector": "ansible",
+    "playbook": "vpn_recover_client_connectivity.yml",
+    "target_host": "vpn-lab-01",
+    "target_group": "",
+    "risk_tier": "medium",
+    "approval_required": true,
+    "enabled": true,
+    "source": "automation_candidate_registry",
+    "source_candidate_id": "ac_74eaae4145",
+    "enabled_by": "Vijay",
+    "enabled_at": "2026-07-01T15:22:32.509921+00:00",
+    "autonomous_enabled": false,
+    "autonomy_mode": "human_in_the_loop",
+    "telemetry_autonomous_allowed": false
+  }
+}

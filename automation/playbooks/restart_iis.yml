@@ -1,0 +1,40 @@
+---
+- name: Restart IIS remediation
+  hosts: windows
+  gather_facts: false
+  collections:
+    - ansible.windows
+
+  vars:
+    remediation_metadata:
+      action: restart_iis
+      rollback_supported: true
+      rollback_strategy: "restart W3SVC again or start stopped IIS service if restart validation fails"
+      risk_tier: medium
+      approval_mode: manual_approval_required
+      evidence_commands:
+        - "Get-Service W3SVC"
+        - "Get-WebAppPoolState -Name *"
+
+  tasks:
+    - name: Capture IIS service state before restart
+      ansible.windows.win_shell: |
+        Get-Service W3SVC | Select-Object Name, Status, StartType | ConvertTo-Json -Compress
+      register: iis_before
+
+    - name: Restart IIS service
+      ansible.windows.win_service:
+        name: W3SVC
+        state: restarted
+      register: iis_restart
+
+    - name: Capture IIS service state after restart
+      ansible.windows.win_shell: |
+        Get-Service W3SVC | Select-Object Name, Status, StartType | ConvertTo-Json -Compress
+      register: iis_after
+
+    - name: Show IIS evidence
+      ansible.builtin.debug:
+        msg:
+          before: "{{ iis_before.stdout | default('') }}"
+          after: "{{ iis_after.stdout | default('') }}"

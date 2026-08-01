@@ -1,0 +1,12 @@
+{
+  "status": "healthy",
+  "budget_remaining_pct": 82.5,
+  "slo_target_pct": 99.9,
+  "current_error_rate_pct": 0.018,
+  "burn_rate_1h": 0.4,
+  "burn_rate_6h": 0.3,
+  "window": "30d",
+  "service": "platform",
+  "checked_at": "2026-06-17T19:08:10.415861+00:00",
+  "source": "manual_seed"
+}

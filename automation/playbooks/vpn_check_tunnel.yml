@@ -1,0 +1,26 @@
+---
+- name: Check mock VPN tunnel health
+  hosts: vpn_lab
+  gather_facts: false
+  tasks:
+    - name: Read tunnel status marker
+      ansible.builtin.shell: cat /opt/vpn-lab/tunnel.status 2>/dev/null || echo unknown
+      register: tunnel_status
+      changed_when: false
+
+    - name: Check VPN health endpoint
+      ansible.builtin.shell: curl -s -o /tmp/vpn_health.json -w "%{http_code}" http://127.0.0.1:8088/health || true
+      register: health_code
+      changed_when: false
+
+    - name: Check TCP listener response
+      ansible.builtin.shell: timeout 3 bash -lc 'echo ping | nc 127.0.0.1 1194' || true
+      register: tcp_response
+      changed_when: false
+
+    - name: Show VPN health summary
+      ansible.builtin.debug:
+        msg:
+          tunnel_status: "{{ tunnel_status.stdout }}"
+          health_http_code: "{{ health_code.stdout }}"
+          tcp_response: "{{ tcp_response.stdout }}"

@@ -1,0 +1,97 @@
+# ============================================================
+# AI SRE Platform — vast.ai Optimised Multi-Stage Dockerfile
+# ============================================================
+# Stages:
+#   base     — shared OS + Python dependencies
+#   backend  — FastAPI app (uvicorn)
+#   frontend — Streamlit UI
+#
+# Build all:
+#   docker build -f infra/Dockerfile.vastai --target backend -t aiops-backend:poc .
+#   docker build -f infra/Dockerfile.vastai --target frontend -t aiops-frontend:poc .
+# ============================================================
+
+# ── Base stage ─────────────────────────────────────────────────────────────
+FROM python:3.11-slim AS base
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ansible \
+    openssh-client \
+    sshpass \
+    tesseract-ocr \
+    libpq-dev \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt /app/requirements.txt
+
+# Install Python deps — split into two layers to leverage cache
+# Layer 1: heavy ML packages (slow to install, rarely change)
+RUN pip install --no-cache-dir \
+    torch==2.4.1+cpu \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Layer 2: remaining requirements
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Copy application code
+COPY . /app
+
+# Pre-download the embedding model so first startup isn't slow
+RUN python -c "\
+from sentence_transformers import SentenceTransformer; \
+SentenceTransformer('nomic-ai/nomic-embed-text-v1.5', trust_remote_code=True); \
+print('Embedding model cached.')" || echo "Model download skipped (offline build)"
+
+# Create data directory structure
+RUN mkdir -p /app/data/clients/poc_client \
+             /app/data/backtest \
+             /app/data/backtesting/results \
+             /app/data/evidence \
+             /app/data/drift/snapshots \
+             /app/data/drift/audit \
+             /app/data/cmdb \
+             /app/logs
+
+# ── Backend stage ───────────────────────────────────────────────────────────
+FROM base AS backend
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=10s --start-period=40s --retries=5 \
+    CMD curl -sf http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--log-level", "info"]
+
+# ── Frontend stage ──────────────────────────────────────────────────────────
+FROM base AS frontend
+
+RUN pip install --no-cache-dir streamlit
+
+EXPOSE 8501
+
+HEALTHCHECK --interval=15s --timeout=10s --start-period=30s --retries=5 \
+    CMD curl -sf http://localhost:8501/_stcore/health || exit 1
+
+CMD ["streamlit", "run", "ui.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--browser.gatherUsageStats=false"]
+
+# ── All-in-one stage (single-container option for constrained envs) ─────────
+FROM base AS allinone
+
+RUN pip install --no-cache-dir streamlit supervisor
+
+COPY infra/supervisord.conf /etc/supervisor/conf.d/aiops.conf
+
+EXPOSE 8000 8501
+
+HEALTHCHECK --interval=20s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -sf http://localhost:8000/health && curl -sf http://localhost:8501/_stcore/health || exit 1
+
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/aiops.conf", "-n"]

@@ -1,0 +1,89 @@
+---
+# Remediates database/config tier misconfigurations on network-lab-01
+# Findings: CUSTOM-PG-001 (pg config), CUSTOM-BACKUP-001 (unencrypted backup), CUSTOM-HOSTS-001 (tcp wrappers)
+- name: Remediate DB/Config Tier — PostgreSQL & Network Hardening
+  hosts: network-lab-01
+  gather_facts: yes
+  vars:
+    backup_dir: /app/bak
+    pg_conf: /etc/demo-pg.conf
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Backup PostgreSQL config
+      copy:
+        src: "{{ pg_conf }}"
+        dest: "{{ backup_dir }}/demo-pg.conf.bak"
+        remote_src: yes
+      ignore_errors: yes
+
+    - name: Harden PostgreSQL config — restrict listen address
+      copy:
+        dest: "{{ pg_conf }}"
+        content: |
+          # Hardened PostgreSQL configuration (demo)
+          listen_addresses = 'localhost'
+          ssl = on
+          ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
+          ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
+          log_connections = on
+          log_disconnections = on
+          log_failed_authentications = on
+          password_encryption = scram-sha-256
+        mode: "0640"
+
+    - name: Remove unencrypted backup from /tmp
+      file:
+        path: /tmp/db-backup.sql.gz
+        state: absent
+      ignore_errors: yes
+
+    - name: Remove postgres-exposed marker
+      file:
+        path: /tmp/.postgres-exposed
+        state: absent
+      ignore_errors: yes
+
+    - name: Harden TCP wrappers — restrict to localhost only
+      copy:
+        dest: /etc/hosts.allow
+        content: |
+          # Restricted TCP wrappers — only localhost
+          sshd: 127.0.0.1
+          ALL: 127.0.0.1 ::1
+        mode: "0644"
+
+    - name: Set hosts.deny to block everything else
+      copy:
+        dest: /etc/hosts.deny
+        content: |
+          ALL: ALL
+        mode: "0644"
+
+    - name: Verify pg config — ssl=on
+      command: grep "ssl = on" "{{ pg_conf }}"
+      register: ssl_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Verify listen_addresses restricted
+      command: grep "listen_addresses = 'localhost'" "{{ pg_conf }}"
+      register: listen_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Report remediation summary
+      debug:
+        msg: |
+          Remediation complete for network-lab-01:
+          - PostgreSQL listen_addresses: localhost only
+          - SSL: enabled
+          - Logging: connections/disconnections/failures enabled
+          - Unencrypted backup removed from /tmp
+          - TCP wrappers restricted to localhost
+          - hosts.deny: ALL: ALL

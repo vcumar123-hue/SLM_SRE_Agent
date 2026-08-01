@@ -1,0 +1,2222 @@
+[
+  {
+    "resolution_id": "res_20260406_001",
+    "created_at": "2026-04-06T22:00:00Z",
+    "classification": "certificate_rotation_service_mesh_policy_conflict",
+    "root_cause": "Certificate trust chain mismatch after rotation combined with service mesh policy conflict",
+    "validated_checks": [
+      "verify_certificate_chain",
+      "compare_mesh_policy_changes"
+    ],
+    "validated_actions": [
+      "validate_trust_bundle_distribution",
+      "correct_conflicting_mesh_policy"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "smoke_test",
+    "success_notes": "smoke test resolution",
+    "automation_ready": true,
+    "linked_candidate_id": "kc_20260406_001",
+    "linked_playbook_id": "",
+    "updated_at": "2026-06-17T18:22:41.509808+00:00"
+  },
+  {
+    "resolution_id": "res_3cad664fee45",
+    "created_at": "2026-04-09T14:58:46.583965+00:00",
+    "updated_at": "2026-04-09T15:05:35.763762+00:00",
+    "classification": "service_mesh_tls_misconfiguration",
+    "root_cause": "Certificate trust chain mismatch combined with a conflicting service mesh policy after certificate rotation caused east-west mTLS handshake failures.",
+    "validated_checks": [
+      "verify_certificate_chain",
+      "compare_mesh_policy_changes",
+      "inspect_sidecar_proxy_logs",
+      "check_tls_handshake_timeout_settings"
+    ],
+    "validated_actions": [
+      "validate_trust_bundle_distribution",
+      "inspect_and_update_tls_config",
+      "correct_conflicting_mesh_policy",
+      "restart_affected_proxies_if_needed"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Fallback analysis identified TLS trust chain mismatch and mesh policy conflict as the most likely root cause. Resolution record created for future linkage and validation.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_822bc6c41ca5",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_4d3a80f2d5af",
+    "created_at": "2026-04-09T16:29:01.630098+00:00",
+    "updated_at": "2026-04-20T23:21:20.892878+00:00",
+    "classification": "jwt_signing_key_rotation_issue",
+    "root_cause": "Jwt Signing Key Rotation Issue is likely driven by Invalid Key Distribution, Insufficient Key Rotation Window, Role Based Access Control Misconfiguration.",
+    "validated_checks": [
+      "verify_jwt_signing_key_distribution",
+      "inspect_role_based_access_control_policies",
+      "validate_key_rotation_timestamps"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": true,
+    "linked_candidate_id": "kc_6a8d4d667dc2",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_97c22dbcf7b1",
+    "created_at": "2026-04-09T19:53:59.410138+00:00",
+    "updated_at": "2026-04-09T19:53:59.410160+00:00",
+    "classification": "load_balancer_node_configuration_mismatch",
+    "root_cause": "Load Balancer Node Configuration Mismatch is likely driven by Node Specific Network Config Issue, Load Balancer Software Version Mismatch, Node Resource Utilization Imbalance.",
+    "validated_checks": [
+      "inspect_load_balancer_node_configuration",
+      "compare_node_network_settings",
+      "verify_node_resource_utilization"
+    ],
+    "validated_actions": [
+      "validate_load_balancer_node_configuration",
+      "compare_node_software_versions",
+      "isolate_and_test_affected_node"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": true,
+    "linked_candidate_id": "kc_da24ae8bd3ef",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_59dab0c5c3ab",
+    "created_at": "2026-04-09T20:34:03.851156+00:00",
+    "updated_at": "2026-04-09T20:34:03.851177+00:00",
+    "classification": "kubernetes_internal_dns_resolution_failure",
+    "root_cause": "Kubernetes Internal Dns Resolution Failure is likely driven by Dns Config Map Mismatch, Kube Dns Service Disruption, Network Policy Blocking Dns Traffic.",
+    "validated_checks": [
+      "verify_kube_dns_service_status",
+      "inspect_dns_config_map_changes",
+      "check_network_policy_rules"
+    ],
+    "validated_actions": [
+      "validate_dns_config_map_distribution",
+      "check_kube_dns_service_logs",
+      "isolate_and_test_dns_resolution"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_a514a4e62db7",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_0791df17667d",
+    "created_at": "2026-04-09T20:43:33.173292+00:00",
+    "updated_at": "2026-04-09T20:43:33.173319+00:00",
+    "classification": "connection_pool_exhaustion_under_burst_traffic",
+    "root_cause": "Connection Pool Exhaustion Under Burst Traffic is likely driven by Insufficient Connection Pool Size, Inefficient Connection Reuse, Database Query Optimization Issues.",
+    "validated_checks": [
+      "verify_connection_pool_configuration",
+      "inspect_database_query_logs",
+      "compare_recent_traffic_patterns"
+    ],
+    "validated_actions": [
+      "validate_connection_pool_size_and_adjust_if_necessary",
+      "inspect_and_optimize_database_queries",
+      "confirm_resource_utilization_under_burst_conditions"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_c87ff4198e1a",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_d98e5f2b0e48",
+    "created_at": "2026-04-09T21:21:14.613214+00:00",
+    "updated_at": "2026-04-09T21:21:14.613235+00:00",
+    "classification": "wireless_network_connectivity_issue",
+    "root_cause": "Wireless Network Connectivity Issue is likely driven by Dhcp Server Configuration Error, Wireless Access Point Misconfiguration, Interference From Neighboring Networks.",
+    "validated_checks": [
+      "verify_wireless_network_settings",
+      "inspect_dhcp_server_logs",
+      "check_for_interference_using_spectrum_analyzer"
+    ],
+    "validated_actions": [
+      "validate_wireless_network_configuration",
+      "inspect_access_point_settings",
+      "compare_dhcp_server_configuration_to_baseline"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_b88deda57299",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_db358ec7f660",
+    "created_at": "2026-04-10T01:47:05.559582+00:00",
+    "updated_at": "2026-04-10T01:47:05.559613+00:00",
+    "classification": "vdi_connection_authentication_failure",
+    "root_cause": "Vdi Connection Authentication Failure is likely driven by Invalid Or Expired Certificate, Incorrect Vdi Client Configuration, Network Firewall Blocking Vdi Traffic.",
+    "validated_checks": [
+      "verify_vdi_client_configuration",
+      "inspect_vdi_server_logs",
+      "check_network_firewall_rules"
+    ],
+    "validated_actions": [
+      "validate_vdi_client_certificate",
+      "compare_vdi_client_and_server_configurations",
+      "confirm_network_firewall_rules"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_a07f6e31f11d",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_9d470950d8b5",
+    "created_at": "2026-04-14T23:34:29.917002+00:00",
+    "updated_at": "2026-04-14T23:35:05.547376+00:00",
+    "classification": "dns_resolution_delay",
+    "root_cause": "Dns Resolution Delay is likely driven by Dns Server Unavailability, Dns Cache Poisoning, Incorrect Dns Resolver Configuration.",
+    "validated_checks": [
+      "verify_dns_server_availability",
+      "inspect_dns_cache_entries",
+      "compare_dns_resolver_configuration"
+    ],
+    "validated_actions": [
+      "flush_dns_cache_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_9240949ba3e3",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_2510a11bca8d",
+    "created_at": "2026-04-15T02:08:40.078775+00:00",
+    "updated_at": "2026-04-15T02:08:48.914129+00:00",
+    "classification": "ipv6_enabled_interface_connectivity_issue",
+    "root_cause": "Ipv6 Enabled Interface Connectivity Issue is likely driven by Ipv6 Address Resolution Failure, Application Ipv6 Support Mismatch, Firewall Rule Ipv6 Incompatibility.",
+    "validated_checks": [
+      "verify_ipv6_address_configuration",
+      "inspect_firewall_rules_for_ipv6_support",
+      "check_application_ipv6_compatibility"
+    ],
+    "validated_actions": [
+      "validate_ipv6_address_resolution",
+      "update_firewall_rules_for_ipv6",
+      "test_application_ipv6_connectivity"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_ca5934bdb68e",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_3d9922d06c5c",
+    "created_at": "2026-04-15T03:06:39.404503+00:00",
+    "updated_at": "2026-04-15T03:06:46.813532+00:00",
+    "classification": "vdi_network_connectivity_issue",
+    "root_cause": "Vdi Network Connectivity Issue is likely driven by Dhcp Server Unavailability, Vlan Configuration Mismatch, Network Interface Driver Issue.",
+    "validated_checks": [
+      "verify_vdi_network_settings",
+      "inspect_vlan_configuration",
+      "check_dhcp_server_status"
+    ],
+    "validated_actions": [
+      "isolate_and_test_network_connectivity"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_0f66a2ad8170",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_a6f2d3337d71",
+    "created_at": "2026-04-15T14:09:12.584800+00:00",
+    "updated_at": "2026-04-15T16:30:02.271937+00:00",
+    "classification": "container_connection_issue",
+    "root_cause": "Container traffic is not reaching a healthy container target due to security group, load-balancer target registration, listener rule, port mapping, service definition, ECS/Kubernetes endpoint, or task networking issue.",
+    "validated_checks": [
+      "verify_security_group_rules",
+      "inspect_container_port_bindings",
+      "confirm_dns_vpn_dependencies_healthy_non_primary"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_23e80979c3f5",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_a6926fb3844b",
+    "created_at": "2026-04-16T01:28:23.513729+00:00",
+    "updated_at": "2026-04-16T01:28:23.513751+00:00",
+    "classification": "iis_configuration_or_connectivity_issue",
+    "root_cause": "Iis Configuration Or Connectivity Issue is likely driven by iis server configuration error, windows firewall blocking access, application pool not running.",
+    "validated_checks": [
+      "verify_iis_server_configuration",
+      "check_windows_firewall_rules",
+      "inspect_iis_application_pool_status"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_8b79bbef1b27",
+    "linked_playbook_id": "pb_12ccb909646b"
+  },
+  {
+    "resolution_id": "res_86e3b0a3676a",
+    "created_at": "2026-04-17T19:13:17.512886+00:00",
+    "updated_at": "2026-04-17T19:13:17.512908+00:00",
+    "classification": "windows_service_stoppage",
+    "root_cause": "Windows Service Stoppage is likely driven by service configuration error, dependency failure, resource exhaustion.",
+    "validated_checks": [
+      "inspect_service_logs",
+      "verify_service_dependencies",
+      "check_system_resource_utilization"
+    ],
+    "validated_actions": [
+      "restart_service_if_valid"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_e3667232508d",
+    "linked_playbook_id": "pb_ae2e2d08d108"
+  },
+  {
+    "resolution_id": "res_a4760ad2c253",
+    "created_at": "2026-04-20T21:31:09.953353+00:00",
+    "updated_at": "2026-04-20T21:31:09.953374+00:00",
+    "classification": "vpn_authentication_post_password_reset_failure",
+    "root_cause": "Vpn Authentication Post Password Reset Failure is likely driven by password reset synchronization issue, ldap directory replication delay, radius server configuration mismatch.",
+    "validated_checks": [
+      "verify_ldap_directory_replication_status",
+      "inspect_radius_server_logs",
+      "compare_vpn_server_configuration"
+    ],
+    "validated_actions": [
+      "synchronize_ldap_directory_replication"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_a8fbe9334f5c",
+    "linked_playbook_id": "pb_6aa039409c38"
+  },
+  {
+    "resolution_id": "res_7e54a583a74c",
+    "created_at": "2026-04-20T21:37:01.584651+00:00",
+    "updated_at": "2026-04-20T21:37:01.584668+00:00",
+    "classification": "sase_policy_enforcement_issue",
+    "root_cause": "Sase Policy Enforcement Issue is likely driven by saas app traffic inspection failure, policy update misconfiguration, tls handshake validation error.",
+    "validated_checks": [
+      "verify_sase_policy_update_details",
+      "inspect_saas_app_traffic_logs",
+      "compare_pre_post_policy_update_configs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_b36087b305ea",
+    "linked_playbook_id": "pb_d8744e6cc07b"
+  },
+  {
+    "resolution_id": "res_c3dd6b7edb36",
+    "created_at": "2026-04-20T22:24:37.723928+00:00",
+    "updated_at": "2026-04-20T22:24:37.723953+00:00",
+    "classification": "java_internal_error_500",
+    "root_cause": "Java Internal Error 500 is likely driven by classloader conflict, dependency version mismatch, heap size insufficient.",
+    "validated_checks": [
+      "verify_java_version",
+      "inspect_application_logs",
+      "check_heap_size_configuration"
+    ],
+    "validated_actions": [
+      "increase_heap_size_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_99cecf4b1e34",
+    "linked_playbook_id": "pb_9843be5d813c"
+  },
+  {
+    "resolution_id": "res_f93a25ffe6cc",
+    "created_at": "2026-04-20T22:25:44.611349+00:00",
+    "updated_at": "2026-04-20T22:25:44.611372+00:00",
+    "classification": "kubernetes_cluster_access_error",
+    "root_cause": "Kubernetes Cluster Access Error is likely driven by pod network policy conflict, ingress controller misconfiguration, service account token issue.",
+    "validated_checks": [
+      "verify_pod_network_policies",
+      "inspect_ingress_controller_logs",
+      "check_service_account_token_validity"
+    ],
+    "validated_actions": [
+      "regenerate_service_account_token_if_needed"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_82ef0e6725e2",
+    "linked_playbook_id": "pb_e9084350ccd0"
+  },
+  {
+    "resolution_id": "res_19529a2f7ec9",
+    "created_at": "2026-04-20T22:26:22.729472+00:00",
+    "updated_at": "2026-04-20T22:26:22.729489+00:00",
+    "classification": "multi_factor_authentication_failure",
+    "root_cause": "Multi Factor Authentication Failure is likely driven by invalid user credentials, mfa token expiration, authentication server config mismatch.",
+    "validated_checks": [
+      "verify_user_credentials",
+      "check_mfa_token_expiration",
+      "inspect_authentication_server_logs"
+    ],
+    "validated_actions": [
+      "update_mfa_token_if_expired"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_30c7a7770146",
+    "linked_playbook_id": "pb_003faa5b0faf"
+  },
+  {
+    "resolution_id": "res_1f991fd0b03c",
+    "created_at": "2026-04-20T22:26:58.297524+00:00",
+    "updated_at": "2026-04-20T22:26:58.297549+00:00",
+    "classification": "eks_worker_node_join_failure",
+    "root_cause": "Eks Worker Node Join Failure is likely driven by node bootstrap failure, kubelet configuration mismatch, network connectivity issue.",
+    "validated_checks": [
+      "verify_eks_node_bootstrap_logs",
+      "inspect_kubelet_configuration_files",
+      "check_node_network_connectivity"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_e223319b876a",
+    "linked_playbook_id": "pb_feb4156d722a"
+  },
+  {
+    "resolution_id": "res_049cfc4bb7f3",
+    "created_at": "2026-04-22T02:16:16.992962+00:00",
+    "updated_at": "2026-04-22T02:16:16.992980+00:00",
+    "classification": "file_transfer_integration_failure",
+    "root_cause": "File Transfer Integration Failure is likely driven by nscc formatter configuration error, goanywhere mft configuration mismatch, payload validation failure.",
+    "validated_checks": [
+      "inspect_goanywhere_mft_event_logs",
+      "verify_nscc_formatter_config",
+      "validate_payload_schema"
+    ],
+    "validated_actions": [
+      "isolate_and_reprocess_failed_payloads"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_34e7a05c6073",
+    "linked_playbook_id": "pb_bb555be397f2"
+  },
+  {
+    "resolution_id": "res_e3db0e3989d7",
+    "created_at": "2026-04-22T13:45:38.692138+00:00",
+    "updated_at": "2026-04-22T14:05:04.564513+00:00",
+    "classification": "dns_resolution_latency",
+    "root_cause": "Dns Resolution Latency is likely driven by Dns Server Overload, Network Packet Loss, Dns Cache Invalidation.",
+    "validated_checks": [
+      "verify_dns_server_status",
+      "inspect_dns_query_logs",
+      "check_network_packet_loss_rates"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_6e2d66163499",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_da49a3f5eda9",
+    "created_at": "2026-04-22T18:30:32.858315+00:00",
+    "updated_at": "2026-04-22T18:30:32.858340+00:00",
+    "classification": "esxi_host_unresponsiveness",
+    "root_cause": "Esxi Host Unresponsiveness is likely driven by network connectivity issue, resource exhaustion, vmware software bug.",
+    "validated_checks": [
+      "verify_esxi_host_network_connectivity",
+      "inspect_vmware_logs_for_errors",
+      "check_resource_utilization"
+    ],
+    "validated_actions": [
+      "isolate_and_restart_esxi_host_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_680c1c58e647",
+    "linked_playbook_id": "pb_cf46f5c0d185"
+  },
+  {
+    "resolution_id": "res_a108ffb10429",
+    "created_at": "2026-04-22T19:47:25.956067+00:00",
+    "updated_at": "2026-04-22T19:47:25.956089+00:00",
+    "classification": "firewall_policy_update_conflict",
+    "root_cause": "Firewall Policy Update Conflict is likely driven by vpn port blockage, updated policy rule mismatch, nat rule conflict.",
+    "validated_checks": [
+      "verify_firewall_rule_updates",
+      "inspect_vpn_connection_logs",
+      "compare_pre_post_update_firewall_configs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_1e7105ee5d2a",
+    "linked_playbook_id": "pb_88baa413c2aa"
+  },
+  {
+    "resolution_id": "res_9c2455f4c359",
+    "created_at": "2026-04-22T19:49:33.906454+00:00",
+    "updated_at": "2026-04-22T19:49:33.906474+00:00",
+    "classification": "oracle_deadlock_during_batch_processing",
+    "root_cause": "Oracle Deadlock During Batch Processing is likely driven by row level locking conflict, transaction timeout exceeded, insufficient database resources.",
+    "validated_checks": [
+      "inspect_database_locks",
+      "verify_transaction_timeout_settings",
+      "check_system_resource_utilization"
+    ],
+    "validated_actions": [
+      "isolate_and_re_run_failed_batch_jobs"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_330d42224abe",
+    "linked_playbook_id": "pb_035a109ee307"
+  },
+  {
+    "resolution_id": "res_aa28ae5d33b4",
+    "created_at": "2026-04-23T23:40:03.331823+00:00",
+    "updated_at": "2026-04-23T23:40:03.331850+00:00",
+    "classification": "image_processing_issue",
+    "root_cause": "Image Processing Issue is likely driven by invalid image format, corrupted image data.",
+    "validated_checks": [
+      "verify_image_format",
+      "inspect_image_metadata",
+      "compare_with_previous_images"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_58a4bd5d8cc2",
+    "linked_playbook_id": "pb_bc537ecaa748"
+  },
+  {
+    "resolution_id": "res_5ca6522a56b6",
+    "created_at": "2026-04-24T02:03:11.032474+00:00",
+    "updated_at": "2026-04-24T02:03:11.032515+00:00",
+    "classification": "incident_description_unavailable",
+    "root_cause": "Incident Description Unavailable is likely driven by missing incident text, image only attachment.",
+    "validated_checks": [
+      "verify_ticket_format",
+      "inspect_attachment_for_hidden_text",
+      "check_for_previous_ticket_updates"
+    ],
+    "validated_actions": [
+      "request_incident_text_from_submitter"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_23be5ddcb0e1",
+    "linked_playbook_id": "pb_9b7de8a5feac"
+  },
+  {
+    "resolution_id": "res_db79fda10aed",
+    "created_at": "2026-04-24T20:34:45.141950+00:00",
+    "updated_at": "2026-06-17T16:45:16.419133+00:00",
+    "classification": "vpn_authentication_failure",
+    "root_cause": "Vpn Authentication Failure is likely driven by Invalid User Credentials, Active Directory Connectivity Issue, Vpn Gateway Configuration Error.",
+    "validated_checks": [
+      "verify_user_credentials",
+      "check_active_directory_connectivity",
+      "inspect_vpn_gateway_logs",
+      "compare_vpn_gateway_configuration"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "Vijay",
+    "success_notes": "Validated via UI-guided approval flow.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_115a5ba105bf",
+    "linked_playbook_id": ""
+  },
+  {
+    "resolution_id": "res_4146e715af73",
+    "created_at": "2026-04-24T20:36:27.261072+00:00",
+    "updated_at": "2026-04-24T20:36:27.261094+00:00",
+    "classification": "disk_space_exhaustion",
+    "root_cause": "Disk Space Exhaustion is likely driven by excessive log file growth, unused temporary files, insufficient disk provisioning.",
+    "validated_checks": [
+      "inspect_var_partition_contents",
+      "verify_disk_quota_settings",
+      "check_for_stale_temporary_files"
+    ],
+    "validated_actions": [
+      "remove_unused_files",
+      "compress_large_log_files",
+      "increase_disk_space_allocation_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_20164b5acd85",
+    "linked_playbook_id": "pb_7adcc2ab0e46"
+  },
+  {
+    "resolution_id": "res_3c72cbcdbf22",
+    "created_at": "2026-04-29T02:44:57.624710+00:00",
+    "updated_at": "2026-04-29T02:44:57.624742+00:00",
+    "classification": "cpu_saturation",
+    "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+    "validated_checks": [
+      "inspect_system_logs",
+      "verify_resource_allocation",
+      "analyze_cpu_usage_patterns"
+    ],
+    "validated_actions": [
+      "optimize_resource_allocation_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_efc633d18cc1",
+    "linked_playbook_id": "pb_f2904b0f8484"
+  },
+  {
+    "resolution_id": "res_eba002fbadd9",
+    "created_at": "2026-04-29T12:17:31.207816+00:00",
+    "updated_at": "2026-04-29T12:17:31.207843+00:00",
+    "classification": "high_cpu_utilization",
+    "root_cause": "High Cpu Utilization is likely driven by resource intensive application code, inefficient database queries, insufficient server resources.",
+    "validated_checks": [
+      "inspect_system_logs_for_errors",
+      "verify_resource_allocation_and_utilization",
+      "compare_recent_code_changes"
+    ],
+    "validated_actions": [
+      "isolate_and_test_resource_intensive_code_paths"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_376e368f5031",
+    "linked_playbook_id": "pb_f768150631f0"
+  },
+  {
+    "resolution_id": "res_901ca8fe58f2",
+    "created_at": "2026-05-04T23:07:00.510036+00:00",
+    "updated_at": "2026-05-04T23:07:00.510062+00:00",
+    "classification": "firewall_policy_change_side_effect",
+    "root_cause": "Firewall Policy Change Side Effect is likely driven by downstream service port blockage, api gateway timeout configuration mismatch, firewall rule ordering issue.",
+    "validated_checks": [
+      "verify_firewall_rule_changes",
+      "inspect_api_gateway_timeout_settings",
+      "check_downstream_service_port_connectivity"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_d49c9d5df924",
+    "linked_playbook_id": "pb_5ca98e41ba62"
+  },
+  {
+    "resolution_id": "res_d7972b1cb9cb",
+    "created_at": "2026-05-04T23:23:11.284010+00:00",
+    "updated_at": "2026-05-04T23:23:11.284024+00:00",
+    "classification": "firewall_policy_drift",
+    "root_cause": "Firewall Policy Drift is likely driven by missing firewall rule for subnet, tcp port 8443 denied, firewall policy change not propagated.",
+    "validated_checks": [
+      "verify_firewall_rule_configuration",
+      "inspect_firewall_policy_change_history",
+      "validate_downstream_service_port_connectivity"
+    ],
+    "validated_actions": [
+      "add_missing_firewall_rule_for_subnet_b"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_28021a31bf80",
+    "linked_playbook_id": "pb_4dc01cff7f29"
+  },
+  {
+    "resolution_id": "res_3ade40a86063",
+    "created_at": "2026-05-06T05:51:09.421558+00:00",
+    "updated_at": "2026-05-06T05:51:09.421584+00:00",
+    "classification": "tws_job_abend",
+    "root_cause": "Tws Job Abend is likely driven by job script error, dependency failure, resource unavailability.",
+    "validated_checks": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_e09e1b3811a0",
+    "linked_playbook_id": "pb_08264a25fa9b"
+  },
+  {
+    "resolution_id": "res_2acbec3c4e54",
+    "created_at": "2026-05-06T15:21:08.338243+00:00",
+    "updated_at": "2026-05-06T15:21:08.338260+00:00",
+    "classification": "tws_job_scheduling_failure",
+    "root_cause": "Tws Job Scheduling Failure is likely driven by job definition error, scheduling policy conflict, dependency job failure.",
+    "validated_checks": [
+      "verify_job_definition_syntax",
+      "inspect_scheduling_policy_rules",
+      "check_dependency_job_status"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_651012407e67",
+    "linked_playbook_id": "pb_31053e2a930d"
+  },
+  {
+    "resolution_id": "res_6ed2725896d5",
+    "created_at": "2026-05-06T15:21:30.366849+00:00",
+    "updated_at": "2026-05-06T15:21:30.366874+00:00",
+    "classification": "dataset_availability_timeout",
+    "root_cause": "Dataset Availability Timeout is likely driven by dataset server unavailability, network connectivity issue, dataset query timeout.",
+    "validated_checks": [
+      "verify_dataset_server_status",
+      "check_network_connectivity_to_dataset_server",
+      "inspect_dataset_query_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_145976806d5e",
+    "linked_playbook_id": "pb_e581452d7f03"
+  },
+  {
+    "resolution_id": "res_ceea614b66dd",
+    "created_at": "2026-05-10T01:28:16.227880+00:00",
+    "updated_at": "2026-05-10T01:28:16.227899+00:00",
+    "classification": "jcl_abend_error",
+    "root_cause": "Jcl Abend Error is likely driven by jcl syntax error, step parameter mismatch, abend type code conflict.",
+    "validated_checks": [
+      "verify_jcl_syntax",
+      "inspect_step_parameters",
+      "compare_abend_type_code_definitions"
+    ],
+    "validated_actions": [
+      "correct_jcl_syntax_errors",
+      "resubmit_job_with_corrected_jcl"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_806f865831c4",
+    "linked_playbook_id": "pb_edf37caa1bcf"
+  },
+  {
+    "resolution_id": "res_0610cdb34035",
+    "created_at": "2026-05-10T01:36:06.944992+00:00",
+    "updated_at": "2026-05-10T01:36:06.945019+00:00",
+    "classification": "jcl_syntax_error",
+    "root_cause": "Jcl Syntax Error is likely driven by jcl step definition error, invalid jcl parameter, abend type code mismatch.",
+    "validated_checks": [
+      "verify_jcl_syntax",
+      "inspect_step_definition",
+      "compare_abend_type_code"
+    ],
+    "validated_actions": [
+      "correct_jcl_parameter"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_12846127e9ab",
+    "linked_playbook_id": "pb_f7a0c7e82bd7"
+  },
+  {
+    "resolution_id": "res_d06fd415c486",
+    "created_at": "2026-05-10T01:48:02.897374+00:00",
+    "updated_at": "2026-05-10T01:48:02.897408+00:00",
+    "classification": "jcl_compilation_error",
+    "root_cause": "Jcl Compilation Error is likely driven by jcl syntax error, invalid job control language, abend step configuration issue.",
+    "validated_checks": [
+      "verify_jcl_syntax",
+      "inspect_job_control_language_configuration",
+      "compare_abend_step_settings"
+    ],
+    "validated_actions": [
+      "correct_jcl_configuration_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_b573db51ac41",
+    "linked_playbook_id": "pb_e49ac0957929"
+  },
+  {
+    "resolution_id": "res_25b87db7d53f",
+    "created_at": "2026-05-10T01:52:09.993000+00:00",
+    "updated_at": "2026-05-10T01:52:09.993022+00:00",
+    "classification": "dataset_retrieval_timeout",
+    "root_cause": "Dataset Retrieval Timeout is likely driven by dataset server unavailability, network connectivity issue, dataset query optimization problem.",
+    "validated_checks": [
+      "verify_dataset_server_status",
+      "check_network_connectivity_to_dataset_server",
+      "inspect_dataset_query_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_046153063d96",
+    "linked_playbook_id": "pb_8860a1b21f25"
+  },
+  {
+    "resolution_id": "res_cc448b750e63",
+    "created_at": "2026-05-10T04:01:07.644636+00:00",
+    "updated_at": "2026-05-10T04:01:07.644661+00:00",
+    "classification": "disabled_port_abend",
+    "root_cause": "Disabled Port Abend is likely driven by port configuration error, firewall rule blockage, network interface issue.",
+    "validated_checks": [
+      "verify_port_status",
+      "inspect_firewall_rules",
+      "check_network_interface_configuration"
+    ],
+    "validated_actions": [
+      "restart_affected_services_if_needed"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_7cd67b364921",
+    "linked_playbook_id": "pb_78139c9b806b"
+  },
+  {
+    "resolution_id": "res_5241702313c2",
+    "created_at": "2026-05-10T04:01:39.048343+00:00",
+    "updated_at": "2026-05-10T04:01:39.048365+00:00",
+    "classification": "mainframe_database_abend",
+    "root_cause": "Mainframe Database Abend is likely driven by db connection pool exhaustion, invalid app code configuration, database transaction timeout.",
+    "validated_checks": [
+      "inspect_mainframe_database_logs",
+      "verify_app_code_configuration_files",
+      "check_database_connection_pool_settings"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_e315dfd39ca7",
+    "linked_playbook_id": "pb_468c45082f1e"
+  },
+  {
+    "resolution_id": "res_2be75f457afa",
+    "created_at": "2026-05-10T04:02:09.799252+00:00",
+    "updated_at": "2026-05-10T04:02:09.799284+00:00",
+    "classification": "mf_tws_blip_related_abend",
+    "root_cause": "Mf Tws Blip Related Abend is likely driven by mf tws communication timeout, tws job scheduling conflict, mainframe resource exhaustion.",
+    "validated_checks": [
+      "verify_mf_tws_connection_status",
+      "inspect_tws_job_logs_for_errors",
+      "check_mainframe_system_resources"
+    ],
+    "validated_actions": [
+      "isolate_and_restart_affected_tws_jobs_if_needed"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_8fa6e70f5df1",
+    "linked_playbook_id": "pb_ea13bf4697eb"
+  },
+  {
+    "resolution_id": "res_5f8e8492d69c",
+    "created_at": "2026-05-10T04:02:34.360015+00:00",
+    "updated_at": "2026-05-10T04:02:34.360041+00:00",
+    "classification": "abend_error_in_gc888330",
+    "root_cause": "Abend Error In Gc888330 is likely driven by abnormal program termination, resource constraint exceeded, gc888330 configuration issue.",
+    "validated_checks": [
+      "verify_abend_error_codes",
+      "inspect_gc888330_system_logs",
+      "check_resource_utilization"
+    ],
+    "validated_actions": [
+      "bypass_abp_shutdown_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_30edb223b348",
+    "linked_playbook_id": "pb_71bb083f8ef0"
+  },
+  {
+    "resolution_id": "res_eee12250b04a",
+    "created_at": "2026-05-10T04:03:48.186774+00:00",
+    "updated_at": "2026-05-10T04:03:48.186805+00:00",
+    "classification": "abend_error_preventing_shutdown",
+    "root_cause": "Abend Error Preventing Shutdown is likely driven by gc888330 resource unavailability, abp shutdown sequence failure, rc1 rc2 parameter mismatch.",
+    "validated_checks": [
+      "verify_gc888330_resource_availability",
+      "inspect_abp_shutdown_sequence_logs",
+      "compare_rc1_rc2_parameter_values"
+    ],
+    "validated_actions": [
+      "bypass_abend_error_if_possible"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_c39ef7d5fe5b",
+    "linked_playbook_id": "pb_c5be5247f9ff"
+  },
+  {
+    "resolution_id": "res_f385ed8173b3",
+    "created_at": "2026-05-10T04:04:11.564944+00:00",
+    "updated_at": "2026-05-10T04:04:11.564955+00:00",
+    "classification": "abend_preventing_shutdown",
+    "root_cause": "Abend Preventing Shutdown is likely driven by gc888330 resource unavailability, abp shutdown sequence failure, rc1 rc2 parameter mismatch.",
+    "validated_checks": [
+      "verify_gc888330_resource_availability",
+      "inspect_abp_shutdown_sequence_logs",
+      "compare_rc1_rc2_parameter_values"
+    ],
+    "validated_actions": [
+      "bypass_abend_if_possible"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_10542dddc030",
+    "linked_playbook_id": "pb_b2fb109863dc"
+  },
+  {
+    "resolution_id": "res_6e34d8736b59",
+    "created_at": "2026-05-10T04:06:37.449538+00:00",
+    "updated_at": "2026-05-10T04:06:37.449568+00:00",
+    "classification": "abend_error_in_pc024920",
+    "root_cause": "Abend Error In Pc024920 is likely driven by abp shutdown prevention, rc1 rc2 code mismatch, program logic error.",
+    "validated_checks": [
+      "inspect_abp_shutdown_sequence",
+      "verify_rc1_rc2_code_values",
+      "review_pc024920_program_logic"
+    ],
+    "validated_actions": [
+      "isolate_and_debug_pc024920"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_fe319d2b7e2b",
+    "linked_playbook_id": "pb_d3c5c6dc2412"
+  },
+  {
+    "resolution_id": "res_9a046d381222",
+    "created_at": "2026-05-10T04:13:10.704396+00:00",
+    "updated_at": "2026-05-10T04:13:10.704417+00:00",
+    "classification": "abend_error_in_pc877950",
+    "root_cause": "Abend Error In Pc877950 is likely driven by invalid instruction execution, data storage corruption, program logic error.",
+    "validated_checks": [
+      "verify_program_logic_at_pc877950",
+      "inspect_data_storage_integrity",
+      "compare_recent_code_changes"
+    ],
+    "validated_actions": [
+      "isolate_and_debug_pc877950"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_71ce6769e7c8",
+    "linked_playbook_id": "pb_f05fc6a6512f"
+  },
+  {
+    "resolution_id": "res_760b8337bd10",
+    "created_at": "2026-05-10T04:14:33.123393+00:00",
+    "updated_at": "2026-05-10T04:14:33.123409+00:00",
+    "classification": "firewall_rule_configuration_failure",
+    "root_cause": "Firewall Rule Configuration Failure is likely driven by firewall rule misconfiguration, rule update failure, network policy conflict.",
+    "validated_checks": [
+      "verify_firewall_rule_configuration",
+      "inspect_firewall_logs",
+      "compare_network_policy_changes"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_4e98f36059f7",
+    "linked_playbook_id": "pb_11a26e90b119"
+  },
+  {
+    "resolution_id": "res_8ddaae9df38d",
+    "created_at": "2026-05-10T04:15:04.780291+00:00",
+    "updated_at": "2026-05-10T04:15:04.780329+00:00",
+    "classification": "post_change_network_configuration_issue",
+    "root_cause": "Post Change Network Configuration Issue is likely driven by aws network configuration mismatch, foundation network update failure.",
+    "validated_checks": [
+      "verify_aws_network_configuration",
+      "inspect_update_logs",
+      "compare_network_configuration_before_and_after_change"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_7d15b857f3f6",
+    "linked_playbook_id": "pb_868057ed801f"
+  },
+  {
+    "resolution_id": "res_deb61a70138c",
+    "created_at": "2026-05-10T04:15:38.395075+00:00",
+    "updated_at": "2026-05-10T04:15:38.395103+00:00",
+    "classification": "firewall_access_configuration_issue",
+    "root_cause": "Firewall Access Configuration Issue is likely driven by firewall rule misconfiguration, dns resolution failure, device authentication error.",
+    "validated_checks": [
+      "verify_firewall_rule_changes",
+      "inspect_device_connection_logs",
+      "validate_dns_resolution_for_international_sites"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_0d2fa829e3b7",
+    "linked_playbook_id": "pb_b52500f98704"
+  },
+  {
+    "resolution_id": "res_d27202ab4b67",
+    "created_at": "2026-05-10T04:16:10.300066+00:00",
+    "updated_at": "2026-05-10T04:16:10.300096+00:00",
+    "classification": "aws_foundation_network_update_issue",
+    "root_cause": "Aws Foundation Network Update Issue is likely driven by incorrect network configuration, insufficient access controls, incompatible network policies.",
+    "validated_checks": [
+      "verify_network_configuration_changes",
+      "inspect_iam_role_permissions",
+      "compare_network_policy_versions"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_e80867c2378e",
+    "linked_playbook_id": "pb_fe0e27774d40"
+  },
+  {
+    "resolution_id": "res_e9c92558dad6",
+    "created_at": "2026-05-10T04:16:42.263899+00:00",
+    "updated_at": "2026-05-10T04:16:42.263934+00:00",
+    "classification": "aws_network_inspection_update_failure",
+    "root_cause": "Aws Network Inspection Update Failure is likely driven by network inspection rule conflict, firewall policy mismatch, aws service account permission issue.",
+    "validated_checks": [
+      "verify_network_inspection_rule_updates",
+      "compare_firewall_policy_changes",
+      "inspect_aws_service_account_permissions"
+    ],
+    "validated_actions": [
+      "correct_firewall_policy_conflicts"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_93831165b8d3",
+    "linked_playbook_id": "pb_e3d6d5251817"
+  },
+  {
+    "resolution_id": "res_ac741020e4cc",
+    "created_at": "2026-05-10T04:17:14.226903+00:00",
+    "updated_at": "2026-05-10T04:17:14.226932+00:00",
+    "classification": "aws_network_inspection_update_issue",
+    "root_cause": "Aws Network Inspection Update Issue is likely driven by network inspection rule conflict, firewall policy mismatch, aws service update failure.",
+    "validated_checks": [
+      "verify_network_inspection_rules",
+      "compare_firewall_policy_changes",
+      "inspect_aws_service_update_logs"
+    ],
+    "validated_actions": [
+      "correct_firewall_policy_conflicts"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_054bd32a8df7",
+    "linked_playbook_id": "pb_668574c8b83f"
+  },
+  {
+    "resolution_id": "res_055b8a78b2a6",
+    "created_at": "2026-05-10T04:17:46.304577+00:00",
+    "updated_at": "2026-05-10T04:17:46.304604+00:00",
+    "classification": "iaas_baseline_update_conflict",
+    "root_cause": "Iaas Baseline Update Conflict is likely driven by inconsistent tradops management config, baseline update script error, network config drift.",
+    "validated_checks": [
+      "verify_tradops_management_config",
+      "inspect_baseline_update_script_logs",
+      "compare_network_config_before_and_after_update"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_f09e5d9a582e",
+    "linked_playbook_id": "pb_0cde59a7e2be"
+  },
+  {
+    "resolution_id": "res_588c1d3bbd80",
+    "created_at": "2026-05-10T04:18:51.060543+00:00",
+    "updated_at": "2026-05-10T04:18:51.060558+00:00",
+    "classification": "dynamic_block_policy_conflict",
+    "root_cause": "Dynamic Block Policy Conflict is likely driven by url blocking misconfiguration, dns resolution failure, firewall rule conflict.",
+    "validated_checks": [
+      "verify_url_inclusion_in_block_list",
+      "check_dns_resolution_for_blocked_url",
+      "inspect_firewall_rules_for_url"
+    ],
+    "validated_actions": [
+      "update_firewall_rules_to_allow_url"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_7e7bbc7af7d0",
+    "linked_playbook_id": "pb_4a3b4c48a9d2"
+  },
+  {
+    "resolution_id": "res_27e3b2b319f2",
+    "created_at": "2026-05-10T04:19:22.674907+00:00",
+    "updated_at": "2026-05-10T04:19:22.674935+00:00",
+    "classification": "meraki_foundation_dev_network_change_issue",
+    "root_cause": "Meraki Foundation Dev Network Change Issue is likely driven by meraki device configuration mismatch, network change propagation delay, foundation dev network policy conflict.",
+    "validated_checks": [
+      "verify_meraki_device_configuration",
+      "check_network_change_propagation_status",
+      "inspect_foundation_dev_network_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_381e2b43ec13",
+    "linked_playbook_id": "pb_d35ee3d0c8e6"
+  },
+  {
+    "resolution_id": "res_63ea2fefafbc",
+    "created_at": "2026-05-10T04:21:26.026344+00:00",
+    "updated_at": "2026-05-10T04:21:26.026377+00:00",
+    "classification": "firewall_policy_update_issue",
+    "root_cause": "Firewall Policy Update Issue is likely driven by invalid ip address format, policy update syntax error, firewall rule conflict.",
+    "validated_checks": [
+      "verify_updated_policy_syntax",
+      "validate_ip_address_format",
+      "inspect_firewall_rule_conflicts"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_8edecdb5e707",
+    "linked_playbook_id": "pb_c5793539a35d"
+  },
+  {
+    "resolution_id": "res_a0eb9880f1af",
+    "created_at": "2026-05-10T04:26:48.917868+00:00",
+    "updated_at": "2026-05-10T04:26:48.917904+00:00",
+    "classification": "pgp_signing_encryption_configuration_issue",
+    "root_cause": "Pgp Signing Encryption Configuration Issue is likely driven by pgp key mismatch, encryption protocol conflict, configuration syntax error.",
+    "validated_checks": [
+      "verify_pgp_key_configuration",
+      "inspect_goanywhere_production_logs",
+      "compare_pgp_protocol_versions"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_794e0fe6a790",
+    "linked_playbook_id": "pb_570a5bfb7436"
+  },
+  {
+    "resolution_id": "res_3815705b2d08",
+    "created_at": "2026-05-10T04:28:21.406364+00:00",
+    "updated_at": "2026-05-10T04:28:21.406435+00:00",
+    "classification": "s3_bucket_config_update_issue",
+    "root_cause": "S3 Bucket Config Update Issue is likely driven by efs mount point misconfiguration, version installation conflict, s3 bucket permission error.",
+    "validated_checks": [
+      "verify_s3_bucket_permissions",
+      "inspect_efs_mount_point_configuration",
+      "compare_version_installation_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_228c9795b4f2",
+    "linked_playbook_id": "pb_bb8a5449f725"
+  },
+  {
+    "resolution_id": "res_f3e93819a80a",
+    "created_at": "2026-05-10T04:30:01.288938+00:00",
+    "updated_at": "2026-05-10T04:30:01.288971+00:00",
+    "classification": "code_cleanup_branch_issue",
+    "root_cause": "Code Cleanup Branch Issue is likely driven by branch merge conflict, code syntax error, dependency version mismatch.",
+    "validated_checks": [
+      "verify_branch_merge_history",
+      "inspect_code_syntax_and_dependencies",
+      "compare_commit_history"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_fe310338e1a7",
+    "linked_playbook_id": "pb_82ad6cbdf993"
+  },
+  {
+    "resolution_id": "res_a3997b27943d",
+    "created_at": "2026-05-10T04:31:30.158603+00:00",
+    "updated_at": "2026-05-10T04:31:30.158669+00:00",
+    "classification": "code_cleanup_branch_conflict",
+    "root_cause": "Code Cleanup Branch Conflict is likely driven by branch merge conflict, code validation failure, environmental variable mismatch.",
+    "validated_checks": [
+      "verify_branch_merge_history",
+      "validate_code_syntax_and_semantics",
+      "inspect_environmental_variable_settings"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_56e1b375a007",
+    "linked_playbook_id": "pb_64c317bc72f9"
+  },
+  {
+    "resolution_id": "res_8d266e244a51",
+    "created_at": "2026-05-10T12:17:50.359340+00:00",
+    "updated_at": "2026-05-10T12:17:50.359367+00:00",
+    "classification": "file_transfer_infrastructure_configuration_issue",
+    "root_cause": "File Transfer Infrastructure Configuration Issue is likely driven by wavepatch tagging misconfiguration, ecpe 16655 change impact.",
+    "validated_checks": [
+      "verify_wavepatch_tagging_configuration",
+      "inspect_file_transfer_infrastructure_logs",
+      "compare_ecpe_16655_change_history"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_9f4369e31e0a",
+    "linked_playbook_id": "pb_c9c8cf29f935"
+  },
+  {
+    "resolution_id": "res_3a7f5a4881cc",
+    "created_at": "2026-05-10T12:18:21.918190+00:00",
+    "updated_at": "2026-05-10T12:18:21.918225+00:00",
+    "classification": "os_tagging_rework_issue",
+    "root_cause": "Os Tagging Rework Issue is likely driven by tagging configuration error, os version incompatibility, rework script failure.",
+    "validated_checks": [
+      "verify_os_tagging_configuration",
+      "check_os_version_compatibility",
+      "inspect_rework_script_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_c9a67907d361",
+    "linked_playbook_id": "pb_6a2a52b8714a"
+  },
+  {
+    "resolution_id": "res_75772de95741",
+    "created_at": "2026-05-10T12:18:56.288616+00:00",
+    "updated_at": "2026-05-10T12:18:56.288634+00:00",
+    "classification": "firewall_rule_configuration_issue",
+    "root_cause": "Firewall Rule Configuration Issue is likely driven by ssl bypass misconfiguration, firewall rule priority conflict, url pattern matching error.",
+    "validated_checks": [
+      "verify_firewall_rule_syntax",
+      "inspect_bot_vdi_network_traffic",
+      "compare_firewall_rule_priority"
+    ],
+    "validated_actions": [
+      "test_ssl_bypass_functionality"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_b90450fb9986",
+    "linked_playbook_id": "pb_edc7ce26d086"
+  },
+  {
+    "resolution_id": "res_8d4d4daa6507",
+    "created_at": "2026-05-10T12:19:28.621991+00:00",
+    "updated_at": "2026-05-10T12:19:28.622007+00:00",
+    "classification": "network_access_configuration_issue",
+    "root_cause": "Network Access Configuration Issue is likely driven by vd i configuration mismatch, migration project network settings conflict, firewall rule update failure.",
+    "validated_checks": [
+      "verify_vdi_network_settings",
+      "inspect_firewall_rule_updates",
+      "compare_migration_project_network_config"
+    ],
+    "validated_actions": [
+      "review_migration_project_network_settings",
+      "update_firewall_rules_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_84a11b1eb75f",
+    "linked_playbook_id": "pb_4de5ac503bdc"
+  },
+  {
+    "resolution_id": "res_d1c7cae530ab",
+    "created_at": "2026-05-10T12:20:02.190914+00:00",
+    "updated_at": "2026-05-10T12:20:02.190936+00:00",
+    "classification": "sipa_us_segment_configuration_issue",
+    "root_cause": "Sipa Us Segment Configuration Issue is likely driven by missing indian bank sites configuration, sipa us segment routing misconfiguration, vdih hosting environment incompatibility.",
+    "validated_checks": [
+      "verify_sipa_us_segment_configuration",
+      "inspect_vdi_hosting_environment_settings",
+      "compare_indian_bank_sites_access_policies"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_a521c20ce7af",
+    "linked_playbook_id": "pb_b70ae17ccfa6"
+  },
+  {
+    "resolution_id": "res_c4f4a075f319",
+    "created_at": "2026-05-10T12:20:36.407210+00:00",
+    "updated_at": "2026-05-10T12:20:36.407237+00:00",
+    "classification": "amazon_workspace_application_template_update_issue",
+    "root_cause": "Amazon Workspace Application Template Update Issue is likely driven by template update script failure, application version incompatibility, workspace configuration mismatch.",
+    "validated_checks": [
+      "verify_template_update_script_logs",
+      "compare_application_version_with_workspace_requirements",
+      "inspect_workspace_configuration_files"
+    ],
+    "validated_actions": [
+      "review_workspace_configuration"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_a0b49bb54ba6",
+    "linked_playbook_id": "pb_6cf5a1b869cd"
+  },
+  {
+    "resolution_id": "res_9573a7b1c751",
+    "created_at": "2026-05-10T12:21:06.593677+00:00",
+    "updated_at": "2026-05-10T12:21:06.593703+00:00",
+    "classification": "vdi_provisioning_issue",
+    "root_cause": "Vdi Provisioning Issue is likely driven by insufficient resources, invalid request parameters, desktop pool configuration error.",
+    "validated_checks": [
+      "verify_request_parameters",
+      "check_desktop_pool_availability",
+      "inspect_vdi_provisioning_logs"
+    ],
+    "validated_actions": [
+      "retry_vdi_proivisioning_if_valid"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_91fc11774558",
+    "linked_playbook_id": "pb_186c9727583b"
+  },
+  {
+    "resolution_id": "res_3341e200b7c9",
+    "created_at": "2026-05-10T12:21:37.670678+00:00",
+    "updated_at": "2026-05-10T12:21:37.670701+00:00",
+    "classification": "vdi_provisioning_failure",
+    "root_cause": "Vdi Provisioning Failure is likely driven by insufficient resources, invalid contractor credentials, desktop template configuration error.",
+    "validated_checks": [
+      "verify_contractor_account_status",
+      "check_vdi_template_configuration",
+      "inspect_provisioning_logs"
+    ],
+    "validated_actions": [
+      "review_vdi_template_settings",
+      "retry_provisioning_if_valid"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_16e2ba43942a",
+    "linked_playbook_id": "pb_0bf37948f777"
+  },
+  {
+    "resolution_id": "res_2b49b2458705",
+    "created_at": "2026-05-10T12:22:37.793853+00:00",
+    "updated_at": "2026-05-10T12:22:37.793871+00:00",
+    "classification": "vdi_removal_request_issue",
+    "root_cause": "Vdi Removal Request Issue is likely driven by insufficient vdi removal procedure, incomplete user data wipe, virtual desktop license conflict.",
+    "validated_checks": [
+      "verify_vdi_removal_request_details",
+      "inspect_virtual_desktop_license_status",
+      "check_for_pending_vdi_removal_tasks"
+    ],
+    "validated_actions": [
+      "review_virtual_desktop_license_agreement"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_ef1f4918ea37",
+    "linked_playbook_id": "pb_9660ee8ab0d4"
+  },
+  {
+    "resolution_id": "res_76a8a577798a",
+    "created_at": "2026-05-10T12:23:08.489668+00:00",
+    "updated_at": "2026-05-10T12:23:08.489684+00:00",
+    "classification": "citrix_vdi_extension_request_issue",
+    "root_cause": "Citrix Vdi Extension Request Issue is likely driven by vdı extension configuration error, insufficient licenses, desktop pool configuration mismatch.",
+    "validated_checks": [
+      "verify_vdi_extension_configuration",
+      "check_license_availability",
+      "inspect_desktop_pool_settings"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_f1696551cb73",
+    "linked_playbook_id": "pb_1b0421a0a4a8"
+  },
+  {
+    "resolution_id": "res_bc44fd3300e3",
+    "created_at": "2026-05-15T01:58:02.153269+00:00",
+    "updated_at": "2026-05-15T01:58:02.153395+00:00",
+    "classification": "disk_space_exhaustion_due_to_log_and_dump_file_growth",
+    "root_cause": "Disk Space Exhaustion Due To Log And Dump File Growth is likely driven by failed cleanup job, excessive application logging, uncontrolled dump file generation.",
+    "validated_checks": [
+      "verify_cleanup_job_status",
+      "inspect_log_file_growth_rates",
+      "check_dump_file_configuration"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_9508200763f0",
+    "linked_playbook_id": "pb_095885b93096"
+  },
+  {
+    "resolution_id": "res_3b3ef49335bd",
+    "created_at": "2026-05-15T02:07:41.208272+00:00",
+    "updated_at": "2026-05-15T02:07:41.208299+00:00",
+    "classification": "certificate_renewal_workflow_failure",
+    "root_cause": "Certificate Renewal Workflow Failure is likely driven by automated renewal trigger failure, approval queue backlog, ownership confirmation delay.",
+    "validated_checks": [
+      "verify_renewal_workflow_config",
+      "inspect_approval_queue_status",
+      "check_ownership_confirmation_records"
+    ],
+    "validated_actions": [
+      "expedite_approval_queue_processing"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_c9fdef7cc32a",
+    "linked_playbook_id": "pb_f665080b37fe"
+  },
+  {
+    "resolution_id": "res_942d4a82529d",
+    "created_at": "2026-05-15T02:25:24.740069+00:00",
+    "updated_at": "2026-05-15T02:25:24.740098+00:00",
+    "classification": "kerberos_authentication_failure",
+    "root_cause": "Kerberos Authentication Failure is likely driven by spn mismatch, clock skew, kdc availability issue.",
+    "validated_checks": [
+      "verify_spn_configuration",
+      "check_clock_synchronization",
+      "inspect_kdc_logs",
+      "validate_active_directory_replication_status"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_7122e28ca91d",
+    "linked_playbook_id": "pb_59ce3d0e6504"
+  },
+  {
+    "resolution_id": "res_3f33893d6190",
+    "created_at": "2026-05-15T02:30:01.353743+00:00",
+    "updated_at": "2026-05-15T02:30:01.353765+00:00",
+    "classification": "abnormal_termination_of_batch_job",
+    "root_cause": "Abnormal Termination Of Batch Job is likely driven by input file unavailability, job script error, scheduler configuration issue.",
+    "validated_checks": [
+      "validate_input_file_availability",
+      "inspect_job_logs_for_error_messages",
+      "compare_scheduler_configuration_with_previous_runs"
+    ],
+    "validated_actions": [
+      "rerun_job_with_debug_logging_if_possible"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_75dffcaac7df",
+    "linked_playbook_id": "pb_94f0f5539f96"
+  },
+  {
+    "resolution_id": "res_5f0765787b31",
+    "created_at": "2026-05-15T02:35:10.573978+00:00",
+    "updated_at": "2026-05-15T02:35:10.573998+00:00",
+    "classification": "tws_job_scheduling_dependency_issue",
+    "root_cause": "Tws Job Scheduling Dependency Issue is likely driven by upstream dependency completion failure, tws agent availability issue, scheduler calendar configuration error.",
+    "validated_checks": [
+      "verify_upstream_job_completion_status",
+      "inspect_tws_agent_workstation_availability",
+      "validate_scheduler_calendar_configuration"
+    ],
+    "validated_actions": [
+      "release_job_if_dependencies_met"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_b0d64b0dfc0e",
+    "linked_playbook_id": "pb_69c6aa5c78c0"
+  },
+  {
+    "resolution_id": "res_89d088b11d12",
+    "created_at": "2026-05-15T02:40:46.444960+00:00",
+    "updated_at": "2026-05-15T02:40:46.444982+00:00",
+    "classification": "alb_target_group_health_check_failure",
+    "root_cause": "Alb Target Group Health Check Failure is likely driven by unhealthy container port exposure, incorrect target group health check configuration, security group rule mismatch.",
+    "validated_checks": [
+      "verify_alb_listener_rules",
+      "inspect_target_group_health_check_settings",
+      "validate_container_port_exposure_and_security_groups"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_75b5ddea9ec8",
+    "linked_playbook_id": "pb_568332618772"
+  },
+  {
+    "resolution_id": "res_ff94c975ff9e",
+    "created_at": "2026-05-15T02:41:46.253990+00:00",
+    "updated_at": "2026-05-15T02:41:46.254006+00:00",
+    "classification": "container_port_binding_mismatch",
+    "root_cause": "Container Port Binding Mismatch is likely driven by exposed port configuration error, host port mapping conflict, firewall rule blockage.",
+    "validated_checks": [
+      "verify_container_port_binding",
+      "inspect_host_port_mapping",
+      "check_firewall_rules"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_9f1b1dc0a53d",
+    "linked_playbook_id": "pb_fd479f9663fb"
+  },
+  {
+    "resolution_id": "res_bdf373e89830",
+    "created_at": "2026-05-15T02:42:41.231149+00:00",
+    "updated_at": "2026-05-15T02:42:41.231177+00:00",
+    "classification": "container_service_registration_issue",
+    "root_cause": "Container Service Registration Issue is likely driven by container target registration failure, security group ingress rule mismatch, container port exposure configuration error.",
+    "validated_checks": [
+      "validate_container_target_registration",
+      "inspect_security_group_ingress_rules",
+      "verify_container_port_exposure_configuration"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_cb4933f60867",
+    "linked_playbook_id": "pb_02261c921027"
+  },
+  {
+    "resolution_id": "res_69d335d00204",
+    "created_at": "2026-05-15T02:43:42.367364+00:00",
+    "updated_at": "2026-05-15T02:43:42.367383+00:00",
+    "classification": "ecs_service_networking_issue",
+    "root_cause": "Ecs Service Networking Issue is likely driven by target group registration failure, container port mapping mismatch, security group ingress rule conflict.",
+    "validated_checks": [
+      "verify_ecs_service_network_configuration",
+      "inspect_target_group_registration_status",
+      "validate_container_port_mapping_and_security_group_rules"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_427e86b8a5a6",
+    "linked_playbook_id": "pb_4c2febd30240"
+  },
+  {
+    "resolution_id": "res_f07c29a0b2ca",
+    "created_at": "2026-05-18T20:16:34.697313+00:00",
+    "updated_at": "2026-05-18T20:16:34.697331+00:00",
+    "classification": "disk_usage_exceeds_threshold_due_to_temporary_files",
+    "root_cause": "Disk Usage Exceeds Threshold Due To Temporary Files is likely driven by excessive temporary file creation, insufficient log rotation, inadequate disk space management.",
+    "validated_checks": [
+      "validate_disk_usage_statistics",
+      "inspect_tmp_directory_contents",
+      "review_log_rotation_configuration"
+    ],
+    "validated_actions": [
+      "monitor_disk_usage_for_threshold_exceedance"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_82ed139a7b5e",
+    "linked_playbook_id": "pb_75948fbe5459"
+  },
+  {
+    "resolution_id": "res_8c85e07b549b",
+    "created_at": "2026-05-18T21:26:37.421755+00:00",
+    "updated_at": "2026-05-18T21:26:37.421786+00:00",
+    "classification": "disk_usage_exceeding_threshold",
+    "root_cause": "Disk Usage Exceeding Threshold is likely driven by excessive temporary files, unmanaged log file growth, insufficient disk space allocation.",
+    "validated_checks": [
+      "validate_disk_usage_statistics",
+      "inspect_tmp_directory_contents",
+      "review_log_rotation_configuration"
+    ],
+    "validated_actions": [
+      "review_and_adjust_disk_space_allocation"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_43a8f7f41969",
+    "linked_playbook_id": "pb_d4743f2c0707"
+  },
+  {
+    "resolution_id": "res_1953797af79f",
+    "created_at": "2026-06-16T15:30:17.555687+00:00",
+    "updated_at": "2026-06-16T15:30:17.555713+00:00",
+    "classification": "vpn_password_reset_authentication_failure",
+    "root_cause": "Vpn Password Reset Authentication Failure is likely driven by password hash mismatch, ldap sync delay, radius server config issue.",
+    "validated_checks": [
+      "verify_vpn_server_config",
+      "inspect_user_account_lockout_policies",
+      "check_ldap_sync_status"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_c82c6159ed92",
+    "linked_playbook_id": "pb_1299ea3256f0"
+  },
+  {
+    "resolution_id": "res_9ca9b805ab55",
+    "created_at": "2026-06-17T01:31:34.188666+00:00",
+    "updated_at": "2026-06-17T01:31:34.188679+00:00",
+    "classification": "connection_reset_error",
+    "root_cause": "Connection Reset Error is likely driven by network connectivity issue, tls handshake failure, server side timeout.",
+    "validated_checks": [
+      "verify_network_connectivity",
+      "inspect_tls_configuration",
+      "check_server_side_timeout_settings"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_3a0b845c7d98",
+    "linked_playbook_id": "pb_0e74fc7a561d"
+  },
+  {
+    "resolution_id": "res_bdbadec1f776",
+    "created_at": "2026-06-17T01:32:02.883384+00:00",
+    "updated_at": "2026-06-17T01:32:02.883405+00:00",
+    "classification": "encrypted_payload_routing_subsystem_checksum_mismatch",
+    "root_cause": "Encrypted Payload Routing Subsystem Checksum Mismatch is likely driven by corrupted encrypted payload, checksum algorithm mismatch, node cluster desynchronization.",
+    "validated_checks": [
+      "verify_checksum_algorithm_configuration",
+      "inspect_encrypted_payload_integrity",
+      "compare_node_cluster_states"
+    ],
+    "validated_actions": [
+      "isolate_and_revalidate_affected_nodes"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_cdf6099b6e60",
+    "linked_playbook_id": "pb_27605dbda4a1"
+  },
+  {
+    "resolution_id": "res_c26923a89fdd",
+    "created_at": "2026-06-17T02:18:54.160185+00:00",
+    "updated_at": "2026-06-17T02:18:54.160431+00:00",
+    "classification": "incident_data_insufficient",
+    "root_cause": "Incident Data Insufficient is likely driven by incomplete ticket context, missing error details.",
+    "validated_checks": [
+      "verify_ticket_context",
+      "inspect_error_logs",
+      "compare_system_configuration"
+    ],
+    "validated_actions": [
+      "gather_additional_error_details"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_d28527dd606e",
+    "linked_playbook_id": "pb_6c36042824d7"
+  },
+  {
+    "resolution_id": "res_588db50617b6",
+    "created_at": "2026-06-17T02:24:07.367290+00:00",
+    "updated_at": "2026-06-17T02:24:07.367309+00:00",
+    "classification": "insufficient_information",
+    "root_cause": "Insufficient Information is likely driven by incomplete ticket details, missing context.",
+    "validated_checks": [
+      "verify_ticket_details",
+      "inspect_relevant_logs",
+      "gather_additional_context"
+    ],
+    "validated_actions": [
+      "request_additional_information"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_078fdcd147d4",
+    "linked_playbook_id": "pb_da76e8c5dc4c"
+  },
+  {
+    "resolution_id": "res_64ef02e34a46",
+    "created_at": "2026-06-17T02:24:53.990296+00:00",
+    "updated_at": "2026-06-17T02:24:53.990314+00:00",
+    "classification": "server_unavailability",
+    "root_cause": "Server Unavailability is likely driven by network connectivity issue, system resource exhaustion, configuration error.",
+    "validated_checks": [
+      "verify_server_network_connectivity",
+      "inspect_system_resource_utilization",
+      "review_server_configuration_files"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_ac85291ea399",
+    "linked_playbook_id": "pb_5997f2b2c923"
+  },
+  {
+    "resolution_id": "res_5391fcb54a87",
+    "created_at": "2026-06-17T02:25:10.764241+00:00",
+    "updated_at": "2026-06-17T02:25:10.764258+00:00",
+    "classification": "database_connection_timeout",
+    "root_cause": "Database Connection Timeout is likely driven by database server overload, network latency issue, connection pool exhaustion.",
+    "validated_checks": [
+      "verify_database_server_status",
+      "inspect_network_connection_latency",
+      "check_connection_pool_configuration"
+    ],
+    "validated_actions": [
+      "adjust_connection_pool_settings_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_3ea4a0599157",
+    "linked_playbook_id": "pb_61df7e27408c"
+  },
+  {
+    "resolution_id": "res_e09b6af9d393",
+    "created_at": "2026-06-17T02:29:24.314338+00:00",
+    "updated_at": "2026-06-17T02:29:24.314358+00:00",
+    "classification": "authentication_credentials_mismatch",
+    "root_cause": "Authentication Credentials Mismatch is likely driven by invalid username or password, expired or locked account, kerberos ticket expiration.",
+    "validated_checks": [
+      "verify_user_credentials",
+      "check_account_lockout_policies",
+      "inspect_authentication_server_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_3574f53aaa24",
+    "linked_playbook_id": "pb_5692080ff245"
+  },
+  {
+    "resolution_id": "res_8715caacdf70",
+    "created_at": "2026-06-17T02:29:45.695977+00:00",
+    "updated_at": "2026-06-17T02:29:45.696002+00:00",
+    "classification": "authentication_protocol_mismatch",
+    "root_cause": "Authentication Protocol Mismatch is likely driven by credential format incorrect, password policy update failure, ldap connection issue.",
+    "validated_checks": [
+      "verify_user_credentials",
+      "inspect_authentication_protocol_logs",
+      "compare_password_policy_versions"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_4578b81a852d",
+    "linked_playbook_id": "pb_a0585d639f68"
+  },
+  {
+    "resolution_id": "res_d7a1051aa4b2",
+    "created_at": "2026-06-17T02:30:20.211281+00:00",
+    "updated_at": "2026-06-17T02:30:20.211298+00:00",
+    "classification": "network_packet_loss_issue",
+    "root_cause": "Network Packet Loss Issue is likely driven by network interface misconfiguration, router queue overflow, link bandwidth exceeded.",
+    "validated_checks": [
+      "inspect_network_interface_settings",
+      "verify_router_queue_sizes",
+      "check_link_bandwidth_utilization"
+    ],
+    "validated_actions": [
+      "adjust_router_queue_sizes_if_necessary",
+      "optimize_link_bandwidth_allocation"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_aa7fd533cdb1",
+    "linked_playbook_id": "pb_dde6e07f14f2"
+  },
+  {
+    "resolution_id": "res_0f82ebb948f8",
+    "created_at": "2026-06-17T02:39:33.829756+00:00",
+    "updated_at": "2026-06-17T02:39:33.829774+00:00",
+    "classification": "memory_leak_issue",
+    "root_cause": "Memory Leak Issue is likely driven by excessive object allocation, unclosed database connections, inefficient garbage collection.",
+    "validated_checks": [
+      "inspect_heap_dump",
+      "verify_garbage_collection_settings",
+      "compare_memory_usage_patterns"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_03ed304e99ef",
+    "linked_playbook_id": "pb_ea0d0e154bc1"
+  },
+  {
+    "resolution_id": "res_ce3f37dccaee",
+    "created_at": "2026-06-17T02:42:47.842830+00:00",
+    "updated_at": "2026-06-17T02:42:47.842846+00:00",
+    "classification": "network_packet_loss",
+    "root_cause": "Network Packet Loss is likely driven by congested network interface, mtu mismatch, routing table inconsistency.",
+    "validated_checks": [
+      "inspect_network_interface_utilization",
+      "verify_mtu_settings",
+      "check_routing_table_configuration"
+    ],
+    "validated_actions": [
+      "isolate_and_test_network_segment"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_cce57dc3c8c4",
+    "linked_playbook_id": "pb_46c297fc20d6"
+  },
+  {
+    "resolution_id": "res_95834b39944e",
+    "created_at": "2026-06-17T02:43:03.304476+00:00",
+    "updated_at": "2026-06-17T02:43:03.304502+00:00",
+    "classification": "memory_leak_out_of_memory_error",
+    "root_cause": "Memory Leak Out Of Memory Error is likely driven by excessive object allocation, unclosed resource handles, inefficient garbage collection.",
+    "validated_checks": [
+      "inspect_heap_dump",
+      "verify_garbage_collection_settings",
+      "compare_memory_usage_patterns"
+    ],
+    "validated_actions": [
+      "optimize_garbage_collection_config"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_54a9fa9bf397",
+    "linked_playbook_id": "pb_a7fda1291af7"
+  },
+  {
+    "resolution_id": "res_3386495dda4e",
+    "created_at": "2026-06-17T02:43:17.597690+00:00",
+    "updated_at": "2026-06-17T02:43:17.597715+00:00",
+    "classification": "kubernetes_pod_crashloopbackoff",
+    "root_cause": "Kubernetes Pod Crashloopbackoff is likely driven by container exit code error, liveness probe failure, init container failure.",
+    "validated_checks": [
+      "inspect_pod_logs",
+      "verify_liveness_probe_configuration",
+      "check_container_resource_limits"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_4f1663e0cdc2",
+    "linked_playbook_id": "pb_c5fda12f6e8a"
+  },
+  {
+    "resolution_id": "res_fc5f18ec513e",
+    "created_at": "2026-06-17T02:43:31.287922+00:00",
+    "updated_at": "2026-06-17T02:43:31.287948+00:00",
+    "classification": "vpn_connection_authentication_failure",
+    "root_cause": "Vpn Connection Authentication Failure is likely driven by vpn server certificate expiration, client certificate validation error, vpn tunnel configuration mismatch.",
+    "validated_checks": [
+      "verify_vpn_server_certificate_validity",
+      "inspect_vpn_client_logs_for_errors",
+      "compare_vpn_tunnel_configuration"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_7d93ae155f33",
+    "linked_playbook_id": "pb_77cd4cd393e2"
+  },
+  {
+    "resolution_id": "res_4d329f9994f0",
+    "created_at": "2026-06-17T02:43:44.848865+00:00",
+    "updated_at": "2026-06-17T02:43:44.848882+00:00",
+    "classification": "ssl_certificate_expiration",
+    "root_cause": "Ssl Certificate Expiration is likely driven by certificate renewal failure, tls config mismatch, certificate validation error.",
+    "validated_checks": [
+      "verify_certificate_expiration_date",
+      "inspect_tls_config_files",
+      "check_certificate_renewal_logs"
+    ],
+    "validated_actions": [
+      "update_tls_config_files",
+      "renew_expired_certificate"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_e8f57ad7dc83",
+    "linked_playbook_id": "pb_5dfcdeeb1cef"
+  },
+  {
+    "resolution_id": "res_14e41f4d14d3",
+    "created_at": "2026-06-17T02:43:58.742422+00:00",
+    "updated_at": "2026-06-17T02:43:58.742438+00:00",
+    "classification": "api_gateway_backend_service_unavailability",
+    "root_cause": "Api Gateway Backend Service Unavailability is likely driven by backend service timeout, load balancer configuration error, service instance unavailability.",
+    "validated_checks": [
+      "verify_api_gateway_configuration",
+      "inspect_backend_service_logs",
+      "check_load_balancer_health"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_108a85e96634",
+    "linked_playbook_id": "pb_a0e8399f5aa5"
+  },
+  {
+    "resolution_id": "res_4726093b6531",
+    "created_at": "2026-06-17T02:44:13.200062+00:00",
+    "updated_at": "2026-06-17T02:44:13.200088+00:00",
+    "classification": "storage_quota_exceeded",
+    "root_cause": "Storage Quota Exceeded is likely driven by excessive log file growth, uncontrolled data ingestion, insufficient storage provisioning.",
+    "validated_checks": [
+      "verify_disk_usage_statistics",
+      "inspect_log_rotation_policies",
+      "compare_storage_allocation_to_expected_usage"
+    ],
+    "validated_actions": [
+      "request_storage_quota_increase_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_8803fe03de54",
+    "linked_playbook_id": "pb_d98946ee5924"
+  },
+  {
+    "resolution_id": "res_428a1048b0d6",
+    "created_at": "2026-06-17T02:46:20.041347+00:00",
+    "updated_at": "2026-06-17T02:46:20.041363+00:00",
+    "classification": "api_gateway_backend_unavailability",
+    "root_cause": "Api Gateway Backend Unavailability is likely driven by backend service unreachable, load balancer misconfiguration, tls handshake failure.",
+    "validated_checks": [
+      "verify_backend_service_status",
+      "inspect_load_balancer_configuration",
+      "check_api_gateway_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_dd23f202242e",
+    "linked_playbook_id": "pb_6fcee029ab5b"
+  },
+  {
+    "resolution_id": "res_a896d51bb649",
+    "created_at": "2026-06-17T02:50:01.297690+00:00",
+    "updated_at": "2026-06-17T02:50:01.297704+00:00",
+    "classification": "authentication_credentials_issue",
+    "root_cause": "Authentication Credentials Issue is likely driven by invalid username or password, account lockout policy, expired session token.",
+    "validated_checks": [
+      "verify_user_credentials",
+      "check_account_lockout_status",
+      "inspect_session_token_expiration"
+    ],
+    "validated_actions": [
+      "reset_password_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_ec9bd64f2dbc",
+    "linked_playbook_id": "pb_b15f465114b9"
+  },
+  {
+    "resolution_id": "res_8443f8a612a9",
+    "created_at": "2026-06-17T02:50:27.678793+00:00",
+    "updated_at": "2026-06-17T02:50:27.678870+00:00",
+    "classification": "oauth_token_expiration",
+    "root_cause": "Oauth Token Expiration is likely driven by token lifespan exceeded, token refresh failure, clock skew.",
+    "validated_checks": [
+      "verify_token_expiration_time",
+      "check_token_refresh_logs",
+      "inspect_oauth_client_configuration"
+    ],
+    "validated_actions": [
+      "regenerate_token_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_016163b9c6d9",
+    "linked_playbook_id": "pb_ddb9bde03cc8"
+  },
+  {
+    "resolution_id": "res_95c904a912ee",
+    "created_at": "2026-06-17T02:50:41.129885+00:00",
+    "updated_at": "2026-06-17T02:50:41.129926+00:00",
+    "classification": "saml_assertion_validation_failure",
+    "root_cause": "Saml Assertion Validation Failure is likely driven by idp metadata mismatch, saml certificate expiration, assertion signature validation error.",
+    "validated_checks": [
+      "verify_idp_metadata_configuration",
+      "check_saml_certificate_expiration",
+      "inspect_saml_assertion_logs"
+    ],
+    "validated_actions": [
+      "update_saml_certificate_if_expired"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_7afb7f6f15ab",
+    "linked_playbook_id": "pb_3caf928085c9"
+  },
+  {
+    "resolution_id": "res_d686667042a3",
+    "created_at": "2026-06-18T16:23:47.768310+00:00",
+    "updated_at": "2026-06-18T16:23:47.768326+00:00",
+    "classification": "pod_crash_loop",
+    "root_cause": "Pod Crash Loop is likely driven by container resource exhaustion, pod configuration error, image incompatibility.",
+    "validated_checks": [
+      "inspect_pod_logs",
+      "verify_container_resource_limits",
+      "compare_pod_configuration_with_baseline"
+    ],
+    "validated_actions": [
+      "isolate_and_redeploy_pod_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_86108af726c8",
+    "linked_playbook_id": "pb_44b65aa368bc"
+  },
+  {
+    "resolution_id": "res_a8097995e0ae",
+    "created_at": "2026-06-18T17:59:57.943574+00:00",
+    "updated_at": "2026-06-18T17:59:57.943595+00:00",
+    "classification": "certificate_expiry_warning",
+    "root_cause": "Certificate Expiry Warning is likely driven by expired certificate not renewed, certificate renewal process failure, invalid certificate configuration.",
+    "validated_checks": [
+      "verify_certificate_expiration_date",
+      "check_certificate_renewal_process_status",
+      "inspect_certificate_configuration_files"
+    ],
+    "validated_actions": [
+      "request_certificate_renewal_if_necessary"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_fe03e0a29614",
+    "linked_playbook_id": "pb_fbd46377c756"
+  },
+  {
+    "resolution_id": "res_af2d5d9b7ccd",
+    "created_at": "2026-06-18T18:02:32.205020+00:00",
+    "updated_at": "2026-06-18T18:02:32.205036+00:00",
+    "classification": "api_gateway_timeout",
+    "root_cause": "Api Gateway Timeout is likely driven by backend service unavailability, network connectivity issue, api gateway configuration error.",
+    "validated_checks": [
+      "verify_api_gateway_configuration",
+      "check_backend_service_status",
+      "inspect_network_connectivity_logs"
+    ],
+    "validated_actions": [],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_edffe045742f",
+    "linked_playbook_id": "pb_e831b61a7a06"
+  },
+  {
+    "resolution_id": "res_66e1750321f0",
+    "created_at": "2026-06-18T18:03:26.614658+00:00",
+    "updated_at": "2026-06-18T18:03:26.614678+00:00",
+    "classification": "high_disk_usage",
+    "root_cause": "High Disk Usage is likely driven by excessive log file growth, unmanaged temporary files, insufficient disk space allocation.",
+    "validated_checks": [
+      "verify_disk_space_allocation",
+      "inspect_log_file_sizes",
+      "check_for_unmanaged_temporary_files"
+    ],
+    "validated_actions": [
+      "consider_increasing_disk_space_allocation"
+    ],
+    "engineer_confirmed": true,
+    "confirmed_by": "system_draft",
+    "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+    "automation_ready": false,
+    "linked_candidate_id": "kc_db2529ae5d46",
+    "linked_playbook_id": "pb_f9f0e1954cec"
+  }
+]

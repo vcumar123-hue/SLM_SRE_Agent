@@ -1,0 +1,24 @@
+﻿---
+- name: Network interface validation
+  hosts: network_lab
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Show interfaces
+      ansible.builtin.shell: ip addr show
+      register: interface_output
+      changed_when: false
+
+    - name: Show routes
+      ansible.builtin.shell: ip route show
+      register: route_output
+      changed_when: false
+
+    - name: Print interface output
+      ansible.builtin.debug:
+        var: interface_output.stdout_lines
+
+    - name: Print route output
+      ansible.builtin.debug:
+        var: route_output.stdout_lines

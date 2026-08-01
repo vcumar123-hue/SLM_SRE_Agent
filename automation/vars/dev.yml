@@ -1,0 +1,5 @@
+environment: dev
+namespace: development
+service_name: app-service-dev
+approval_mode: relaxed
+risk_level: low

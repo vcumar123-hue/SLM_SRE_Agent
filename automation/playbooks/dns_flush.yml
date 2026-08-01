@@ -1,0 +1,78 @@
+---
+- name: DNS remediation
+  hosts: all
+  gather_facts: false
+  vars:
+    remediation_metadata:
+      action: clear_cache
+      rollback_supported: false
+      risk_tier: low
+      approval_mode: manual_approval_required
+      evidence_commands:
+        - "ipconfig /flushdns"
+        - "resolvectl flush-caches"
+        - "systemd-resolve --flush-caches"
+  tasks:
+    - name: Flush DNS cache on Windows
+      win_shell: |
+        ipconfig /flushdns
+      register: dns_flush_result_windows
+      when: ansible_os_family == "Windows"
+
+    - name: Flush DNS cache using resolvectl on Linux
+      shell: |
+        resolvectl flush-caches
+      register: dns_flush_result_linux_resolvectl
+      when: ansible_os_family != "Windows"
+      changed_when: true
+      failed_when: false
+
+    - name: Flush DNS cache using systemd-resolve on Linux fallback
+      shell: |
+        systemd-resolve --flush-caches
+      register: dns_flush_result_linux_systemd_resolve
+      when:
+        - ansible_os_family != "Windows"
+        - dns_flush_result_linux_resolvectl is defined
+        - dns_flush_result_linux_resolvectl.rc != 0
+      changed_when: true
+      failed_when: false
+
+    - name: Flush nscd hosts cache on Linux fallback
+      shell: |
+        nscd -i hosts
+      register: dns_flush_result_linux_nscd
+      when:
+        - ansible_os_family != "Windows"
+        - dns_flush_result_linux_resolvectl is defined
+        - dns_flush_result_linux_resolvectl.rc != 0
+        - dns_flush_result_linux_systemd_resolve is defined
+        - dns_flush_result_linux_systemd_resolve.rc != 0
+      changed_when: true
+      failed_when: false
+
+    - name: Determine final DNS remediation result on Linux
+      set_fact:
+        dns_flush_effective_result: >-
+          {{
+            dns_flush_result_linux_resolvectl
+            if (dns_flush_result_linux_resolvectl is defined and dns_flush_result_linux_resolvectl.rc == 0)
+            else (
+              dns_flush_result_linux_systemd_resolve
+              if (dns_flush_result_linux_systemd_resolve is defined and dns_flush_result_linux_systemd_resolve.rc == 0)
+              else dns_flush_result_linux_nscd
+            )
+          }}
+      when: ansible_os_family != "Windows"
+
+    - name: Show DNS remediation evidence on Windows
+      debug:
+        var: dns_flush_result_windows.stdout
+      when: ansible_os_family == "Windows"
+
+    - name: Show DNS remediation evidence on Linux
+      debug:
+        var: dns_flush_effective_result.stdout
+      when:
+        - ansible_os_family != "Windows"
+        - dns_flush_effective_result is defined

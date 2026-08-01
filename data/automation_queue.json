@@ -1,0 +1,4151 @@
+[
+  {
+    "queue_id": "aq_104ecbdcb2",
+    "incident_id": "kc_23e80979c3f5",
+    "classification": "container_connection_issue",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-15T17:57:51.253314+00:00",
+    "status": "queued",
+    "plan": {
+      "classification": "container_connection_issue",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static_or_learned",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "clear_cache",
+          "connector": "ansible",
+          "playbook": "dns_flush.yml",
+          "risk_tier": "low",
+          "approval_required": true,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_f32d3ae3df",
+    "incident_id": "kc_23e80979c3f5",
+    "classification": "container_connection_issue",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-15T20:53:06.681927+00:00",
+    "status": "approved",
+    "plan": {
+      "classification": "container_connection_issue",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static_or_learned",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "clear_cache",
+          "connector": "ansible",
+          "playbook": "dns_flush.yml",
+          "risk_tier": "low",
+          "approval_required": true,
+          "status": "planned"
+        }
+      ]
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-04-15T20:53:10.616597+00:00"
+  },
+  {
+    "queue_id": "aq_eb7070a098",
+    "incident_id": "kc_8b79bbef1b27",
+    "classification": "iis_configuration_or_connectivity_issue",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-16T01:44:28.903785+00:00",
+    "status": "queued",
+    "plan": {
+      "classification": "iis_configuration_or_connectivity_issue",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "unmapped",
+      "step_count": 0,
+      "steps": []
+    }
+  },
+  {
+    "queue_id": "aq_f93ebae9fe",
+    "incident_id": "kc_8b79bbef1b27",
+    "classification": "iis_configuration_or_connectivity_issue",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-17T02:20:24.607531+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_a6926fb3844b",
+      "classification": "iis_configuration_or_connectivity_issue",
+      "root_cause": "Iis Configuration Or Connectivity Issue is likely driven by iis server configuration error, windows firewall blocking access, application pool not running.",
+      "validated_checks": [
+        "verify_iis_server_configuration",
+        "check_windows_firewall_rules",
+        "inspect_iis_application_pool_status"
+      ],
+      "validated_actions": [],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_8b79bbef1b27",
+      "linked_playbook_id": "pb_12ccb909646b",
+      "created_at": "2026-04-16T01:28:23.513729+00:00",
+      "updated_at": "2026-04-16T01:28:23.513751+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_12ccb909646b",
+      "name": "Iis Configuration Or Connectivity Issue Recovery",
+      "classification": "iis_configuration_or_connectivity_issue",
+      "description": "Draft playbook generated from fallback analysis for iis configuration or connectivity issue. Review before operational use.",
+      "steps": [
+        "verify_iis_server_configuration",
+        "check_windows_firewall_rules",
+        "inspect_iis_application_pool_status"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-16T01:28:23.509742+00:00",
+      "updated_at": "2026-04-16T01:28:23.509778+00:00"
+    },
+    "plan": {
+      "classification": "iis_configuration_or_connectivity_issue",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "learned",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_iis",
+          "connector": "ansible",
+          "playbook": "restart_iis.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_f2d6eaeee6",
+    "incident_id": "kc_e3667232508d",
+    "classification": "windows_service_stoppage",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-17T20:55:12.090014+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_86e3b0a3676a",
+      "classification": "windows_service_stoppage",
+      "root_cause": "Windows Service Stoppage is likely driven by service configuration error, dependency failure, resource exhaustion.",
+      "validated_checks": [
+        "inspect_service_logs",
+        "verify_service_dependencies",
+        "check_system_resource_utilization"
+      ],
+      "validated_actions": [
+        "restart_service_if_valid"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_e3667232508d",
+      "linked_playbook_id": "pb_ae2e2d08d108",
+      "created_at": "2026-04-17T19:13:17.512886+00:00",
+      "updated_at": "2026-04-17T19:13:17.512908+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_ae2e2d08d108",
+      "name": "Windows Service Stoppage Recovery",
+      "classification": "windows_service_stoppage",
+      "description": "Draft playbook generated from fallback analysis for windows service stoppage. Review before operational use.",
+      "steps": [
+        "inspect_service_logs",
+        "verify_service_dependencies",
+        "check_system_resource_utilization",
+        "restart_service_if_valid"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-17T19:13:17.482353+00:00",
+      "updated_at": "2026-04-17T19:13:17.482371+00:00"
+    },
+    "plan": {
+      "classification": "windows_service_stoppage",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "inferred_or_similarity",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_d7d83f0af6",
+    "incident_id": "kc_e3667232508d",
+    "classification": "windows_service_stoppage",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-17T22:05:48.366174+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_86e3b0a3676a",
+      "classification": "windows_service_stoppage",
+      "root_cause": "Windows Service Stoppage is likely driven by service configuration error, dependency failure, resource exhaustion.",
+      "validated_checks": [
+        "inspect_service_logs",
+        "verify_service_dependencies",
+        "check_system_resource_utilization"
+      ],
+      "validated_actions": [
+        "restart_service_if_valid"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_e3667232508d",
+      "linked_playbook_id": "pb_ae2e2d08d108",
+      "created_at": "2026-04-17T19:13:17.512886+00:00",
+      "updated_at": "2026-04-17T19:13:17.512908+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_ae2e2d08d108",
+      "name": "Windows Service Stoppage Recovery",
+      "classification": "windows_service_stoppage",
+      "description": "Draft playbook generated from fallback analysis for windows service stoppage. Review before operational use.",
+      "steps": [
+        "inspect_service_logs",
+        "verify_service_dependencies",
+        "check_system_resource_utilization",
+        "restart_service_if_valid"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-17T19:13:17.482353+00:00",
+      "updated_at": "2026-04-17T19:13:17.482371+00:00"
+    },
+    "plan": {
+      "classification": "windows_service_stoppage",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "inferred_or_similarity",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_b1ac545d27",
+    "incident_id": "kc_e3667232508d",
+    "classification": "windows_service_stoppage",
+    "requested_by": "Vijay",
+    "created_at": "2026-04-17T22:52:24.983103+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_86e3b0a3676a",
+      "classification": "windows_service_stoppage",
+      "root_cause": "Windows Service Stoppage is likely driven by service configuration error, dependency failure, resource exhaustion.",
+      "validated_checks": [
+        "inspect_service_logs",
+        "verify_service_dependencies",
+        "check_system_resource_utilization"
+      ],
+      "validated_actions": [
+        "restart_service_if_valid"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_e3667232508d",
+      "linked_playbook_id": "pb_ae2e2d08d108",
+      "created_at": "2026-04-17T19:13:17.512886+00:00",
+      "updated_at": "2026-04-17T19:13:17.512908+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_ae2e2d08d108",
+      "name": "Windows Service Stoppage Recovery",
+      "classification": "windows_service_stoppage",
+      "description": "Draft playbook generated from fallback analysis for windows service stoppage. Review before operational use.",
+      "steps": [
+        "inspect_service_logs",
+        "verify_service_dependencies",
+        "check_system_resource_utilization",
+        "restart_service_if_valid"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-17T19:13:17.482353+00:00",
+      "updated_at": "2026-04-17T19:13:17.482371+00:00"
+    },
+    "plan": {
+      "classification": "windows_service_stoppage",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "inferred_or_similarity",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_32ad7e484a",
+    "incident_id": "f1e50646-7a7f-4c38-a9b6-06b69cb7fc4e",
+    "classification": "ad_account_lockout_spike",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T01:50:52.787329+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_ad_account_lockout_spike_f1e506467a7f",
+      "classification": "ad_account_lockout_spike",
+      "root_cause": "stale credentials or dependent scheduled task/service-account password causing repeated AD account lockouts",
+      "validated_checks": [
+        "Inspect Ad Lockout Source Host And Domain-Controller Security Events",
+        "Review Recent Password Changes For The Affected User Or Service Account",
+        "Check Scheduled Tasks, Windows Services, Mobile Clients, And Saved Credentials Using The Account",
+        "Validate Whether Legacy Application Or Integration Dependencies Still Use The Old Password",
+        "Confirm Lockout Recurrence Stops After Credential Cleanup"
+      ],
+      "validated_actions": [
+        "Clear Stale Cached Credentials On Affected Endpoints And Mobile Clients",
+        "Update Scheduled Task, Windows Service, And Legacy Dependency Credentials",
+        "Reset Or Update The Impacted Service Account Password Through The Approved Process",
+        "Unlock The Affected Ad Account After Stale Credential Sources Are Corrected",
+        "Monitor Domain-Controller Lockout Events For Recurrence"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "f1e50646-7a7f-4c38-a9b6-06b69cb7fc4e",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_ad_account_lockout_spike_f1e506467a7f",
+      "name": "Ad Account Lockout Spike Investigation and Recovery",
+      "classification": "ad_account_lockout_spike",
+      "description": "Identify the lockout source, remove stale credentials, and prevent recurring AD account lockouts.",
+      "steps": [
+        "Collect Ad Lockout Event Evidence For Affected Account.",
+        "Correlate Lockout Source Host With Recent Password/Service Changes.",
+        "Check Scheduled Tasks And Services On The Source Host For Stale Credentials.",
+        "Prepare Credential Update/Unlock Actions For Engineer Approval.",
+        "Monitor Recurrence For A Fixed Validation Window."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "ad_account_lockout_spike",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "inferred",
+      "step_count": 2,
+      "steps": [
+        {
+          "action": "clear_cache",
+          "connector": "ansible",
+          "playbook": "dns_flush.yml",
+          "risk_tier": "low",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        },
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_840a233a04",
+    "incident_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T02:42:32.889939+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_f0b4bdd95caa",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_f0b4bdd95caa",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 2,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        },
+        {
+          "action": "scale_deployment",
+          "connector": "kubernetes",
+          "playbook": null,
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_768aed24bb",
+    "incident_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T02:42:45.119890+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_f0b4bdd95caa",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_f0b4bdd95caa",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 2,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        },
+        {
+          "action": "scale_deployment",
+          "connector": "kubernetes",
+          "playbook": null,
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_63a8b1b123",
+    "incident_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T02:42:48.177743+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_f0b4bdd95caa",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_f0b4bdd95caa",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 2,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        },
+        {
+          "action": "scale_deployment",
+          "connector": "kubernetes",
+          "playbook": null,
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_7e71185563",
+    "incident_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T02:43:00.978543+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_f0b4bdd95caa",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "f0b4bdd9-5caa-4cd8-b1ea-cb7783187179",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_f0b4bdd95caa",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 2,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "restart_service.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        },
+        {
+          "action": "scale_deployment",
+          "connector": "kubernetes",
+          "playbook": null,
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_bb700e4408",
+    "incident_id": "lab_api_gateway_timeout_001",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:14:25.510190+00:00",
+    "status": "queued",
+    "linked_resolution": null,
+    "linked_playbook": null,
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_c08f96f70f",
+    "incident_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:15:23.525638+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_ad6084d05ad4",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_ad6084d05ad4",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_93874f1c93",
+    "incident_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:15:26.709429+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_ad6084d05ad4",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_ad6084d05ad4",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_054f371855",
+    "incident_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:15:29.491281+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_ad6084d05ad4",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_ad6084d05ad4",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_9751d085f3",
+    "incident_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:23:03.534162+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_ad6084d05ad4",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_ad6084d05ad4",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_6c5667fe70",
+    "incident_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:24:41.830681+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_ad6084d05ad4",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_ad6084d05ad4",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_c99c6d007f",
+    "incident_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+    "classification": "api_gateway_timeout",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-12T03:31:57.548995+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_api_gateway_timeout_ad6084d05ad4",
+      "classification": "api_gateway_timeout",
+      "root_cause": "firewall policy change blocked downstream service port",
+      "validated_checks": [
+        "Validate Recent Firewall/Security-Group Changes",
+        "Test Source-To-Destination Port Connectivity",
+        "Compare Deny Logs With Incident Window",
+        "Confirm Dependency Path From Topology",
+        "Validate Recovery With Synthetic Transaction"
+      ],
+      "validated_actions": [
+        "Validate Firewall Rule",
+        "Restore Downstream Port Access",
+        "Confirm Recovery Using Synthetic Transaction",
+        "Rollback Or Correct Policy Rule After Approval",
+        "Update Firewall Policy Drift Record And Close Related Change Validation"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ad6084d0-5ad4-4778-ae36-fd2ea70f163c",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_api_gateway_timeout_ad6084d05ad4",
+      "name": "API Gateway Timeout Investigation and Recovery",
+      "classification": "api_gateway_timeout",
+      "description": "Validate gateway-to-downstream connectivity and restore API availability safely.",
+      "steps": [
+        "Collect Gateway Timeout And Upstream Connection Evidence.",
+        "Run Downstream Port Reachability Validation.",
+        "Compare Firewall/Security-Group Changes With Deny Logs.",
+        "Prepare Approved Rule Correction Or Gateway Route Remediation.",
+        "Run Synthetic Transaction Validation After Change."
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "api_gateway_timeout",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_63a333e4b8",
+    "incident_id": "edce61bf-11c9-40ff-921c-04103944ac14",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T00:01:16.947221+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_edce61bf11c9",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "edce61bf-11c9-40ff-921c-04103944ac14",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_edce61bf11c9",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "action": "clear_cache",
+          "connector": "ansible",
+          "playbook": "dns_flush.yml",
+          "risk_tier": "low",
+          "approval_required": true,
+          "rollback_available": true,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_963bed9777",
+    "incident_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T00:15:40.343802+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_ba9d0535afec",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_ba9d0535afec",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 0,
+      "steps": []
+    }
+  },
+  {
+    "queue_id": "aq_faf2115ebb",
+    "incident_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T21:35:20.565655+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_ba9d0535afec",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_ba9d0535afec",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 0,
+      "steps": []
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-14T21:35:22.037776+00:00"
+  },
+  {
+    "queue_id": "aq_07ade97c8a",
+    "incident_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T21:35:43.447562+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_ba9d0535afec",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_ba9d0535afec",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 0,
+      "steps": []
+    }
+  },
+  {
+    "queue_id": "aq_8443ade02d",
+    "incident_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T21:35:52.541586+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_ba9d0535afec",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "ba9d0535-afec-4e68-bbf6-51d3bdcce6cf",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_ba9d0535afec",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 0,
+      "steps": []
+    }
+  },
+  {
+    "queue_id": "aq_274f481a94",
+    "incident_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T21:53:32.644824+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_a10a10e8bd92",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_a10a10e8bd92",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": "Re-run vpn_check_tunnel.yml and rollback to backup gateway if health remains down.",
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "vpn_recover_client_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "playbook": "vpn_recover_client_connectivity.yml",
+          "connector": "ansible",
+          "target_host": "vpn-lab-01",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "execution_mode": "simulation",
+          "description": "Recover mock VPN client connectivity on vpn-lab-01."
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_106255c349",
+    "incident_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T21:59:54.539252+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_a10a10e8bd92",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_a10a10e8bd92",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": "Re-run vpn_check_tunnel.yml and rollback to backup gateway if health remains down.",
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "vpn_recover_client_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "playbook": "vpn_recover_client_connectivity.yml",
+          "connector": "ansible",
+          "target_host": "vpn-lab-01",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "execution_mode": "simulation",
+          "description": "Recover mock VPN client connectivity on vpn-lab-01."
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_f74cae0e36",
+    "incident_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-14T22:01:32.307299+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_a10a10e8bd92",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_a10a10e8bd92",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": "Re-run vpn_check_tunnel.yml and rollback to backup gateway if health remains down.",
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "vpn_recover_client_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "playbook": "vpn_recover_client_connectivity.yml",
+          "connector": "ansible",
+          "target_host": "vpn-lab-01",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "execution_mode": "simulation",
+          "description": "Recover mock VPN client connectivity on vpn-lab-01."
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_d0c783cf06",
+    "incident_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-15T01:16:31.766801+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_a10a10e8bd92",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path"
+      ],
+      "validated_actions": [
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "a10a10e8-bd92-429e-aa8f-c747c68516d7",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_a10a10e8bd92",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Vpn Gateway Logs",
+        "Review Firewall Policy Changes",
+        "Validate User Authentication Path",
+        "Rollback Or Correct Policy Change",
+        "Restart Vpn Service If Approved",
+        "Route Users To Backup Gateway"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": "Re-run vpn_check_tunnel.yml and rollback to backup gateway if health remains down.",
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "vpn_recover_client_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "playbook": "vpn_recover_client_connectivity.yml",
+          "connector": "ansible",
+          "target_host": "vpn-lab-01",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "execution_mode": "simulation",
+          "description": "Recover mock VPN client connectivity on vpn-lab-01."
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_5a7b9a7f16",
+    "incident_id": "7a3f7284-5469-4e2e-a82a-3d3736f85466",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-18T13:55:18.826539+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_7a3f72845469",
+      "classification": "vpn_client_failure",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "validated_actions": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "7a3f7284-5469-4e2e-a82a-3d3736f85466",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_7a3f72845469",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": "Re-run vpn_check_tunnel.yml and rollback to backup gateway if health remains down.",
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "static",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "vpn_recover_client_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "playbook": "vpn_recover_client_connectivity.yml",
+          "connector": "ansible",
+          "target_host": "vpn-lab-01",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "execution_mode": "simulation",
+          "description": "Recover mock VPN client connectivity on vpn-lab-01."
+        }
+      ]
+    }
+  },
+  {
+    "queue_id": "aq_b9778e03ca",
+    "incident_id": "e6081d9d-3139-459f-b7b8-43ac5c4c0be4",
+    "classification": "disk_usage_exceeding_threshold",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-18T21:28:26.419517+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_8c85e07b549b",
+      "created_at": "2026-05-18T21:26:37.421755+00:00",
+      "updated_at": "2026-05-18T21:26:37.421786+00:00",
+      "classification": "disk_usage_exceeding_threshold",
+      "root_cause": "Disk Usage Exceeding Threshold is likely driven by excessive temporary files, unmanaged log file growth, insufficient disk space allocation.",
+      "validated_checks": [
+        "validate_disk_usage_statistics",
+        "inspect_tmp_directory_contents",
+        "review_log_rotation_configuration"
+      ],
+      "validated_actions": [
+        "review_and_adjust_disk_space_allocation"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_43a8f7f41969",
+      "linked_playbook_id": "pb_d4743f2c0707"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_d4743f2c0707",
+      "created_at": "2026-05-18T21:26:37.375928+00:00",
+      "updated_at": "2026-05-18T21:26:37.375959+00:00",
+      "name": "Disk Usage Exceeding Threshold Recovery",
+      "classification": "disk_usage_exceeding_threshold",
+      "description": "Draft playbook generated from fallback analysis for disk usage exceeding threshold. Review before operational use.",
+      "steps": [
+        "validate_disk_usage_statistics",
+        "inspect_tmp_directory_contents",
+        "review_log_rotation_configuration",
+        "review_and_adjust_disk_space_allocation"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "status": "draft",
+      "source": "manual",
+      "linked_incident_id": "",
+      "linked_rca_id": "",
+      "created_by": "Vijay",
+      "review": {
+        "reviewed": false,
+        "reviewed_by": "",
+        "reviewed_at": "",
+        "review_notes": ""
+      }
+    },
+    "plan": {
+      "classification": "disk_usage_exceeding_threshold",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "unmapped",
+      "step_count": 0,
+      "steps": []
+    }
+  },
+  {
+    "queue_id": "aq_ce4f2c210f",
+    "incident_id": "988a4bab-5e3c-46cc-9136-8d536292e17d",
+    "classification": "container_connection_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-18T23:11:22.165864+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "res_a6f2d3337d71",
+      "classification": "container_connection_issue",
+      "root_cause": "Container traffic is not reaching a healthy container target due to security group, load-balancer target registration, listener rule, port mapping, service definition, ECS/Kubernetes endpoint, or task networking issue.",
+      "validated_checks": [
+        "verify_security_group_rules",
+        "inspect_container_port_bindings",
+        "confirm_dns_vpn_dependencies_healthy_non_primary"
+      ],
+      "validated_actions": [],
+      "engineer_confirmed": true,
+      "confirmed_by": "Vijay",
+      "success_notes": "Validated via UI-guided approval flow.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_23e80979c3f5",
+      "linked_playbook_id": "",
+      "created_at": "2026-04-15T14:09:12.584800+00:00",
+      "updated_at": "2026-04-15T16:30:02.271937+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_db91a5e095c5",
+      "name": "Container Connection Issue Recovery",
+      "classification": "container_connection_issue",
+      "description": "Validate, isolate, and remediate container connection issue using approved operational steps.",
+      "steps": [
+        "Verify Security Group Rules",
+        "Inspect Container Port Bindings",
+        "Confirm DNS/VPN Are Healthy Dependencies And Not Primary Cause"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-15T14:09:12.582019+00:00",
+      "updated_at": "2026-04-15T16:30:02.297361+00:00"
+    },
+    "plan": {
+      "classification": "container_connection_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_container_connectivity_1",
+          "action": "validate_container_connectivity",
+          "connector": "ansible",
+          "playbook": "container_connectivity_check.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for container_connection_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "container_connection_issue",
+        "action": "validate_container_connectivity",
+        "actions": [
+          "validate_container_connectivity"
+        ],
+        "connector": "ansible",
+        "playbook": "container_connectivity_check.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_abf6250d7b",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-18T23:10:00.236179+00:00"
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-18T23:11:26.852831+00:00"
+  },
+  {
+    "queue_id": "aq_e3f166b2c7",
+    "incident_id": "f873cd75-aec4-47d9-b0c7-5d3125af03f0",
+    "classification": "cpu_saturation",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-20T23:06:01.859995+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_saturation",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_saturation_1",
+          "action": "validate_cpu_saturation",
+          "connector": "ansible",
+          "playbook": "validate_cpu_saturation_v2_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_saturation."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_saturation",
+        "action": "validate_cpu_saturation",
+        "actions": [
+          "validate_cpu_saturation"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_saturation_v2_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_e9852e796e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+      }
+    }
+  },
+  {
+    "queue_id": "aq_46da95dbdc",
+    "incident_id": "9b2a362d-718c-48cf-a9e2-652194b7f414",
+    "classification": "cpu_saturation",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-20T23:15:05.635197+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_saturation",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_saturation_1",
+          "action": "validate_cpu_saturation",
+          "connector": "ansible",
+          "playbook": "validate_cpu_saturation_v2_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_saturation."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_saturation",
+        "action": "validate_cpu_saturation",
+        "actions": [
+          "validate_cpu_saturation"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_saturation_v2_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_e9852e796e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+      }
+    }
+  },
+  {
+    "queue_id": "aq_fd41b2a09f",
+    "incident_id": "9b2a362d-718c-48cf-a9e2-652194b7f414",
+    "classification": "cpu_saturation",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-20T23:16:23.304365+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_saturation",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_saturation_1",
+          "action": "validate_cpu_saturation",
+          "connector": "ansible",
+          "playbook": "validate_cpu_saturation_v2_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_saturation."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_saturation",
+        "action": "validate_cpu_saturation",
+        "actions": [
+          "validate_cpu_saturation"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_saturation_v2_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_e9852e796e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+      }
+    }
+  },
+  {
+    "queue_id": "aq_5858686756",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T14:50:53.477510+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_0bc0f10a4a",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-17T14:50:59.162375+00:00"
+  },
+  {
+    "queue_id": "aq_26a24a6ee1",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T15:00:04.017937+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_0bc0f10a4a",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-17T15:00:20.790987+00:00"
+  },
+  {
+    "queue_id": "aq_88af76d45f",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T15:06:34.731227+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_0bc0f10a4a",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-17T15:06:43.251347+00:00"
+  },
+  {
+    "queue_id": "aq_837c21c7bd",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T15:12:51.587199+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_0bc0f10a4a",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    }
+  },
+  {
+    "queue_id": "aq_6dbc04902f",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T15:14:37.223980+00:00",
+    "status": "queued",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_0bc0f10a4a",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    }
+  },
+  {
+    "queue_id": "aq_9aaedee405",
+    "incident_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T15:17:31.976244+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_4a7deb19f853",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "4a7deb19-f853-4512-a166-04ee9a19d853",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_4a7deb19f853",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_0bc0f10a4a",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:37:22.285478+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-17T15:17:36.381519+00:00"
+  },
+  {
+    "queue_id": "aq_758504b4b3",
+    "incident_id": "aea79e00-8a34-4ec8-a9d4-f6fa0a1e704d",
+    "classification": "cpu_saturation",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-20T00:15:43.667548+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_saturation",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_saturation_1",
+          "action": "validate_cpu_saturation",
+          "connector": "ansible",
+          "playbook": "validate_cpu_saturation_v2_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_saturation."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_saturation",
+        "action": "validate_cpu_saturation",
+        "actions": [
+          "validate_cpu_saturation"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_saturation_v2_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_e9852e796e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-20T00:15:46.361503+00:00",
+    "executed_at": "2026-05-20T00:15:49.372689+00:00",
+    "execution_id": "ax_35de20b45f",
+    "execution_mode": "live",
+    "closed_at": "2026-05-20T00:15:49.372689+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_8fe8abf6b7",
+    "incident_id": "d6aae8cf-717f-4201-90ef-faa85e738c5e",
+    "classification": "cpu_saturation",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-20T00:26:00.179958+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_saturation",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_saturation_1",
+          "action": "validate_cpu_saturation",
+          "connector": "ansible",
+          "playbook": "validate_cpu_saturation_v2_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_saturation."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_saturation",
+        "action": "validate_cpu_saturation",
+        "actions": [
+          "validate_cpu_saturation"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_saturation_v2_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_e9852e796e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-20T00:26:02.739066+00:00",
+    "executed_at": "2026-05-20T00:26:10.222515+00:00",
+    "execution_id": "ax_ddeb7fa275",
+    "execution_mode": "live",
+    "closed_at": "2026-05-20T00:26:10.222515+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_01a68effda",
+    "incident_id": "e5ac5243-c28d-4abd-b8d2-a9c763deb85c",
+    "classification": "cpu_saturation",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-05-20T00:48:11.049394+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_saturation",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_saturation_1",
+          "action": "validate_cpu_saturation",
+          "connector": "ansible",
+          "playbook": "validate_cpu_saturation_v2_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_saturation."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_saturation",
+        "action": "validate_cpu_saturation",
+        "actions": [
+          "validate_cpu_saturation"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_saturation_v2_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_e9852e796e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-05-20T00:13:15.267143+00:00"
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-05-20T00:48:13.386832+00:00",
+    "executed_at": "2026-05-20T00:48:17.157415+00:00",
+    "execution_id": "ax_47da4a423c",
+    "execution_mode": "live",
+    "closed_at": "2026-05-20T00:48:17.157415+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_dea22ae43e",
+    "incident_id": "1c2b1cfc-3dd6-47c5-894d-5a47403e9aee",
+    "classification": "cpu_utilization_high",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-04T02:32:22.350641+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "res_3c72cbcdbf22",
+      "classification": "cpu_saturation",
+      "root_cause": "Cpu Saturation is likely driven by resource intensive code, inefficient query, insufficient resources.",
+      "validated_checks": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns"
+      ],
+      "validated_actions": [
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "confirmed_by": "system_draft",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "automation_ready": false,
+      "linked_candidate_id": "kc_efc633d18cc1",
+      "linked_playbook_id": "pb_f2904b0f8484",
+      "created_at": "2026-04-29T02:44:57.624710+00:00",
+      "updated_at": "2026-04-29T02:44:57.624742+00:00"
+    },
+    "linked_playbook": {
+      "playbook_id": "pb_f2904b0f8484",
+      "name": "Cpu Saturation Recovery",
+      "classification": "cpu_saturation",
+      "description": "Draft playbook generated from fallback analysis for cpu saturation. Review before operational use.",
+      "steps": [
+        "inspect_system_logs",
+        "verify_resource_allocation",
+        "analyze_cpu_usage_patterns",
+        "optimize_resource_allocation_if_necessary"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "enabled": true,
+      "created_at": "2026-04-29T02:44:57.584910+00:00",
+      "updated_at": "2026-04-29T02:44:57.584953+00:00"
+    },
+    "plan": {
+      "classification": "cpu_utilization_high",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_cpu_utilization_high_1",
+          "action": "validate_cpu_utilization_high",
+          "connector": "ansible",
+          "playbook": "validate_cpu_utilization_high.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for cpu_utilization_high."
+        }
+      ],
+      "registry_entry": {
+        "classification": "cpu_utilization_high",
+        "action": "validate_cpu_utilization_high",
+        "actions": [
+          "validate_cpu_utilization_high"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_cpu_utilization_high.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_d773f10b08",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-04T02:32:18.511878+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-04T02:32:27.585168+00:00",
+    "executed_at": "2026-06-04T02:32:33.890424+00:00",
+    "execution_id": "ax_0a42d2044a",
+    "execution_mode": "live",
+    "closed_at": "2026-06-04T02:32:33.890424+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_e9cb3cfc65",
+    "incident_id": "e54d36aa-1a3d-4ad4-991d-8b47f181d9a1",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-16T20:35:34.513042+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_e54d36aa1a3d",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "e54d36aa-1a3d-4ad4-991d-8b47f181d9a1",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_e54d36aa1a3d",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_5cc4041179",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-16T20:35:31.143126+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-16T20:35:45.588583+00:00",
+    "executed_at": "2026-06-16T20:35:57.852259+00:00",
+    "execution_id": "ax_7bd3b0f6f8",
+    "execution_mode": "live",
+    "closed_at": "2026-06-16T20:35:57.852259+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_9a3ddc1b1f",
+    "incident_id": "9ba4e4af-2145-4d30-9bfd-68673b7daf62",
+    "classification": "database_performance_issue",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-17T15:21:55.932642+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "draft_res_database_performance_issue_9ba4e4af2145",
+      "classification": "database_performance_issue",
+      "root_cause": "Database Lock Contention",
+      "validated_checks": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries"
+      ],
+      "validated_actions": [
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "9ba4e4af-2145-4d30-9bfd-68673b7daf62",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_database_performance_issue_9ba4e4af2145",
+      "name": "Database Performance Issue Investigation and Recovery",
+      "classification": "database_performance_issue",
+      "description": "Validate, isolate, and remediate database performance issue safely.",
+      "steps": [
+        "Inspect Database Wait Events",
+        "Review Deadlock Logs",
+        "Check Long Running Queries",
+        "Tune Or Terminate Blocking Transaction",
+        "Adjust Connection Pooling",
+        "Optimize Query Plan"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "database_performance_issue",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_database_performance_issue_1",
+          "action": "validate_database_performance_issue",
+          "connector": "ansible",
+          "playbook": "validate_database_performance_issue.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for database_performance_issue."
+        }
+      ],
+      "registry_entry": {
+        "classification": "database_performance_issue",
+        "action": "validate_database_performance_issue",
+        "actions": [
+          "validate_database_performance_issue"
+        ],
+        "connector": "ansible",
+        "playbook": "validate_database_performance_issue.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_2b1fd9e2c1",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-17T15:18:36.555570+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-17T15:21:59.152372+00:00",
+    "executed_at": "2026-06-17T15:22:04.635725+00:00",
+    "execution_id": "ax_eb14b528a9",
+    "execution_mode": "live",
+    "closed_at": "2026-06-17T15:22:04.635725+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_86da9a6ef2",
+    "incident_id": "inc_70cfb4102d",
+    "classification": "certificate_rotation_service_mesh_policy_conflict",
+    "tenant_id": "client_a",
+    "requested_by": "smoke_test",
+    "created_at": "2026-06-17T18:23:03.633508+00:00",
+    "status": "executed",
+    "linked_resolution": null,
+    "linked_playbook": null,
+    "plan": {
+      "classification": "certificate_rotation_service_mesh_policy_conflict",
+      "automation_ready": false,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "inferred",
+      "step_count": 2,
+      "steps": [
+        {
+          "action": "renew_certificate",
+          "connector": "ansible",
+          "playbook": "renew_certificate.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "status": "planned"
+        },
+        {
+          "action": "restart_service",
+          "connector": "ansible",
+          "playbook": "linux_restart_nginx.yml",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "status": "planned"
+        }
+      ]
+    },
+    "approved_by": "smoke_test",
+    "approved_at": "2026-06-17T18:23:12.300732+00:00",
+    "executed_at": "2026-06-17T18:23:24.941294+00:00",
+    "execution_id": "ax_ed9f34098f",
+    "execution_mode": "simulation"
+  },
+  {
+    "queue_id": "aq_3a4a4c4fb3",
+    "incident_id": "23043c94-643e-4bea-b5da-32e197f91d51",
+    "classification": "certificate_expiry_warning",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-18T16:22:44.963365+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "resolution_id": "draft_res_certificate_expiry_warning_23043c94643e",
+      "classification": "certificate_expiry_warning",
+      "root_cause": "cached credential or identity-provider authentication issue after password reset",
+      "validated_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "validated_actions": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "23043c94-643e-4bea-b5da-32e197f91d51",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_certificate_expiry_warning_23043c94643e",
+      "name": "Certificate Expiry Warning Investigation and Recovery",
+      "classification": "certificate_expiry_warning",
+      "description": "Validate, isolate, and remediate certificate expiry warning safely.",
+      "steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "certificate_expiry_warning",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "recover_vpn_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "connector": "ansible",
+          "playbook": "certificate_expiry_warning_candidate.yml",
+          "target_host": "vpn-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for certificate_expiry_warning."
+        }
+      ],
+      "registry_entry": {
+        "classification": "certificate_expiry_warning",
+        "action": "recover_vpn_connectivity",
+        "actions": [
+          "recover_vpn_connectivity"
+        ],
+        "connector": "ansible",
+        "playbook": "certificate_expiry_warning_candidate.yml",
+        "target_host": "vpn-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_b0e880b8f3",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-18T00:21:23.810036+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-18T16:22:48.118708+00:00",
+    "executed_at": "2026-06-18T16:22:58.299912+00:00",
+    "execution_id": "ax_b0631353b5",
+    "execution_mode": "live",
+    "closed_at": "2026-06-18T16:22:58.299912+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_2ccfa38743",
+    "incident_id": "32f5541e-1c1a-468f-9c26-ddc036cbfff4",
+    "classification": "pod_crash_loop",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-18T16:24:33.326203+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "created_at": "2026-06-18T16:23:47.768310+00:00",
+      "root_cause": "Pod Crash Loop is likely driven by container resource exhaustion, pod configuration error, image incompatibility.",
+      "updated_at": "2026-06-18T16:23:47.768326+00:00",
+      "confirmed_by": "system_draft",
+      "resolution_id": "res_d686667042a3",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "classification": "pod_crash_loop",
+      "automation_ready": false,
+      "validated_checks": [
+        "inspect_pod_logs",
+        "verify_container_resource_limits",
+        "compare_pod_configuration_with_baseline"
+      ],
+      "validated_actions": [
+        "isolate_and_redeploy_pod_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "linked_playbook_id": "pb_44b65aa368bc",
+      "linked_candidate_id": "kc_86108af726c8"
+    },
+    "linked_playbook": {
+      "name": "Pod Crash Loop Recovery",
+      "steps": [
+        "inspect_pod_logs",
+        "verify_container_resource_limits",
+        "compare_pod_configuration_with_baseline",
+        "isolate_and_redeploy_pod_if_necessary"
+      ],
+      "review": {
+        "reviewed": false,
+        "reviewed_at": "",
+        "reviewed_by": "",
+        "review_notes": ""
+      },
+      "source": "manual",
+      "status": "draft",
+      "enabled": true,
+      "scripts": [],
+      "risk_tier": "medium",
+      "created_at": "2026-06-18T16:23:47.737938+00:00",
+      "created_by": "Vijay",
+      "updated_at": "2026-06-18T16:23:47.737956+00:00",
+      "description": "Draft playbook generated from fallback analysis for pod crash loop. Review before operational use.",
+      "playbook_id": "pb_44b65aa368bc",
+      "approval_mode": "manual_approval_required",
+      "linked_rca_id": "",
+      "classification": "pod_crash_loop",
+      "linked_incident_id": "",
+      "rollback_available": true
+    },
+    "plan": {
+      "classification": "pod_crash_loop",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_container_connectivity_1",
+          "action": "validate_container_connectivity",
+          "connector": "ansible",
+          "playbook": "pod_crash_loop_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for pod_crash_loop."
+        }
+      ],
+      "registry_entry": {
+        "classification": "pod_crash_loop",
+        "action": "validate_container_connectivity",
+        "actions": [
+          "validate_container_connectivity"
+        ],
+        "connector": "ansible",
+        "playbook": "pod_crash_loop_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_95c245a7bf",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-18T16:24:30.466628+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-18T16:24:46.393598+00:00",
+    "executed_at": "2026-06-18T16:24:50.896791+00:00",
+    "execution_id": "ax_3bf6433522",
+    "execution_mode": "live",
+    "closed_at": "2026-06-18T16:24:50.896791+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_f9d426341e",
+    "incident_id": "32f5541e-1c1a-468f-9c26-ddc036cbfff4",
+    "classification": "pod_crash_loop",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-06-18T16:31:27.585271+00:00",
+    "status": "closed_remediated",
+    "linked_resolution": {
+      "created_at": "2026-06-18T16:23:47.768310+00:00",
+      "root_cause": "Pod Crash Loop is likely driven by container resource exhaustion, pod configuration error, image incompatibility.",
+      "updated_at": "2026-06-18T16:23:47.768326+00:00",
+      "confirmed_by": "system_draft",
+      "resolution_id": "res_d686667042a3",
+      "success_notes": "Auto-drafted from fallback analysis. Engineer review required before operational use.",
+      "classification": "pod_crash_loop",
+      "automation_ready": false,
+      "validated_checks": [
+        "inspect_pod_logs",
+        "verify_container_resource_limits",
+        "compare_pod_configuration_with_baseline"
+      ],
+      "validated_actions": [
+        "isolate_and_redeploy_pod_if_necessary"
+      ],
+      "engineer_confirmed": true,
+      "linked_playbook_id": "pb_44b65aa368bc",
+      "linked_candidate_id": "kc_86108af726c8"
+    },
+    "linked_playbook": {
+      "name": "Pod Crash Loop Recovery",
+      "steps": [
+        "inspect_pod_logs",
+        "verify_container_resource_limits",
+        "compare_pod_configuration_with_baseline",
+        "isolate_and_redeploy_pod_if_necessary"
+      ],
+      "review": {
+        "reviewed": false,
+        "reviewed_at": "",
+        "reviewed_by": "",
+        "review_notes": ""
+      },
+      "source": "manual",
+      "status": "draft",
+      "enabled": true,
+      "scripts": [],
+      "risk_tier": "medium",
+      "created_at": "2026-06-18T16:23:47.737938+00:00",
+      "created_by": "Vijay",
+      "updated_at": "2026-06-18T16:23:47.737956+00:00",
+      "description": "Draft playbook generated from fallback analysis for pod crash loop. Review before operational use.",
+      "playbook_id": "pb_44b65aa368bc",
+      "approval_mode": "manual_approval_required",
+      "linked_rca_id": "",
+      "classification": "pod_crash_loop",
+      "linked_incident_id": "",
+      "rollback_available": true
+    },
+    "plan": {
+      "classification": "pod_crash_loop",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "validate_container_connectivity_1",
+          "action": "validate_container_connectivity",
+          "connector": "ansible",
+          "playbook": "pod_crash_loop_candidate.yml",
+          "target_host": "linux-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for pod_crash_loop."
+        }
+      ],
+      "registry_entry": {
+        "classification": "pod_crash_loop",
+        "action": "validate_container_connectivity",
+        "actions": [
+          "validate_container_connectivity"
+        ],
+        "connector": "ansible",
+        "playbook": "pod_crash_loop_candidate.yml",
+        "target_host": "linux-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_95c245a7bf",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-06-18T16:24:30.466628+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-06-18T16:31:30.481669+00:00",
+    "executed_at": "2026-06-18T16:31:35.679149+00:00",
+    "execution_id": "ax_3a24d8f5cc",
+    "execution_mode": "live",
+    "closed_at": "2026-06-18T16:31:35.679149+00:00",
+    "closure_reason": "completed_live_remediation"
+  },
+  {
+    "queue_id": "aq_5a7eefb173",
+    "incident_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+    "classification": "vpn_client_failure",
+    "tenant_id": "client_a",
+    "requested_by": "Vijay",
+    "created_at": "2026-07-01T15:19:19.058045+00:00",
+    "status": "approved",
+    "linked_resolution": {
+      "resolution_id": "draft_res_vpn_client_failure_3bb362e384f8",
+      "classification": "vpn_client_failure",
+      "root_cause": "Cached Credential Or Identity-Provider Authentication Issue After Password Reset",
+      "validated_checks": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors"
+      ],
+      "validated_actions": [
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "confirmed_by": "engineer_review_pending",
+      "success_notes": "Drafted from current incident analysis. Engineer approval required before operational use.",
+      "linked_candidate_id": "3bb362e3-84f8-4f6e-8e80-0d7157e9eeb9",
+      "automation_ready": false,
+      "source": "ui_draft_from_analysis"
+    },
+    "linked_playbook": {
+      "playbook_id": "draft_pb_vpn_client_failure_3bb362e384f8",
+      "name": "Vpn Client Failure Investigation and Recovery",
+      "classification": "vpn_client_failure",
+      "description": "Validate, isolate, and remediate vpn client failure safely.",
+      "steps": [
+        "Check Idp/MFA Health",
+        "Review Conditional Access Changes",
+        "Validate Ldap/Radius Bind Status",
+        "Inspect Vpn Client Logs",
+        "Inspect Token/Certificate Errors",
+        "Clear Cached Vpn Credentials",
+        "Validate MFA/Idp Health",
+        "Refresh Vpn Client Profile",
+        "Restore Identity Dependency If Degraded",
+        "Rollback Conditional-Access Change If Confirmed"
+      ],
+      "scripts": [],
+      "approval_mode": "manual_approval_required",
+      "rollback_available": true,
+      "risk_tier": "medium",
+      "source": "ui_draft_from_analysis",
+      "engineer_review_required": true
+    },
+    "plan": {
+      "classification": "vpn_client_failure",
+      "automation_ready": true,
+      "approval_mode": "manual_approval_required",
+      "rollback_available": false,
+      "rollback_strategy": null,
+      "risk_tier": "medium",
+      "execution_mode": "simulation",
+      "mapping_source": "automation_registry",
+      "step_count": 1,
+      "steps": [
+        {
+          "step_id": "recover_vpn_connectivity_1",
+          "action": "recover_vpn_connectivity",
+          "connector": "ansible",
+          "playbook": "vpn_recover_client_connectivity.yml",
+          "target_host": "vpn-lab-01",
+          "target_group": "",
+          "risk_tier": "medium",
+          "approval_required": true,
+          "rollback_available": false,
+          "rollback_strategy": null,
+          "execution_mode": "simulation",
+          "status": "planned",
+          "mapping_source": "automation_registry",
+          "description": "Execute approved registry automation for vpn_client_failure."
+        }
+      ],
+      "registry_entry": {
+        "classification": "vpn_client_failure",
+        "action": "recover_vpn_connectivity",
+        "actions": [
+          "recover_vpn_connectivity"
+        ],
+        "connector": "ansible",
+        "playbook": "vpn_recover_client_connectivity.yml",
+        "target_host": "vpn-lab-01",
+        "target_group": "",
+        "risk_tier": "medium",
+        "approval_required": true,
+        "enabled": true,
+        "source": "automation_candidate_registry",
+        "source_candidate_id": "ac_5cbdfadf6e",
+        "enabled_by": "Vijay",
+        "enabled_at": "2026-07-01T15:19:14.764778+00:00",
+        "autonomous_enabled": false,
+        "autonomy_mode": "human_in_the_loop",
+        "telemetry_autonomous_allowed": false
+      }
+    },
+    "approved_by": "Vijay",
+    "approved_at": "2026-07-01T15:19:43.748088+00:00"
+  }
+]

@@ -1,0 +1,756 @@
+[
+  {
+    "tower": "network",
+    "category": "runtime",
+    "classification": "dns_resolution_latency",
+    "keywords": [
+      "dns",
+      "latency",
+      "resolution"
+    ],
+    "patterns": [
+      "slow dns lookup",
+      "name resolution delay"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "runtime",
+    "classification": "packet_loss",
+    "keywords": [
+      "packet loss",
+      "drop"
+    ],
+    "patterns": [
+      "intermittent connectivity",
+      "packet drops"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "performance",
+    "classification": "network_congestion",
+    "keywords": [
+      "latency",
+      "congestion"
+    ],
+    "patterns": [
+      "high latency",
+      "slow network"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "configuration",
+    "classification": "dns_misconfiguration",
+    "keywords": [
+      "dns config",
+      "resolver"
+    ],
+    "patterns": [
+      "wrong dns server",
+      "dns not resolving"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "configuration",
+    "classification": "firewall_block",
+    "keywords": [
+      "firewall",
+      "blocked"
+    ],
+    "patterns": [
+      "port blocked",
+      "connection refused"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "cluster_distributed",
+    "classification": "load_balancer_failover_issue",
+    "keywords": [
+      "load balancer",
+      "failover"
+    ],
+    "patterns": [
+      "failover not working",
+      "node unhealthy"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "integration",
+    "classification": "vpn_tunnel_failure",
+    "keywords": [
+      "vpn",
+      "tunnel"
+    ],
+    "patterns": [
+      "vpn down",
+      "tunnel not established"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "runtime",
+    "classification": "sql_transaction_log_full",
+    "keywords": [
+      "log full",
+      "9002"
+    ],
+    "patterns": [
+      "transaction log full"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "runtime",
+    "classification": "sql_deadlock",
+    "keywords": [
+      "deadlock",
+      "blocking"
+    ],
+    "patterns": [
+      "deadlock detected"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "runtime",
+    "classification": "sql_connection_timeout",
+    "keywords": [
+      "timeout",
+      "connection"
+    ],
+    "patterns": [
+      "db timeout"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "performance",
+    "classification": "sql_slow_query",
+    "keywords": [
+      "slow query"
+    ],
+    "patterns": [
+      "query taking long time"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "configuration",
+    "classification": "sql_misconfiguration",
+    "keywords": [
+      "config"
+    ],
+    "patterns": [
+      "wrong db config"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "capacity",
+    "classification": "sql_storage_full",
+    "keywords": [
+      "disk full"
+    ],
+    "patterns": [
+      "database out of space"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "upgrade_patch",
+    "classification": "sql_upgrade_failure",
+    "keywords": [
+      "upgrade"
+    ],
+    "patterns": [
+      "upgrade failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "database",
+    "category": "cluster_distributed",
+    "classification": "sql_cluster_failover_issue",
+    "keywords": [
+      "cluster"
+    ],
+    "patterns": [
+      "failover failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "runtime",
+    "classification": "windows_high_cpu",
+    "keywords": [
+      "cpu"
+    ],
+    "patterns": [
+      "cpu 100"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "runtime",
+    "classification": "linux_service_down",
+    "keywords": [
+      "service down"
+    ],
+    "patterns": [
+      "service not running"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "capacity",
+    "classification": "memory_exhaustion",
+    "keywords": [
+      "memory"
+    ],
+    "patterns": [
+      "out of memory"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "capacity",
+    "classification": "disk_full",
+    "keywords": [
+      "disk full"
+    ],
+    "patterns": [
+      "no space left"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "configuration",
+    "classification": "os_misconfiguration",
+    "keywords": [
+      "config"
+    ],
+    "patterns": [
+      "wrong config"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "installation",
+    "classification": "os_installation_failure",
+    "keywords": [
+      "install"
+    ],
+    "patterns": [
+      "os install failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "upgrade_patch",
+    "classification": "patch_failure",
+    "keywords": [
+      "patch"
+    ],
+    "patterns": [
+      "patch failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "cluster_distributed",
+    "classification": "kubernetes_node_not_ready",
+    "keywords": [
+      "kubernetes"
+    ],
+    "patterns": [
+      "node not ready"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "storage",
+    "category": "runtime",
+    "classification": "disk_full",
+    "keywords": [
+      "disk full"
+    ],
+    "patterns": [
+      "no space"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "storage",
+    "category": "performance",
+    "classification": "high_io_latency",
+    "keywords": [
+      "io latency"
+    ],
+    "patterns": [
+      "slow disk"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "storage",
+    "category": "configuration",
+    "classification": "mount_failure",
+    "keywords": [
+      "mount"
+    ],
+    "patterns": [
+      "mount failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "storage",
+    "category": "cluster_distributed",
+    "classification": "san_replication_failure",
+    "keywords": [
+      "san"
+    ],
+    "patterns": [
+      "replication failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "runtime",
+    "classification": "iis_app_pool_stopped",
+    "keywords": [
+      "iis"
+    ],
+    "patterns": [
+      "app pool stopped"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "runtime",
+    "classification": "tomcat_service_down",
+    "keywords": [
+      "tomcat"
+    ],
+    "patterns": [
+      "tomcat not running"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "performance",
+    "classification": "thread_pool_exhaustion",
+    "keywords": [
+      "thread"
+    ],
+    "patterns": [
+      "thread pool full"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "performance",
+    "classification": "jvm_heap_out_of_memory",
+    "keywords": [
+      "jvm"
+    ],
+    "patterns": [
+      "heap error"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "configuration",
+    "classification": "datasource_misconfiguration",
+    "keywords": [
+      "datasource"
+    ],
+    "patterns": [
+      "db connection config wrong"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "installation",
+    "classification": "middleware_installation_failure",
+    "keywords": [
+      "install"
+    ],
+    "patterns": [
+      "installation failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "upgrade_patch",
+    "classification": "middleware_patch_failure",
+    "keywords": [
+      "patch"
+    ],
+    "patterns": [
+      "patch failed"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "cluster_distributed",
+    "classification": "middleware_cluster_sync_issue",
+    "keywords": [
+      "cluster"
+    ],
+    "patterns": [
+      "node not syncing"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "integration",
+    "classification": "mq_queue_backlog",
+    "keywords": [
+      "mq"
+    ],
+    "patterns": [
+      "queue depth high"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "compute",
+    "category": "runtime",
+    "classification": "windows_service_stoppage",
+    "keywords": [
+      "windows service",
+      "service stopped",
+      "service not running",
+      "restart required"
+    ],
+    "patterns": [
+      "windows service stopped",
+      "service stopped on server",
+      "restart service required"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "middleware",
+    "category": "runtime",
+    "classification": "payroll_sync_service_stoppage",
+    "keywords": [
+      "payroll",
+      "payrollsyncservice",
+      "service stopped",
+      "restart required"
+    ],
+    "patterns": [
+      "payroll application unavailable",
+      "payroll sync service stopped",
+      "payrollsyncservice stopped"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "security",
+    "category": "configuration",
+    "classification": "jwt_signing_key_rotation_issue",
+    "keywords": [
+      "jwt",
+      "signing key",
+      "authorization",
+      "key rotation"
+    ],
+    "patterns": [
+      "authentication succeeds but authorization fails",
+      "jwt signing key rotation issue"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "cluster_distributed",
+    "classification": "load_balancer_node_specific_latency",
+    "keywords": [
+      "load balancer",
+      "latency",
+      "specific node",
+      "one node"
+    ],
+    "patterns": [
+      "latency only through one load balancer node",
+      "specific node latency spike"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "cluster_distributed",
+    "classification": "kubernetes_internal_dns_failure",
+    "keywords": [
+      "kubernetes",
+      "cluster dns",
+      "internal dns",
+      "service discovery"
+    ],
+    "patterns": [
+      "internal services cannot resolve cluster dns",
+      "kubernetes dns not resolving"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "general",
+    "category": "runtime",
+    "classification": "browser_sso_loop",
+    "keywords": [
+      "sso",
+      "redirect loop",
+      "login loop",
+      "reauthentication"
+    ],
+    "patterns": [
+      "browser enters repeated sso login loop",
+      "user stuck in browser sso reauthentication loop"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "security",
+    "category": "runtime",
+    "classification": "jwt_signing_key_rotation_issue",
+    "keywords": [
+      "jwt",
+      "signing key",
+      "authorization",
+      "roles"
+    ],
+    "patterns": [
+      "authentication succeeds but authorization fails",
+      "key rotation issue"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  },
+  {
+    "tower": "network",
+    "category": "integration",
+    "classification": "vpn_authentication_failure_after_password_reset",
+    "keywords": [
+      "vpn",
+      "password reset",
+      "authentication"
+    ],
+    "patterns": [
+      "vpn users cannot authenticate after password reset"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "global_base",
+    "source_layer": "taxonomy_base",
+    "enabled": true,
+    "updated_at": "2026-04-21T01:00:00.063526+00:00"
+  }
+]

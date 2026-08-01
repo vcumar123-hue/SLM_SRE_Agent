@@ -1,0 +1,190 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: aiops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aiops
+      POSTGRES_USER: aiops_user
+      POSTGRES_PASSWORD: StrongPassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: aiops-qdrant
+    restart: unless-stopped
+    ports:
+      - "6335:6333"
+      - "6336:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aiops-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - node-exporter
+      - app
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: aiops-alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    depends_on:
+      - app
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: aiops-node-exporter
+    ports:
+      - "9100:9100"
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: aiops-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: aiops-app
+    ports:
+      - "8001:8000"
+    environment:
+      - APP_ENV=dev
+      - PORT=8000
+
+      # Postgres
+      - PGHOST=aiops-postgres
+      - PGPORT=5432
+      - PGDATABASE=aiops
+      - PGUSER=aiops_user
+      - PGPASSWORD=StrongPassword123
+
+      # Qdrant
+      - QDRANT_URL=http://aiops-qdrant:6333
+
+      # Tenant
+      - AIOPS_DEFAULT_TENANT_ID=client_a
+      - AIOPS_TENANT_CONFIG_DIR=/app/tenant_config
+
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ../:/app
+      # Permanent mount for automation inventory/playbooks used by aiops-app live execution.
+      # Keeps /automation/inventory/lab.ini and /automation/playbooks/*.yml available after rebuilds.
+      - ../automation:/automation
+    env_file:
+      - ../.env
+    depends_on:
+      - postgres
+      - qdrant
+
+  backtesting-scheduler:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: aiops-backtesting-scheduler
+    restart: unless-stopped
+    command: ["python", "backtesting_scheduler.py", "--hour", "0", "--minute", "0"]
+    volumes:
+      - ../:/app
+    environment:
+      - AIOPS_BACKEND_URL=http://aiops-app:8000
+      - AIOPS_DEFAULT_TENANT_ID=client_a
+    env_file:
+      - ../.env
+    depends_on:
+      - app
+
+  ansible-runner:
+    image: quay.io/ansible/ansible-runner:latest
+    container_name: aiops-ansible-runner
+    working_dir: /runner
+    volumes:
+      - ../automation:/runner
+      - ../automation:/automation
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: tail -f /dev/null
+
+  linux-lab-01:
+    image: ubuntu:22.04
+    container_name: linux-lab-01
+    restart: unless-stopped
+    command: >
+      bash -c "apt-get update &&
+               DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo python3 curl vim procps nginx iproute2 iputils-ping dnsutils net-tools traceroute sshpass &&
+               mkdir -p /var/run/sshd &&
+               id ansible || useradd -m -s /bin/bash ansible &&
+               echo 'ansible:LabPassword123!' | chpasswd &&
+               usermod -aG sudo ansible &&
+               echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible &&
+               chmod 0440 /etc/sudoers.d/ansible &&
+               ssh-keygen -A &&
+               service nginx start &&
+               /usr/sbin/sshd -D"
+
+  linux-lab-02:
+    image: ubuntu:22.04
+    container_name: linux-lab-02
+    restart: unless-stopped
+    command: >
+      bash -c "apt-get update &&
+               DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo python3 curl vim procps nginx iproute2 iputils-ping dnsutils net-tools traceroute sshpass &&
+               mkdir -p /var/run/sshd &&
+               id ansible || useradd -m -s /bin/bash ansible &&
+               echo 'ansible:LabPassword123!' | chpasswd &&
+               usermod -aG sudo ansible &&
+               echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible &&
+               chmod 0440 /etc/sudoers.d/ansible &&
+               ssh-keygen -A &&
+               service nginx start &&
+               /usr/sbin/sshd -D"
+
+  network-lab-01:
+    image: ubuntu:22.04
+    container_name: network-lab-01
+    restart: unless-stopped
+    command: >
+      bash -c "apt-get update &&
+               DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo python3 iproute2 iputils-ping dnsutils net-tools traceroute curl vim procps sshpass &&
+               mkdir -p /var/run/sshd &&
+               id ansible || useradd -m -s /bin/bash ansible &&
+               echo 'ansible:LabPassword123!' | chpasswd &&
+               usermod -aG sudo ansible &&
+               echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ansible &&
+               chmod 0440 /etc/sudoers.d/ansible &&
+               ssh-keygen -A &&
+               /usr/sbin/sshd -D"
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:

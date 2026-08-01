@@ -1,0 +1,48 @@
+---
+- name: Restart/recover mock VPN tunnel
+  hosts: vpn_lab
+  gather_facts: false
+  tasks:
+    - name: Ensure VPN lab directory exists
+      ansible.builtin.file:
+        path: /opt/vpn-lab
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Mark mock VPN tunnel up
+      ansible.builtin.copy:
+        dest: /opt/vpn-lab/tunnel.status
+        content: "up\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure mock VPN gateway process is running
+      ansible.builtin.shell: |
+        if ! pgrep -f /usr/local/bin/mock_vpn_gateway.py >/dev/null 2>&1; then
+          nohup python3 /usr/local/bin/mock_vpn_gateway.py >/var/log/mock_vpn_gateway.log 2>&1 &
+        fi
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Validate VPN health endpoint is healthy
+      ansible.builtin.shell: curl -s -o /tmp/vpn_health_up.json -w "%{http_code}" http://127.0.0.1:8088/health
+      register: health_code
+      changed_when: false
+      failed_when: health_code.stdout != "200"
+
+    - name: Validate TCP tunnel listener response
+      ansible.builtin.shell: timeout 3 bash -lc 'echo ping | nc 127.0.0.1 1194'
+      register: tcp_response
+      changed_when: false
+      failed_when: "'VPN_TUNNEL_OK' not in tcp_response.stdout"
+
+    - name: Show remediation evidence
+      ansible.builtin.debug:
+        msg:
+          remediation: "vpn_restart_tunnel completed"
+          health_http_code: "{{ health_code.stdout }}"
+          tcp_response: "{{ tcp_response.stdout }}"

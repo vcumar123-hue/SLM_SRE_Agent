@@ -1,0 +1,140 @@
+[
+  {
+    "record_id": "ev_a0bc6e16cdd2",
+    "client_alias": "client_a",
+    "source_file": "data\\pattern_ingestion\\anonymized\\client_a\\sample_incidents.txt",
+    "source_type": "ticket_dump",
+    "text_hash": "3957532f763253fd",
+    "classification": "vpn_client_failure",
+    "domain": "network_security",
+    "matched_classification_terms": [
+      "vpn",
+      "radius"
+    ],
+    "scenarios": [
+      "authentication_or_identity_provider_dependency"
+    ],
+    "matched_scenario_terms": {
+      "authentication_or_identity_provider_dependency": [
+        "idp",
+        "mfa",
+        "radius"
+      ]
+    },
+    "sanitized_excerpt": "Incident: VPN users cannot connect after password reset. MFA prompt loops and Radius authentication errors observed. Resolution: Clear cached VPN credentials, validate MFA/IdP health, refresh VPN client profile."
+  },
+  {
+    "record_id": "ev_856f66c50f07",
+    "client_alias": "client_a",
+    "source_file": "data\\pattern_ingestion\\anonymized\\client_a\\sample_incidents.txt",
+    "source_type": "ticket_dump",
+    "text_hash": "adc1c27920008584",
+    "classification": "api_gateway_timeout",
+    "domain": "application_network",
+    "matched_classification_terms": [
+      "504",
+      "timeout",
+      "http 504",
+      "downstream",
+      "api gateway",
+      "gateway timeout"
+    ],
+    "scenarios": [
+      "firewall_policy_change_blocking_downstream_port",
+      "downstream_dependency_latency_or_outage",
+      "recent_application_deployment_or_config_change",
+      "retry_storm_after_dependency_failure"
+    ],
+    "matched_scenario_terms": {
+      "firewall_policy_change_blocking_downstream_port": [
+        "port",
+        "rule",
+        "policy",
+        "firewall"
+      ],
+      "downstream_dependency_latency_or_outage": [
+        "timeout",
+        "downstream"
+      ],
+      "recent_application_deployment_or_config_change": [
+        "change"
+      ],
+      "retry_storm_after_dependency_failure": [
+        "timeout"
+      ]
+    },
+    "sanitized_excerpt": "Incident: API gateway timeout with HTTP 504 after firewall policy change. Downstream service port connectivity failed. Resolution: Validate firewall rule, restore downstream port access, confirm synthetic transaction recovery."
+  },
+  {
+    "record_id": "ev_af29707fef23",
+    "client_alias": "client_a",
+    "source_file": "data\\pattern_ingestion\\anonymized\\client_a\\sample_incidents.txt",
+    "source_type": "ticket_dump",
+    "text_hash": "dfc31b9b221d92ff",
+    "classification": "cpu_saturation",
+    "domain": "compute",
+    "matched_classification_terms": [
+      "cpu",
+      "high cpu"
+    ],
+    "scenarios": [
+      "endpoint_security_or_antivirus_scan_overlap",
+      "batch_job_or_scheduled_task_collision",
+      "dns_or_ip_change_after_workload_migration"
+    ],
+    "matched_scenario_terms": {
+      "endpoint_security_or_antivirus_scan_overlap": [
+        "scan",
+        "endpoint",
+        "security scan"
+      ],
+      "batch_job_or_scheduled_task_collision": [
+        "job",
+        "batch",
+        "nightly"
+      ],
+      "dns_or_ip_change_after_workload_migration": [
+        "endpoint"
+      ]
+    },
+    "sanitized_excerpt": "Incident: High CPU on application server during nightly batch job and endpoint security scan overlap. Resolution: Review scheduled job window, check top CPU processes, reschedule scan or batch job."
+  },
+  {
+    "record_id": "ev_d02a7ef5aea2",
+    "client_alias": "client_a",
+    "source_file": "data\\pattern_ingestion\\anonymized\\client_a\\Ticket Dump IS Combined Data Q1 2025.xlsx",
+    "source_type": "ticket_dump",
+    "text_hash": "a4de7bb26e88ed06",
+    "classification": "general_operational_issue",
+    "domain": "general",
+    "matched_classification_terms": [],
+    "scenarios": [
+      "downstream_dependency_latency_or_outage"
+    ],
+    "matched_scenario_terms": {
+      "downstream_dependency_latency_or_outage": [
+        "dependency"
+      ]
+    },
+    "sanitized_excerpt": "[XLSX_READ_ERROR] Ticket Dump IS Combined Data Q1 2025.xlsx: Missing optional dependency 'openpyxl'. Use pip or conda to install openpyxl."
+  },
+  {
+    "record_id": "ev_5a6235bf61ac",
+    "client_alias": "client_a",
+    "source_file": "data\\pattern_ingestion\\anonymized\\client_a\\Ticket Dump IS Combined Data Q3 2025_.xlsx",
+    "source_type": "ticket_dump",
+    "text_hash": "2f4ec05e9f2605b3",
+    "classification": "general_operational_issue",
+    "domain": "general",
+    "matched_classification_terms": [],
+    "scenarios": [
+      "downstream_dependency_latency_or_outage"
+    ],
+    "matched_scenario_terms": {
+      "downstream_dependency_latency_or_outage": [
+        "dependency"
+      ]
+    },
+    "sanitized_excerpt": "[XLSX_READ_ERROR] Ticket Dump IS Combined Data Q3 2025_.xlsx: Missing optional dependency 'openpyxl'. Use pip or conda to install openpyxl."
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "schema_version": "universal_evidence_contract_v1",
+  "required_fields": [
+    "evidence_type",
+    "service",
+    "environment",
+    "resource",
+    "status",
+    "source_system",
+    "summary",
+    "checked_at"
+  ],
+  "allowed_evidence_types": [
+    "drift_status",
+    "change_conflict",
+    "error_budget_status",
+    "concurrent_activity",
+    "rollback_readiness",
+    "blast_radius"
+  ],
+  "allowed_status": [
+    "pass",
+    "warn",
+    "fail",
+    "unknown"
+  ],
+  "example": {
+    "evidence_type": "change_conflict",
+    "service": "claims-api",
+    "environment": "production",
+    "resource": "linux-lab-01",
+    "status": "pass",
+    "severity": "low",
+    "source_system": "ServiceNow",
+    "source_record_id": "CHG0034567",
+    "summary": "No active conflicting change found",
+    "details": {
+      "active_changes": 0,
+      "maintenance_window": false,
+      "freeze_window": false
+    },
+    "checked_at": "2026-05-20T18:55:00Z",
+    "confidence": 0.92
+  }
+}

@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for database_performance_issue
+  hosts: linux-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for database_performance_issue on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Inspect Database Wait Events'\n        echo '- Review Deadlock Logs'\n        echo '- Check Long Running Queries'\n        echo '- Tune Or Terminate Blocking Transaction'\n        echo '- Adjust Connection Pooling'\n        echo '- Optimize Query Plan'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

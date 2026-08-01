@@ -1,0 +1,59 @@
+---
+- name: Validate and clean approved temporary files for Linux disk pressure
+  hosts: linux-lab-01
+  gather_facts: false
+  become: false
+
+  vars:
+    cleanup_path: /tmp
+    min_file_age: 2d
+
+  tasks:
+    - name: Show current root filesystem usage
+      ansible.builtin.shell: |
+        df -h /
+      register: disk_before
+      changed_when: false
+
+    - name: Display current disk usage
+      ansible.builtin.debug:
+        var: disk_before.stdout_lines
+
+    - name: Show largest entries under cleanup path
+      ansible.builtin.shell: |
+        du -ah {{ cleanup_path }} 2>/dev/null | sort -rh | head -20
+      register: largest_temp_entries
+      changed_when: false
+      failed_when: false
+
+    - name: Display largest temp entries
+      ansible.builtin.debug:
+        var: largest_temp_entries.stdout_lines
+
+    - name: Find old temporary files eligible for cleanup
+      ansible.builtin.find:
+        paths: "{{ cleanup_path }}"
+        age: "{{ min_file_age }}"
+        file_type: file
+      register: old_temp_files
+
+    - name: Display cleanup candidate count
+      ansible.builtin.debug:
+        msg: "Found {{ old_temp_files.matched }} files older than {{ min_file_age }} under {{ cleanup_path }}."
+
+    - name: Remove old temporary files only
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_temp_files.files }}"
+      when: old_temp_files.matched | int > 0
+
+    - name: Show root filesystem usage after cleanup
+      ansible.builtin.shell: |
+        df -h /
+      register: disk_after
+      changed_when: false
+
+    - name: Display final disk usage
+      ansible.builtin.debug:
+        var: disk_after.stdout_lines

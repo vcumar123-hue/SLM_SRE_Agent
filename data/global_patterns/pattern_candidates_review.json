@@ -1,0 +1,435 @@
+[
+  {
+    "pattern_id": "ecp_api_gateway_timeout_firewall_policy_change_blocking_downstream_port_eddda44d",
+    "classification": "api_gateway_timeout",
+    "domain": "application_network",
+    "associated_scenario": "firewall_policy_change_blocking_downstream_port",
+    "association_type": "change_network_dependency",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "0 to 4 hours before incident",
+    "evidence_signals": [
+      "connection timeout",
+      "port connectivity failure",
+      "firewall deny logs",
+      "recent firewall or security-group change"
+    ],
+    "validation_checks": [
+      "validate recent firewall/security-group changes",
+      "test source-to-destination port connectivity",
+      "compare deny logs with incident window",
+      "confirm dependency path from topology"
+    ],
+    "recommended_actions": [
+      "rollback or correct policy rule after approval",
+      "restore required downstream port access",
+      "validate recovery with synthetic transaction"
+    ],
+    "triage_priority": 1,
+    "confidence_score": 0.5,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_856f66c50f07"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_api_gateway_timeout_downstream_dependency_latency_or_outage_0625841d",
+    "classification": "api_gateway_timeout",
+    "domain": "application_network",
+    "associated_scenario": "downstream_dependency_latency_or_outage",
+    "association_type": "incident_dependency",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "same time to 30 minutes before incident",
+    "evidence_signals": [
+      "downstream latency spike",
+      "dependency error rate increase",
+      "connection pool wait",
+      "queue backlog"
+    ],
+    "validation_checks": [
+      "check downstream dependency health",
+      "inspect dependency latency/error metrics",
+      "review connection pool and retry behavior",
+      "validate topology dependency path"
+    ],
+    "recommended_actions": [
+      "restore or scale dependency",
+      "reduce retry storm if present",
+      "fail over to healthy dependency if approved"
+    ],
+    "triage_priority": 2,
+    "confidence_score": 0.5,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_856f66c50f07"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_api_gateway_timeout_recent_application_deployment_or_config_change_1630c8e2",
+    "classification": "api_gateway_timeout",
+    "domain": "application_network",
+    "associated_scenario": "recent_application_deployment_or_config_change",
+    "association_type": "change_application_config",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "0 to 6 hours before incident",
+    "evidence_signals": [
+      "recent app deployment",
+      "configuration change",
+      "error rate increase after release",
+      "new version observed"
+    ],
+    "validation_checks": [
+      "review deployment/change records",
+      "compare error rate before/after release",
+      "inspect changed config keys",
+      "validate rollback candidate"
+    ],
+    "recommended_actions": [
+      "rollback recent release if correlated",
+      "correct bad configuration",
+      "restart affected service after validation"
+    ],
+    "triage_priority": 5,
+    "confidence_score": 0.46,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_856f66c50f07"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_api_gateway_timeout_retry_storm_after_dependency_failure_3156f016",
+    "classification": "api_gateway_timeout",
+    "domain": "application_network",
+    "associated_scenario": "retry_storm_after_dependency_failure",
+    "association_type": "application_dependency_behavior",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "same time to 1 hour before incident",
+    "evidence_signals": [
+      "retry volume spike",
+      "thread pool saturation",
+      "connection pool exhaustion",
+      "dependency timeout"
+    ],
+    "validation_checks": [
+      "inspect retry metrics",
+      "check thread/connection pool saturation",
+      "validate dependency timeout pattern",
+      "review circuit breaker behavior"
+    ],
+    "recommended_actions": [
+      "restore dependency",
+      "tune retry/circuit breaker settings",
+      "scale affected service if approved"
+    ],
+    "triage_priority": 6,
+    "confidence_score": 0.46,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_856f66c50f07"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_cpu_saturation_batch_job_or_scheduled_task_collision_a9910775",
+    "classification": "cpu_saturation",
+    "domain": "compute",
+    "associated_scenario": "batch_job_or_scheduled_task_collision",
+    "association_type": "process_schedule_telemetry",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "same time to 2 hours before incident",
+    "evidence_signals": [
+      "scheduled job active",
+      "CPU or IO spike",
+      "batch overlap",
+      "long-running process"
+    ],
+    "validation_checks": [
+      "review scheduled job calendar",
+      "check top process during incident",
+      "compare resource spike with job runtime",
+      "inspect batch logs"
+    ],
+    "recommended_actions": [
+      "reschedule or throttle batch job",
+      "terminate runaway job after approval",
+      "separate resource-intensive workloads"
+    ],
+    "triage_priority": 1,
+    "confidence_score": 0.5,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_af29707fef23"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_cpu_saturation_endpoint_security_or_antivirus_scan_overlap_55f83016",
+    "classification": "cpu_saturation",
+    "domain": "compute",
+    "associated_scenario": "endpoint_security_or_antivirus_scan_overlap",
+    "association_type": "security_agent_telemetry",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "same time to 2 hours before incident",
+    "evidence_signals": [
+      "security scan active",
+      "agent CPU spike",
+      "disk IO spike",
+      "overlap with batch window"
+    ],
+    "validation_checks": [
+      "review endpoint security scan schedule",
+      "check security agent process usage",
+      "compare scan window with incident window",
+      "verify approved exclusions"
+    ],
+    "recommended_actions": [
+      "tune approved exclusions",
+      "reschedule scan window",
+      "coordinate scan and batch schedules"
+    ],
+    "triage_priority": 2,
+    "confidence_score": 0.5,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_af29707fef23"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_cpu_saturation_dns_or_ip_change_after_workload_migration_aa088301",
+    "classification": "cpu_saturation",
+    "domain": "compute",
+    "associated_scenario": "dns_or_ip_change_after_workload_migration",
+    "association_type": "change_dns_cloud_migration",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "0 to 24 hours before incident",
+    "evidence_signals": [
+      "DNS mismatch",
+      "stale endpoint",
+      "traffic routed to old IP",
+      "cloud cutover or migration change"
+    ],
+    "validation_checks": [
+      "compare DNS records before/after change",
+      "validate resolved IP from affected subnet",
+      "check cloud migration/cutover change record",
+      "verify route table and endpoint target"
+    ],
+    "recommended_actions": [
+      "correct DNS or endpoint mapping",
+      "flush/refresh stale resolver cache where approved",
+      "validate application path after correction"
+    ],
+    "triage_priority": 10,
+    "confidence_score": 0.42,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_af29707fef23"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_general_operational_issue_downstream_dependency_latency_or_outage_1e8ddd02",
+    "classification": "general_operational_issue",
+    "domain": "general",
+    "associated_scenario": "downstream_dependency_latency_or_outage",
+    "association_type": "incident_dependency",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 2,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "same time to 30 minutes before incident",
+    "evidence_signals": [
+      "downstream latency spike",
+      "dependency error rate increase",
+      "connection pool wait",
+      "queue backlog"
+    ],
+    "validation_checks": [
+      "check downstream dependency health",
+      "inspect dependency latency/error metrics",
+      "review connection pool and retry behavior",
+      "validate topology dependency path"
+    ],
+    "recommended_actions": [
+      "restore or scale dependency",
+      "reduce retry storm if present",
+      "fail over to healthy dependency if approved"
+    ],
+    "triage_priority": 10,
+    "confidence_score": 0.43,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_d02a7ef5aea2",
+        "ev_5a6235bf61ac"
+      ],
+      "source_file_count": 2
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  },
+  {
+    "pattern_id": "ecp_vpn_client_failure_authentication_or_identity_provider_dependency_880281db",
+    "classification": "vpn_client_failure",
+    "domain": "network_security",
+    "associated_scenario": "authentication_or_identity_provider_dependency",
+    "association_type": "identity_dependency",
+    "frequency_band": "low",
+    "observed_across_client_count": 1,
+    "observed_client_aliases": [
+      "client_a"
+    ],
+    "observed_record_count": 1,
+    "observed_incident_count_band": "1-5",
+    "typical_time_window": "same time to 2 hours before incident",
+    "evidence_signals": [
+      "auth failures",
+      "MFA latency",
+      "token validation errors",
+      "identity provider errors"
+    ],
+    "validation_checks": [
+      "check IdP/MFA health",
+      "review conditional access changes",
+      "validate LDAP/RADIUS bind status",
+      "inspect token/certificate errors"
+    ],
+    "recommended_actions": [
+      "restore identity dependency",
+      "rollback conditional-access change if confirmed",
+      "renew/rotate auth certificate if expired"
+    ],
+    "triage_priority": 1,
+    "confidence_score": 0.5,
+    "sanitization_status": "sanitized",
+    "approved_for_global_use": false,
+    "source_lineage": {
+      "source_type": "multi_client_abstracted_pattern",
+      "client_aliases": [
+        "client_a"
+      ],
+      "raw_client_data_removed": true,
+      "source_record_ids_sample": [
+        "ev_a0bc6e16cdd2"
+      ],
+      "source_file_count": 1
+    },
+    "review_notes": "Review required before promoting to global enterprise pattern library."
+  }
+]

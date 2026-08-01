@@ -1,0 +1,15 @@
+﻿---
+- name: Linux CPU validation
+  hosts: linux_lab
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Show top CPU processes
+      ansible.builtin.shell: ps -eo pid,ppid,cmd,%mem,%cpu --sort=-%cpu | head -10
+      register: cpu_output
+      changed_when: false
+
+    - name: Print CPU output
+      ansible.builtin.debug:
+        var: cpu_output.stdout_lines

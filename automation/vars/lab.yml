@@ -1,0 +1,5 @@
+environment: lab
+namespace: lab
+service_name: demo-service
+approval_mode: manual
+risk_level: low

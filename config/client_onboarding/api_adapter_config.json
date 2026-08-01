@@ -1,0 +1,298 @@
+{
+  "schema_version": "universal_api_adapter_v1",
+  "client_id": "client_a",
+  "adapter_strategy": "file_first_api_later",
+  "description": "Universal API Adapter configuration for client onboarding. Each connector maps client systems to the common safety-gate evidence contract.",
+  "secrets_policy": {
+    "store_secrets_in_config": false,
+    "recommended_secret_sources": [
+      "environment_variables",
+      "vault",
+      "kubernetes_secret",
+      "docker_secret"
+    ],
+    "env_prefix": "AIOPS_ADAPTER_"
+  },
+  "evidence_output": {
+    "mode": "file",
+    "directory": "data/evidence",
+    "contract": "universal_evidence_contract_v1",
+    "write_mode": "atomic_replace"
+  },
+  "global_defaults": {
+    "timeout_seconds": 10,
+    "verify_ssl": true,
+    "retry_count": 2,
+    "fail_open_for_simulation": true,
+    "fail_open_for_human_approved_live": false,
+    "fail_open_for_autonomous": false
+  },
+  "connectors": {
+    "itsm": {
+      "enabled": false,
+      "adapter_type": "servicenow_or_jira_or_remedy",
+      "purpose": [
+        "change_conflict",
+        "concurrent_activity",
+        "cmdb_context"
+      ],
+      "provider": "servicenow",
+      "base_url_env": "AIOPS_ADAPTER_ITSM_BASE_URL",
+      "auth": {
+        "type": "basic_or_oauth",
+        "username_env": "AIOPS_ADAPTER_ITSM_USERNAME",
+        "password_env": "AIOPS_ADAPTER_ITSM_PASSWORD",
+        "token_env": "AIOPS_ADAPTER_ITSM_TOKEN"
+      },
+      "mapping": {
+        "service_field": "business_service",
+        "environment_field": "environment",
+        "resource_field": "cmdb_ci",
+        "change_table": "change_request",
+        "incident_table": "incident"
+      },
+      "evidence_types": [
+        "change_conflict",
+        "concurrent_activity"
+      ]
+    },
+    "observability": {
+      "enabled": false,
+      "adapter_type": "prometheus_grafana_datadog_dynatrace_newrelic_splunk",
+      "purpose": [
+        "error_budget_status",
+        "service_health"
+      ],
+      "provider": "prometheus",
+      "base_url_env": "AIOPS_ADAPTER_OBS_BASE_URL",
+      "auth": {
+        "type": "bearer_or_none",
+        "token_env": "AIOPS_ADAPTER_OBS_TOKEN"
+      },
+      "mapping": {
+        "slo_query": "slo:error_budget_remaining:ratio{service=\"{service}\",environment=\"{environment}\"}",
+        "burn_rate_query": "slo:burn_rate_1h{service=\"{service}\"}"
+      },
+      "evidence_types": [
+        "error_budget_status"
+      ]
+    },
+    "ansible_awx": {
+      "enabled": false,
+      "adapter_type": "ansible_awx_or_ansible_controller",
+      "purpose": [
+        "concurrent_activity",
+        "rollback_readiness",
+        "automation_job_history"
+      ],
+      "provider": "awx",
+      "base_url_env": "AIOPS_ADAPTER_AWX_BASE_URL",
+      "auth": {
+        "type": "bearer",
+        "token_env": "AIOPS_ADAPTER_AWX_TOKEN"
+      },
+      "mapping": {
+        "inventory_id_env": "AIOPS_ADAPTER_AWX_INVENTORY_ID",
+        "job_templates_path": "/api/v2/job_templates/"
+      },
+      "evidence_types": [
+        "concurrent_activity",
+        "rollback_readiness"
+      ]
+    },
+    "terraform": {
+      "enabled": false,
+      "adapter_type": "terraform_cloud_or_state_file",
+      "purpose": [
+        "drift_status",
+        "desired_state"
+      ],
+      "provider": "terraform_cloud",
+      "base_url_env": "AIOPS_ADAPTER_TF_BASE_URL",
+      "auth": {
+        "type": "bearer",
+        "token_env": "AIOPS_ADAPTER_TF_TOKEN"
+      },
+      "mapping": {
+        "workspace_env": "AIOPS_ADAPTER_TF_WORKSPACE",
+        "state_file_path": "data/evidence/source_exports/terraform_state.json"
+      },
+      "evidence_types": [
+        "drift_status"
+      ]
+    },
+    "aws": {
+      "enabled": false,
+      "adapter_type": "aws_config_cloudwatch_ecs_elb",
+      "purpose": [
+        "drift_status",
+        "blast_radius",
+        "service_topology"
+      ],
+      "provider": "aws",
+      "auth": {
+        "type": "iam_role_or_env_keys",
+        "access_key_env": "AWS_ACCESS_KEY_ID",
+        "secret_key_env": "AWS_SECRET_ACCESS_KEY",
+        "region_env": "AWS_REGION"
+      },
+      "mapping": {
+        "config_rule_prefix": "aiops-",
+        "resource_tags": [
+          "Service",
+          "Environment",
+          "Owner"
+        ]
+      },
+      "evidence_types": [
+        "drift_status",
+        "blast_radius"
+      ]
+    },
+    "azure": {
+      "enabled": false,
+      "adapter_type": "azure_resource_graph_monitor",
+      "purpose": [
+        "drift_status",
+        "blast_radius",
+        "service_topology"
+      ],
+      "provider": "azure",
+      "auth": {
+        "type": "service_principal_or_managed_identity",
+        "tenant_env": "AZURE_TENANT_ID",
+        "client_env": "AZURE_CLIENT_ID",
+        "secret_env": "AZURE_CLIENT_SECRET",
+        "subscription_env": "AZURE_SUBSCRIPTION_ID"
+      },
+      "mapping": {
+        "resource_group_tag": "ResourceGroup",
+        "service_tag": "Service",
+        "environment_tag": "Environment"
+      },
+      "evidence_types": [
+        "drift_status",
+        "blast_radius"
+      ]
+    },
+    "gcp": {
+      "enabled": false,
+      "adapter_type": "gcp_asset_inventory_monitoring",
+      "purpose": [
+        "drift_status",
+        "blast_radius",
+        "service_topology"
+      ],
+      "provider": "gcp",
+      "auth": {
+        "type": "service_account",
+        "credentials_env": "GOOGLE_APPLICATION_CREDENTIALS",
+        "project_env": "GCP_PROJECT_ID"
+      },
+      "mapping": {
+        "service_label": "service",
+        "environment_label": "environment"
+      },
+      "evidence_types": [
+        "drift_status",
+        "blast_radius"
+      ]
+    },
+    "kubernetes": {
+      "enabled": false,
+      "adapter_type": "kubernetes_api",
+      "purpose": [
+        "drift_status",
+        "concurrent_activity",
+        "blast_radius"
+      ],
+      "provider": "kubernetes",
+      "auth": {
+        "type": "kubeconfig_or_incluster",
+        "kubeconfig_env": "KUBECONFIG"
+      },
+      "mapping": {
+        "namespace": "default",
+        "labels": {
+          "app": "{service}",
+          "environment": "{environment}"
+        }
+      },
+      "evidence_types": [
+        "drift_status",
+        "concurrent_activity",
+        "blast_radius"
+      ]
+    },
+    "git_repo": {
+      "enabled": false,
+      "adapter_type": "github_or_gitlab",
+      "purpose": [
+        "desired_state",
+        "change_activity",
+        "rollback_metadata"
+      ],
+      "provider": "github",
+      "base_url_env": "AIOPS_ADAPTER_GIT_BASE_URL",
+      "auth": {
+        "type": "token",
+        "token_env": "AIOPS_ADAPTER_GIT_TOKEN"
+      },
+      "mapping": {
+        "repo": "org/repo",
+        "branch": "main",
+        "paths": {
+          "playbooks": "automation/playbooks",
+          "terraform": "infra/terraform",
+          "k8s": "infra/k8s"
+        }
+      },
+      "evidence_types": [
+        "drift_status",
+        "rollback_readiness",
+        "concurrent_activity"
+      ]
+    }
+  },
+  "evidence_type_routing": {
+    "drift_status": [
+      "terraform",
+      "aws",
+      "azure",
+      "gcp",
+      "kubernetes",
+      "git_repo"
+    ],
+    "change_conflict": [
+      "itsm",
+      "git_repo"
+    ],
+    "error_budget_status": [
+      "observability"
+    ],
+    "concurrent_activity": [
+      "itsm",
+      "ansible_awx",
+      "kubernetes",
+      "git_repo"
+    ],
+    "rollback_readiness": [
+      "ansible_awx",
+      "git_repo",
+      "local_bak"
+    ],
+    "blast_radius": [
+      "aws",
+      "azure",
+      "gcp",
+      "kubernetes",
+      "cmdb"
+    ]
+  },
+  "minimum_onboarding_modes": {
+    "mode_0_no_api": "Client supplies the six data/evidence/*.json files manually or through exports.",
+    "mode_1_push": "Client systems POST evidence to /evidence/submit using the universal evidence contract.",
+    "mode_2_pull": "AIOps adapter workers pull from enabled APIs and refresh data/evidence/*.json.",
+    "mode_3_hybrid": "Some evidence comes from files, some from push, and priority systems use direct APIs."
+  }
+}

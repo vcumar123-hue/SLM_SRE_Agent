@@ -1,0 +1,2896 @@
+[
+  {
+    "playbook_id": "pb_20260406_001",
+    "name": "cert_mesh_conflict_remediation",
+    "classification": "certificate_rotation_service_mesh_policy_conflict",
+    "description": "Remediate cert rotation + mesh policy conflicts",
+    "steps": [
+      "validate_trust_bundle_distribution",
+      "correct_conflicting_mesh_policy",
+      "restart_affected_proxies"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge",
+    "updated_at": "2026-06-17T18:22:48.615692+00:00",
+    "created_at": "2026-04-21T01:00:00.063526+00:00",
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_ceb3e25289f7",
+    "created_at": "2026-04-09T15:02:29.393105+00:00",
+    "updated_at": "2026-04-29T03:31:35.667877+00:00",
+    "name": "Service Mesh TLS Misconfiguration Recovery",
+    "classification": "service_mesh_tls_misconfiguration",
+    "description": "Validate certificate trust chain, compare service mesh policy changes, inspect sidecar proxy logs, and correct TLS or policy conflicts causing east-west mTLS failures.",
+    "steps": [
+      "Verify The Workload And Issuing Ca Certificate Chain Is Complete And Trusted.",
+      "Compare Recent Service Mesh Policy Updates Against The Last Known Working Configuration.",
+      "Inspect Sidecar Proxy Logs For TLS Handshake Rejection Details.",
+      "Check Handshake Timeout And TLS Settings On Affected Workloads And Mesh Components.",
+      "Validate Trust Bundle Distribution Across Namespaces And Workloads.",
+      "Correct Conflicting Service Mesh Policy Settings.",
+      "Update TLS Configuration If Certificate Chain Or Trust Settings Are Incorrect.",
+      "Restart Affected Sidecar Proxies Or Workloads If Configuration Changes Require Reload.",
+      "Re-Test East-West Traffic And Confirm Mtls Handshakes Succeed."
+    ],
+    "scripts": [
+      "openssl x509 -in cert.pem -text -noout",
+      "kubectl logs -n istio-system deploy/istiod",
+      "kubectl logs <pod-name> -c istio-proxy",
+      "kubectl get peerauthentication,authorizationpolicy,destinationrule,virtualservice -A",
+      "istioctl proxy-config secret <pod-name>.<namespace>"
+    ],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge",
+    "status": "automation_ready",
+    "review": {
+      "reviewed": true,
+      "approved": true,
+      "reviewed_by": "Vijay",
+      "reviewed_at": "2026-04-29T03:31:35.667851+00:00",
+      "review_notes": "Approved in Playbook Factory.",
+      "automation_ready": true
+    }
+  },
+  {
+    "playbook_id": "pb_489ef7bb3719",
+    "created_at": "2026-04-09T16:32:00.628672+00:00",
+    "updated_at": "2026-04-14T23:52:39.193821+00:00",
+    "name": "Jwt Signing Key Rotation Issue Recovery",
+    "classification": "jwt_signing_key_rotation_issue",
+    "description": "Validate, isolate, and remediate jwt signing key rotation issue using approved operational steps.",
+    "steps": [
+      "Verify Jwt Signing Key Distribution",
+      "Inspect Role Based Access Control Policies",
+      "Validate Key Rotation Window",
+      "Validate Jwt Signing Key Configuration",
+      "Inspect And Correct Role Policies",
+      "Confirm Key Rotation Success"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_afa4f56aa505",
+    "created_at": "2026-04-09T19:54:13.438307+00:00",
+    "updated_at": "2026-04-09T19:54:13.438330+00:00",
+    "name": "Load Balancer Node Configuration Mismatch Recovery",
+    "classification": "load_balancer_node_configuration_mismatch",
+    "description": "Validate, isolate, and remediate load balancer node configuration mismatch using approved operational steps.",
+    "steps": [
+      "Inspect Load Balancer Node Configuration",
+      "Compare Node Network Settings",
+      "Verify Node Resource Utilization",
+      "Validate Load Balancer Node Configuration",
+      "Compare Node Software Versions",
+      "Isolate And Test Affected Node"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_ba287ab465ad",
+    "created_at": "2026-04-09T20:34:08.277915+00:00",
+    "updated_at": "2026-04-09T20:34:08.277942+00:00",
+    "name": "Kubernetes Internal Dns Resolution Failure Recovery",
+    "classification": "kubernetes_internal_dns_resolution_failure",
+    "description": "Validate, isolate, and remediate kubernetes internal dns resolution failure using approved operational steps.",
+    "steps": [
+      "Verify Kube Dns Service Status",
+      "Inspect Dns Config Map Changes",
+      "Check Network Policy Rules",
+      "Validate Dns Config Map Distribution",
+      "Check Kube Dns Service Logs",
+      "Isolate And Test Dns Resolution"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_9618463c8d68",
+    "created_at": "2026-04-09T20:43:35.321776+00:00",
+    "updated_at": "2026-04-09T20:43:35.321799+00:00",
+    "name": "Connection Pool Exhaustion Under Burst Traffic Recovery",
+    "classification": "connection_pool_exhaustion_under_burst_traffic",
+    "description": "Validate, isolate, and remediate connection pool exhaustion under burst traffic using approved operational steps.",
+    "steps": [
+      "Verify Connection Pool Configuration",
+      "Inspect Database Query Logs",
+      "Compare Recent Traffic Patterns",
+      "Validate Connection Pool Size And Adjust If Necessary",
+      "Inspect And Optimize Database Queries",
+      "Confirm Resource Utilization Under Burst Conditions"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_9ff4b750e534",
+    "created_at": "2026-04-09T21:21:16.761233+00:00",
+    "updated_at": "2026-04-09T21:21:16.761254+00:00",
+    "name": "Wireless Network Connectivity Issue Recovery",
+    "classification": "wireless_network_connectivity_issue",
+    "description": "Validate, isolate, and remediate wireless network connectivity issue using approved operational steps.",
+    "steps": [
+      "Verify Wireless Network Settings",
+      "Inspect Dhcp Server Logs",
+      "Check For Interference Using Spectrum Analyzer",
+      "Validate Wireless Network Configuration",
+      "Inspect Access Point Settings",
+      "Compare Dhcp Server Configuration To Baseline"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_a233e0d4d239",
+    "created_at": "2026-04-10T01:47:05.569300+00:00",
+    "updated_at": "2026-04-10T01:47:05.569319+00:00",
+    "name": "Vdi Connection Authentication Failure Recovery",
+    "classification": "vdi_connection_authentication_failure",
+    "description": "Validate, isolate, and remediate vdi connection authentication failure using approved operational steps.",
+    "steps": [
+      "Verify Vdi Client Configuration",
+      "Inspect Vdi Server Logs",
+      "Check Network Firewall Rules",
+      "Validate Vdi Client Certificate",
+      "Compare Vdi Client And Server Configurations",
+      "Confirm Network Firewall Rules"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_4e2860abb264",
+    "created_at": "2026-04-14T23:34:29.910730+00:00",
+    "updated_at": "2026-04-14T23:35:05.556425+00:00",
+    "name": "Dns Resolution Delay Recovery",
+    "classification": "dns_resolution_delay",
+    "description": "Validate, isolate, and remediate dns resolution delay using approved operational steps.",
+    "steps": [
+      "Verify Dns Server Availability",
+      "Inspect Dns Cache Entries",
+      "Compare Dns Resolver Configuration",
+      "Flush Dns Cache If Necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_e569a031bd9c",
+    "created_at": "2026-04-15T02:08:40.069123+00:00",
+    "updated_at": "2026-04-15T02:08:48.929722+00:00",
+    "name": "Ipv6 Enabled Interface Connectivity Issue Recovery",
+    "classification": "ipv6_enabled_interface_connectivity_issue",
+    "description": "Validate, isolate, and remediate ipv6 enabled interface connectivity issue using approved operational steps.",
+    "steps": [
+      "Verify Ipv6 Address Configuration",
+      "Inspect Firewall Rules For Ipv6 Support",
+      "Check Application Ipv6 Compatibility",
+      "Validate Ipv6 Address Resolution",
+      "Update Firewall Rules For Ipv6",
+      "Test Application Ipv6 Connectivity"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_123a75cc4155",
+    "created_at": "2026-04-15T03:06:39.401391+00:00",
+    "updated_at": "2026-04-15T03:06:46.819976+00:00",
+    "name": "Vdi Network Connectivity Issue Recovery",
+    "classification": "vdi_network_connectivity_issue",
+    "description": "Validate, isolate, and remediate vdi network connectivity issue using approved operational steps.",
+    "steps": [
+      "Verify Vdi Network Settings",
+      "Inspect Vlan Configuration",
+      "Check Dhcp Server Status",
+      "Isolate And Test Network Connectivity"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_db91a5e095c5",
+    "created_at": "2026-04-15T14:09:12.582019+00:00",
+    "updated_at": "2026-04-15T16:30:02.297361+00:00",
+    "name": "Container Connection Issue Recovery",
+    "classification": "container_connection_issue",
+    "description": "Validate, isolate, and remediate container connection issue using approved operational steps.",
+    "steps": [
+      "Verify Security Group Rules",
+      "Inspect Container Port Bindings",
+      "Confirm DNS/VPN Are Healthy Dependencies And Not Primary Cause"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_12ccb909646b",
+    "created_at": "2026-04-16T01:28:23.509742+00:00",
+    "updated_at": "2026-04-16T01:28:23.509778+00:00",
+    "name": "Iis Configuration Or Connectivity Issue Recovery",
+    "classification": "iis_configuration_or_connectivity_issue",
+    "description": "Draft playbook generated from fallback analysis for iis configuration or connectivity issue. Review before operational use.",
+    "steps": [
+      "verify_iis_server_configuration",
+      "check_windows_firewall_rules",
+      "inspect_iis_application_pool_status"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_ae2e2d08d108",
+    "created_at": "2026-04-17T19:13:17.482353+00:00",
+    "updated_at": "2026-04-17T19:13:17.482371+00:00",
+    "name": "Windows Service Stoppage Recovery",
+    "classification": "windows_service_stoppage",
+    "description": "Draft playbook generated from fallback analysis for windows service stoppage. Review before operational use.",
+    "steps": [
+      "inspect_service_logs",
+      "verify_service_dependencies",
+      "check_system_resource_utilization",
+      "restart_service_if_valid"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "source_layer": "playbook_knowledge"
+  },
+  {
+    "playbook_id": "pb_bb555be397f2",
+    "created_at": "2026-04-22T02:16:16.968530+00:00",
+    "updated_at": "2026-04-22T02:16:16.968549+00:00",
+    "name": "File Transfer Integration Failure Recovery",
+    "classification": "file_transfer_integration_failure",
+    "description": "Draft playbook generated from fallback analysis for file transfer integration failure. Review before operational use.",
+    "steps": [
+      "inspect_goanywhere_mft_event_logs",
+      "verify_nscc_formatter_config",
+      "validate_payload_schema",
+      "isolate_and_reprocess_failed_payloads"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_a40330b48af3",
+    "created_at": "2026-04-22T13:45:38.660272+00:00",
+    "updated_at": "2026-04-22T14:05:04.624875+00:00",
+    "name": "Dns Resolution Latency Recovery",
+    "classification": "dns_resolution_latency",
+    "description": "Validate, isolate, and remediate dns resolution latency using approved operational steps.",
+    "steps": [
+      "Verify Dns Server Status",
+      "Inspect Dns Query Logs",
+      "Check Network Packet Loss Rates"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_cf46f5c0d185",
+    "created_at": "2026-04-22T18:30:32.824326+00:00",
+    "updated_at": "2026-04-22T18:30:32.824346+00:00",
+    "name": "Esxi Host Unresponsiveness Recovery",
+    "classification": "esxi_host_unresponsiveness",
+    "description": "Draft playbook generated from fallback analysis for esxi host unresponsiveness. Review before operational use.",
+    "steps": [
+      "verify_esxi_host_network_connectivity",
+      "inspect_vmware_logs_for_errors",
+      "check_resource_utilization",
+      "isolate_and_restart_esxi_host_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_88baa413c2aa",
+    "created_at": "2026-04-22T19:47:25.926655+00:00",
+    "updated_at": "2026-04-22T19:47:25.926693+00:00",
+    "name": "Firewall Policy Update Conflict Recovery",
+    "classification": "firewall_policy_update_conflict",
+    "description": "Draft playbook generated from fallback analysis for firewall policy update conflict. Review before operational use.",
+    "steps": [
+      "verify_firewall_rule_updates",
+      "inspect_vpn_connection_logs",
+      "compare_pre_post_update_firewall_configs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_035a109ee307",
+    "created_at": "2026-04-22T19:49:33.886904+00:00",
+    "updated_at": "2026-04-22T19:49:33.886930+00:00",
+    "name": "Oracle Deadlock During Batch Processing Recovery",
+    "classification": "oracle_deadlock_during_batch_processing",
+    "description": "Draft playbook generated from fallback analysis for oracle deadlock during batch processing. Review before operational use.",
+    "steps": [
+      "inspect_database_locks",
+      "verify_transaction_timeout_settings",
+      "check_system_resource_utilization",
+      "isolate_and_re_run_failed_batch_jobs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_bc537ecaa748",
+    "created_at": "2026-04-23T23:40:03.281818+00:00",
+    "updated_at": "2026-04-23T23:40:03.281849+00:00",
+    "name": "Image Processing Issue Recovery",
+    "classification": "image_processing_issue",
+    "description": "Draft playbook generated from fallback analysis for image processing issue. Review before operational use.",
+    "steps": [
+      "verify_image_format",
+      "inspect_image_metadata",
+      "compare_with_previous_images"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_9b7de8a5feac",
+    "created_at": "2026-04-24T02:03:10.995676+00:00",
+    "updated_at": "2026-04-24T02:03:10.995716+00:00",
+    "name": "Incident Description Unavailable Recovery",
+    "classification": "incident_description_unavailable",
+    "description": "Draft playbook generated from fallback analysis for incident description unavailable. Review before operational use.",
+    "steps": [
+      "verify_ticket_format",
+      "inspect_attachment_for_hidden_text",
+      "check_for_previous_ticket_updates",
+      "request_incident_text_from_submitter"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_c90f2eca11b9",
+    "created_at": "2026-04-24T20:34:45.110427+00:00",
+    "updated_at": "2026-06-17T16:45:16.463305+00:00",
+    "name": "Vpn Authentication Failure Recovery",
+    "classification": "vpn_authentication_failure",
+    "description": "Validate, isolate, and remediate vpn authentication failure using approved operational steps.",
+    "steps": [
+      "Verify User Credentials",
+      "Check Active Directory Connectivity",
+      "Inspect Vpn Gateway Logs",
+      "Compare Vpn Gateway Configuration"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_7adcc2ab0e46",
+    "created_at": "2026-04-24T20:36:27.240549+00:00",
+    "updated_at": "2026-04-24T20:36:27.240574+00:00",
+    "name": "Disk Space Exhaustion Recovery",
+    "classification": "disk_space_exhaustion",
+    "description": "Draft playbook generated from fallback analysis for disk space exhaustion. Review before operational use.",
+    "steps": [
+      "inspect_var_partition_contents",
+      "verify_disk_quota_settings",
+      "check_for_stale_temporary_files",
+      "remove_unused_files",
+      "compress_large_log_files",
+      "increase_disk_space_allocation_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true
+  },
+  {
+    "playbook_id": "pb_f2904b0f8484",
+    "created_at": "2026-04-29T02:44:57.584910+00:00",
+    "updated_at": "2026-06-16T22:43:13.087849+00:00",
+    "name": "test",
+    "classification": "cpu_saturation",
+    "description": "test",
+    "steps": [],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_f768150631f0",
+    "created_at": "2026-04-29T12:17:31.187740+00:00",
+    "updated_at": "2026-04-29T12:17:31.187803+00:00",
+    "name": "High Cpu Utilization Recovery",
+    "classification": "high_cpu_utilization",
+    "description": "Draft playbook generated from fallback analysis for high cpu utilization. Review before operational use.",
+    "steps": [
+      "inspect_system_logs_for_errors",
+      "verify_resource_allocation_and_utilization",
+      "compare_recent_code_changes",
+      "isolate_and_test_resource_intensive_code_paths"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_5ca98e41ba62",
+    "created_at": "2026-05-04T23:07:00.474357+00:00",
+    "updated_at": "2026-05-04T23:07:00.474385+00:00",
+    "name": "Firewall Policy Change Side Effect Recovery",
+    "classification": "firewall_policy_change_side_effect",
+    "description": "Draft playbook generated from fallback analysis for firewall policy change side effect. Review before operational use.",
+    "steps": [
+      "verify_firewall_rule_changes",
+      "inspect_api_gateway_timeout_settings",
+      "check_downstream_service_port_connectivity"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_4dc01cff7f29",
+    "created_at": "2026-05-04T23:23:11.251956+00:00",
+    "updated_at": "2026-05-04T23:23:11.251972+00:00",
+    "name": "Firewall Policy Drift Recovery",
+    "classification": "firewall_policy_drift",
+    "description": "Draft playbook generated from fallback analysis for firewall policy drift. Review before operational use.",
+    "steps": [
+      "verify_firewall_rule_configuration",
+      "inspect_firewall_policy_change_history",
+      "validate_downstream_service_port_connectivity",
+      "add_missing_firewall_rule_for_subnet_b"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_08264a25fa9b",
+    "created_at": "2026-05-06T05:51:09.389047+00:00",
+    "updated_at": "2026-05-06T05:51:09.389074+00:00",
+    "name": "Tws Job Abend Recovery",
+    "classification": "tws_job_abend",
+    "description": "Draft playbook generated from fallback analysis for tws job abend. Review before operational use.",
+    "steps": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_31053e2a930d",
+    "created_at": "2026-05-06T15:21:08.318082+00:00",
+    "updated_at": "2026-05-06T15:21:08.318106+00:00",
+    "name": "Tws Job Scheduling Failure Recovery",
+    "classification": "tws_job_scheduling_failure",
+    "description": "Draft playbook generated from fallback analysis for tws job scheduling failure. Review before operational use.",
+    "steps": [
+      "verify_job_definition_syntax",
+      "inspect_scheduling_policy_rules",
+      "check_dependency_job_status"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_e581452d7f03",
+    "created_at": "2026-05-06T15:21:30.344891+00:00",
+    "updated_at": "2026-05-06T15:21:30.344921+00:00",
+    "name": "Dataset Availability Timeout Recovery",
+    "classification": "dataset_availability_timeout",
+    "description": "Draft playbook generated from fallback analysis for dataset availability timeout. Review before operational use.",
+    "steps": [
+      "verify_dataset_server_status",
+      "check_network_connectivity_to_dataset_server",
+      "inspect_dataset_query_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_edf37caa1bcf",
+    "created_at": "2026-05-10T01:28:16.200685+00:00",
+    "updated_at": "2026-05-10T01:28:16.200703+00:00",
+    "name": "Jcl Abend Error Recovery",
+    "classification": "jcl_abend_error",
+    "description": "Draft playbook generated from fallback analysis for jcl abend error. Review before operational use.",
+    "steps": [
+      "verify_jcl_syntax",
+      "inspect_step_parameters",
+      "compare_abend_type_code_definitions",
+      "correct_jcl_syntax_errors",
+      "resubmit_job_with_corrected_jcl"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_f7a0c7e82bd7",
+    "created_at": "2026-05-10T01:36:06.923883+00:00",
+    "updated_at": "2026-05-10T01:36:06.923944+00:00",
+    "name": "Jcl Syntax Error Recovery",
+    "classification": "jcl_syntax_error",
+    "description": "Draft playbook generated from fallback analysis for jcl syntax error. Review before operational use.",
+    "steps": [
+      "verify_jcl_syntax",
+      "inspect_step_definition",
+      "compare_abend_type_code",
+      "correct_jcl_parameter"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_e49ac0957929",
+    "created_at": "2026-05-10T01:48:02.850257+00:00",
+    "updated_at": "2026-05-10T01:48:02.850295+00:00",
+    "name": "Jcl Compilation Error Recovery",
+    "classification": "jcl_compilation_error",
+    "description": "Draft playbook generated from fallback analysis for jcl compilation error. Review before operational use.",
+    "steps": [
+      "verify_jcl_syntax",
+      "inspect_job_control_language_configuration",
+      "compare_abend_step_settings",
+      "correct_jcl_configuration_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_8860a1b21f25",
+    "created_at": "2026-05-10T01:52:09.974194+00:00",
+    "updated_at": "2026-05-10T01:52:09.974231+00:00",
+    "name": "Dataset Retrieval Timeout Recovery",
+    "classification": "dataset_retrieval_timeout",
+    "description": "Draft playbook generated from fallback analysis for dataset retrieval timeout. Review before operational use.",
+    "steps": [
+      "verify_dataset_server_status",
+      "check_network_connectivity_to_dataset_server",
+      "inspect_dataset_query_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_78139c9b806b",
+    "created_at": "2026-05-10T04:01:07.615302+00:00",
+    "updated_at": "2026-05-10T04:01:07.615330+00:00",
+    "name": "Disabled Port Abend Recovery",
+    "classification": "disabled_port_abend",
+    "description": "Draft playbook generated from fallback analysis for disabled port abend. Review before operational use.",
+    "steps": [
+      "verify_port_status",
+      "inspect_firewall_rules",
+      "check_network_interface_configuration",
+      "restart_affected_services_if_needed"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_468c45082f1e",
+    "created_at": "2026-05-10T04:01:39.024634+00:00",
+    "updated_at": "2026-05-10T04:01:39.024668+00:00",
+    "name": "Mainframe Database Abend Recovery",
+    "classification": "mainframe_database_abend",
+    "description": "Draft playbook generated from fallback analysis for mainframe database abend. Review before operational use.",
+    "steps": [
+      "inspect_mainframe_database_logs",
+      "verify_app_code_configuration_files",
+      "check_database_connection_pool_settings"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_ea13bf4697eb",
+    "created_at": "2026-05-10T04:02:09.762204+00:00",
+    "updated_at": "2026-05-10T04:02:09.762254+00:00",
+    "name": "Mf Tws Blip Related Abend Recovery",
+    "classification": "mf_tws_blip_related_abend",
+    "description": "Draft playbook generated from fallback analysis for mf tws blip related abend. Review before operational use.",
+    "steps": [
+      "verify_mf_tws_connection_status",
+      "inspect_tws_job_logs_for_errors",
+      "check_mainframe_system_resources",
+      "isolate_and_restart_affected_tws_jobs_if_needed"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_71bb083f8ef0",
+    "created_at": "2026-05-10T04:02:34.336501+00:00",
+    "updated_at": "2026-05-10T04:02:34.336535+00:00",
+    "name": "Abend Error In Gc888330 Recovery",
+    "classification": "abend_error_in_gc888330",
+    "description": "Draft playbook generated from fallback analysis for abend error in gc888330. Review before operational use.",
+    "steps": [
+      "verify_abend_error_codes",
+      "inspect_gc888330_system_logs",
+      "check_resource_utilization",
+      "bypass_abp_shutdown_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_c5be5247f9ff",
+    "created_at": "2026-05-10T04:03:48.154647+00:00",
+    "updated_at": "2026-05-10T04:03:48.154687+00:00",
+    "name": "Abend Error Preventing Shutdown Recovery",
+    "classification": "abend_error_preventing_shutdown",
+    "description": "Draft playbook generated from fallback analysis for abend error preventing shutdown. Review before operational use.",
+    "steps": [
+      "verify_gc888330_resource_availability",
+      "inspect_abp_shutdown_sequence_logs",
+      "compare_rc1_rc2_parameter_values",
+      "bypass_abend_error_if_possible"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_b2fb109863dc",
+    "created_at": "2026-05-10T04:04:11.543149+00:00",
+    "updated_at": "2026-05-10T04:04:11.543170+00:00",
+    "name": "Abend Preventing Shutdown Recovery",
+    "classification": "abend_preventing_shutdown",
+    "description": "Draft playbook generated from fallback analysis for abend preventing shutdown. Review before operational use.",
+    "steps": [
+      "verify_gc888330_resource_availability",
+      "inspect_abp_shutdown_sequence_logs",
+      "compare_rc1_rc2_parameter_values",
+      "bypass_abend_if_possible"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_d3c5c6dc2412",
+    "created_at": "2026-05-10T04:06:37.423976+00:00",
+    "updated_at": "2026-05-10T04:06:37.424036+00:00",
+    "name": "Abend Error In Pc024920 Recovery",
+    "classification": "abend_error_in_pc024920",
+    "description": "Draft playbook generated from fallback analysis for abend error in pc024920. Review before operational use.",
+    "steps": [
+      "inspect_abp_shutdown_sequence",
+      "verify_rc1_rc2_code_values",
+      "review_pc024920_program_logic",
+      "isolate_and_debug_pc024920"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_f05fc6a6512f",
+    "created_at": "2026-05-10T04:13:10.622293+00:00",
+    "updated_at": "2026-05-10T04:13:10.622313+00:00",
+    "name": "Abend Error In Pc877950 Recovery",
+    "classification": "abend_error_in_pc877950",
+    "description": "Draft playbook generated from fallback analysis for abend error in pc877950. Review before operational use.",
+    "steps": [
+      "verify_program_logic_at_pc877950",
+      "inspect_data_storage_integrity",
+      "compare_recent_code_changes",
+      "isolate_and_debug_pc877950"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_11a26e90b119",
+    "created_at": "2026-05-10T04:14:33.104512+00:00",
+    "updated_at": "2026-05-10T04:14:33.104536+00:00",
+    "name": "Firewall Rule Configuration Failure Recovery",
+    "classification": "firewall_rule_configuration_failure",
+    "description": "Draft playbook generated from fallback analysis for firewall rule configuration failure. Review before operational use.",
+    "steps": [
+      "verify_firewall_rule_configuration",
+      "inspect_firewall_logs",
+      "compare_network_policy_changes"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_868057ed801f",
+    "created_at": "2026-05-10T04:15:04.744454+00:00",
+    "updated_at": "2026-05-10T04:15:04.744504+00:00",
+    "name": "Post Change Network Configuration Issue Recovery",
+    "classification": "post_change_network_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for post change network configuration issue. Review before operational use.",
+    "steps": [
+      "verify_aws_network_configuration",
+      "inspect_update_logs",
+      "compare_network_configuration_before_and_after_change"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_b52500f98704",
+    "created_at": "2026-05-10T04:15:38.373952+00:00",
+    "updated_at": "2026-05-10T04:15:38.373981+00:00",
+    "name": "Firewall Access Configuration Issue Recovery",
+    "classification": "firewall_access_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for firewall access configuration issue. Review before operational use.",
+    "steps": [
+      "verify_firewall_rule_changes",
+      "inspect_device_connection_logs",
+      "validate_dns_resolution_for_international_sites"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_fe0e27774d40",
+    "created_at": "2026-05-10T04:16:10.275853+00:00",
+    "updated_at": "2026-05-10T04:16:10.275883+00:00",
+    "name": "Aws Foundation Network Update Issue Recovery",
+    "classification": "aws_foundation_network_update_issue",
+    "description": "Draft playbook generated from fallback analysis for aws foundation network update issue. Review before operational use.",
+    "steps": [
+      "verify_network_configuration_changes",
+      "inspect_iam_role_permissions",
+      "compare_network_policy_versions"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_e3d6d5251817",
+    "created_at": "2026-05-10T04:16:42.234687+00:00",
+    "updated_at": "2026-05-10T04:16:42.234726+00:00",
+    "name": "Aws Network Inspection Update Failure Recovery",
+    "classification": "aws_network_inspection_update_failure",
+    "description": "Draft playbook generated from fallback analysis for aws network inspection update failure. Review before operational use.",
+    "steps": [
+      "verify_network_inspection_rule_updates",
+      "compare_firewall_policy_changes",
+      "inspect_aws_service_account_permissions",
+      "correct_firewall_policy_conflicts"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_668574c8b83f",
+    "created_at": "2026-05-10T04:17:14.189240+00:00",
+    "updated_at": "2026-05-10T04:17:14.189454+00:00",
+    "name": "Aws Network Inspection Update Issue Recovery",
+    "classification": "aws_network_inspection_update_issue",
+    "description": "Draft playbook generated from fallback analysis for aws network inspection update issue. Review before operational use.",
+    "steps": [
+      "verify_network_inspection_rules",
+      "compare_firewall_policy_changes",
+      "inspect_aws_service_update_logs",
+      "correct_firewall_policy_conflicts"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_0cde59a7e2be",
+    "created_at": "2026-05-10T04:17:46.272259+00:00",
+    "updated_at": "2026-05-10T04:17:46.272294+00:00",
+    "name": "Iaas Baseline Update Conflict Recovery",
+    "classification": "iaas_baseline_update_conflict",
+    "description": "Draft playbook generated from fallback analysis for iaas baseline update conflict. Review before operational use.",
+    "steps": [
+      "verify_tradops_management_config",
+      "inspect_baseline_update_script_logs",
+      "compare_network_config_before_and_after_update"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_4a3b4c48a9d2",
+    "created_at": "2026-05-10T04:18:51.042719+00:00",
+    "updated_at": "2026-05-10T04:18:51.042738+00:00",
+    "name": "Dynamic Block Policy Conflict Recovery",
+    "classification": "dynamic_block_policy_conflict",
+    "description": "Draft playbook generated from fallback analysis for dynamic block policy conflict. Review before operational use.",
+    "steps": [
+      "verify_url_inclusion_in_block_list",
+      "check_dns_resolution_for_blocked_url",
+      "inspect_firewall_rules_for_url",
+      "update_firewall_rules_to_allow_url"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_d35ee3d0c8e6",
+    "created_at": "2026-05-10T04:19:22.640222+00:00",
+    "updated_at": "2026-05-10T04:19:22.640257+00:00",
+    "name": "Meraki Foundation Dev Network Change Issue Recovery",
+    "classification": "meraki_foundation_dev_network_change_issue",
+    "description": "Draft playbook generated from fallback analysis for meraki foundation dev network change issue. Review before operational use.",
+    "steps": [
+      "verify_meraki_device_configuration",
+      "check_network_change_propagation_status",
+      "inspect_foundation_dev_network_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_c5793539a35d",
+    "created_at": "2026-05-10T04:21:26.003290+00:00",
+    "updated_at": "2026-05-10T04:21:26.003309+00:00",
+    "name": "Firewall Policy Update Issue Recovery",
+    "classification": "firewall_policy_update_issue",
+    "description": "Draft playbook generated from fallback analysis for firewall policy update issue. Review before operational use.",
+    "steps": [
+      "verify_updated_policy_syntax",
+      "validate_ip_address_format",
+      "inspect_firewall_rule_conflicts"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_570a5bfb7436",
+    "created_at": "2026-05-10T04:26:48.885023+00:00",
+    "updated_at": "2026-05-10T04:26:48.885062+00:00",
+    "name": "Pgp Signing Encryption Configuration Issue Recovery",
+    "classification": "pgp_signing_encryption_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for pgp signing encryption configuration issue. Review before operational use.",
+    "steps": [
+      "verify_pgp_key_configuration",
+      "inspect_goanywhere_production_logs",
+      "compare_pgp_protocol_versions"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_bb8a5449f725",
+    "created_at": "2026-05-10T04:28:21.178818+00:00",
+    "updated_at": "2026-05-10T04:28:21.178863+00:00",
+    "name": "S3 Bucket Config Update Issue Recovery",
+    "classification": "s3_bucket_config_update_issue",
+    "description": "Draft playbook generated from fallback analysis for s3 bucket config update issue. Review before operational use.",
+    "steps": [
+      "verify_s3_bucket_permissions",
+      "inspect_efs_mount_point_configuration",
+      "compare_version_installation_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_82ad6cbdf993",
+    "created_at": "2026-05-10T04:30:01.254749+00:00",
+    "updated_at": "2026-05-10T04:30:01.254786+00:00",
+    "name": "Code Cleanup Branch Issue Recovery",
+    "classification": "code_cleanup_branch_issue",
+    "description": "Draft playbook generated from fallback analysis for code cleanup branch issue. Review before operational use.",
+    "steps": [
+      "verify_branch_merge_history",
+      "inspect_code_syntax_and_dependencies",
+      "compare_commit_history"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_64c317bc72f9",
+    "created_at": "2026-05-10T04:31:30.121508+00:00",
+    "updated_at": "2026-05-10T04:31:30.121550+00:00",
+    "name": "Code Cleanup Branch Conflict Recovery",
+    "classification": "code_cleanup_branch_conflict",
+    "description": "Draft playbook generated from fallback analysis for code cleanup branch conflict. Review before operational use.",
+    "steps": [
+      "verify_branch_merge_history",
+      "validate_code_syntax_and_semantics",
+      "inspect_environmental_variable_settings"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_c9c8cf29f935",
+    "created_at": "2026-05-10T12:17:50.332165+00:00",
+    "updated_at": "2026-05-10T12:17:50.332196+00:00",
+    "name": "File Transfer Infrastructure Configuration Issue Recovery",
+    "classification": "file_transfer_infrastructure_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for file transfer infrastructure configuration issue. Review before operational use.",
+    "steps": [
+      "verify_wavepatch_tagging_configuration",
+      "inspect_file_transfer_infrastructure_logs",
+      "compare_ecpe_16655_change_history"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_6a2a52b8714a",
+    "created_at": "2026-05-10T12:18:21.886977+00:00",
+    "updated_at": "2026-05-10T12:18:21.887024+00:00",
+    "name": "Os Tagging Rework Issue Recovery",
+    "classification": "os_tagging_rework_issue",
+    "description": "Draft playbook generated from fallback analysis for os tagging rework issue. Review before operational use.",
+    "steps": [
+      "verify_os_tagging_configuration",
+      "check_os_version_compatibility",
+      "inspect_rework_script_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_edc7ce26d086",
+    "created_at": "2026-05-10T12:18:56.265799+00:00",
+    "updated_at": "2026-05-10T12:18:56.265821+00:00",
+    "name": "Firewall Rule Configuration Issue Recovery",
+    "classification": "firewall_rule_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for firewall rule configuration issue. Review before operational use.",
+    "steps": [
+      "verify_firewall_rule_syntax",
+      "inspect_bot_vdi_network_traffic",
+      "compare_firewall_rule_priority",
+      "test_ssl_bypass_functionality"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_4de5ac503bdc",
+    "created_at": "2026-05-10T12:19:28.604933+00:00",
+    "updated_at": "2026-05-10T12:19:28.604960+00:00",
+    "name": "Network Access Configuration Issue Recovery",
+    "classification": "network_access_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for network access configuration issue. Review before operational use.",
+    "steps": [
+      "verify_vdi_network_settings",
+      "inspect_firewall_rule_updates",
+      "compare_migration_project_network_config",
+      "review_migration_project_network_settings",
+      "update_firewall_rules_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_b70ae17ccfa6",
+    "created_at": "2026-05-10T12:20:02.173899+00:00",
+    "updated_at": "2026-05-10T12:20:02.173916+00:00",
+    "name": "Sipa Us Segment Configuration Issue Recovery",
+    "classification": "sipa_us_segment_configuration_issue",
+    "description": "Draft playbook generated from fallback analysis for sipa us segment configuration issue. Review before operational use.",
+    "steps": [
+      "verify_sipa_us_segment_configuration",
+      "inspect_vdi_hosting_environment_settings",
+      "compare_indian_bank_sites_access_policies"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_6cf5a1b869cd",
+    "created_at": "2026-05-10T12:20:36.383997+00:00",
+    "updated_at": "2026-05-10T12:20:36.384025+00:00",
+    "name": "Amazon Workspace Application Template Update Issue Recovery",
+    "classification": "amazon_workspace_application_template_update_issue",
+    "description": "Draft playbook generated from fallback analysis for amazon workspace application template update issue. Review before operational use.",
+    "steps": [
+      "verify_template_update_script_logs",
+      "compare_application_version_with_workspace_requirements",
+      "inspect_workspace_configuration_files",
+      "review_workspace_configuration"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_186c9727583b",
+    "created_at": "2026-05-10T12:21:06.566085+00:00",
+    "updated_at": "2026-05-10T12:21:06.566103+00:00",
+    "name": "Vdi Provisioning Issue Recovery",
+    "classification": "vdi_provisioning_issue",
+    "description": "Draft playbook generated from fallback analysis for vdi provisioning issue. Review before operational use.",
+    "steps": [
+      "verify_request_parameters",
+      "check_desktop_pool_availability",
+      "inspect_vdi_provisioning_logs",
+      "retry_vdi_proivisioning_if_valid"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_0bf37948f777",
+    "created_at": "2026-05-10T12:21:37.652335+00:00",
+    "updated_at": "2026-05-10T12:21:37.652364+00:00",
+    "name": "Vdi Provisioning Failure Recovery",
+    "classification": "vdi_provisioning_failure",
+    "description": "Draft playbook generated from fallback analysis for vdi provisioning failure. Review before operational use.",
+    "steps": [
+      "verify_contractor_account_status",
+      "check_vdi_template_configuration",
+      "inspect_provisioning_logs",
+      "review_vdi_template_settings",
+      "retry_provisioning_if_valid"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_9660ee8ab0d4",
+    "created_at": "2026-05-10T12:22:37.776566+00:00",
+    "updated_at": "2026-05-10T12:22:37.776593+00:00",
+    "name": "Vdi Removal Request Issue Recovery",
+    "classification": "vdi_removal_request_issue",
+    "description": "Draft playbook generated from fallback analysis for vdi removal request issue. Review before operational use.",
+    "steps": [
+      "verify_vdi_removal_request_details",
+      "inspect_virtual_desktop_license_status",
+      "check_for_pending_vdi_removal_tasks",
+      "review_virtual_desktop_license_agreement"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_1b0421a0a4a8",
+    "created_at": "2026-05-10T12:23:08.467029+00:00",
+    "updated_at": "2026-05-10T12:23:08.467048+00:00",
+    "name": "Citrix Vdi Extension Request Issue Recovery",
+    "classification": "citrix_vdi_extension_request_issue",
+    "description": "Draft playbook generated from fallback analysis for citrix vdi extension request issue. Review before operational use.",
+    "steps": [
+      "verify_vdi_extension_configuration",
+      "check_license_availability",
+      "inspect_desktop_pool_settings"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_095885b93096",
+    "created_at": "2026-05-15T01:58:02.099809+00:00",
+    "updated_at": "2026-05-15T01:58:02.099844+00:00",
+    "name": "Disk Space Exhaustion Due To Log And Dump File Growth Recovery",
+    "classification": "disk_space_exhaustion_due_to_log_and_dump_file_growth",
+    "description": "Draft playbook generated from fallback analysis for disk space exhaustion due to log and dump file growth. Review before operational use.",
+    "steps": [
+      "verify_cleanup_job_status",
+      "inspect_log_file_growth_rates",
+      "check_dump_file_configuration"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_f665080b37fe",
+    "created_at": "2026-05-15T02:07:41.170004+00:00",
+    "updated_at": "2026-05-15T02:07:41.170034+00:00",
+    "name": "Certificate Renewal Workflow Failure Recovery",
+    "classification": "certificate_renewal_workflow_failure",
+    "description": "Draft playbook generated from fallback analysis for certificate renewal workflow failure. Review before operational use.",
+    "steps": [
+      "verify_renewal_workflow_config",
+      "inspect_approval_queue_status",
+      "check_ownership_confirmation_records",
+      "expedite_approval_queue_processing"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_59ce3d0e6504",
+    "created_at": "2026-05-15T02:25:24.710005+00:00",
+    "updated_at": "2026-05-15T02:25:24.710022+00:00",
+    "name": "Kerberos Authentication Failure Recovery",
+    "classification": "kerberos_authentication_failure",
+    "description": "Draft playbook generated from fallback analysis for kerberos authentication failure. Review before operational use.",
+    "steps": [
+      "verify_spn_configuration",
+      "check_clock_synchronization",
+      "inspect_kdc_logs",
+      "validate_active_directory_replication_status"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_94f0f5539f96",
+    "created_at": "2026-05-15T02:30:01.335586+00:00",
+    "updated_at": "2026-05-15T02:30:01.335604+00:00",
+    "name": "Abnormal Termination Of Batch Job Recovery",
+    "classification": "abnormal_termination_of_batch_job",
+    "description": "Draft playbook generated from fallback analysis for abnormal termination of batch job. Review before operational use.",
+    "steps": [
+      "validate_input_file_availability",
+      "inspect_job_logs_for_error_messages",
+      "compare_scheduler_configuration_with_previous_runs",
+      "rerun_job_with_debug_logging_if_possible"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_69c6aa5c78c0",
+    "created_at": "2026-05-15T02:35:10.551318+00:00",
+    "updated_at": "2026-05-15T02:35:10.551350+00:00",
+    "name": "Tws Job Scheduling Dependency Issue Recovery",
+    "classification": "tws_job_scheduling_dependency_issue",
+    "description": "Draft playbook generated from fallback analysis for tws job scheduling dependency issue. Review before operational use.",
+    "steps": [
+      "verify_upstream_job_completion_status",
+      "inspect_tws_agent_workstation_availability",
+      "validate_scheduler_calendar_configuration",
+      "release_job_if_dependencies_met"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_568332618772",
+    "created_at": "2026-05-15T02:40:46.427834+00:00",
+    "updated_at": "2026-05-15T02:40:46.427857+00:00",
+    "name": "Alb Target Group Health Check Failure Recovery",
+    "classification": "alb_target_group_health_check_failure",
+    "description": "Draft playbook generated from fallback analysis for alb target group health check failure. Review before operational use.",
+    "steps": [
+      "verify_alb_listener_rules",
+      "inspect_target_group_health_check_settings",
+      "validate_container_port_exposure_and_security_groups"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_fd479f9663fb",
+    "created_at": "2026-05-15T02:41:46.234086+00:00",
+    "updated_at": "2026-05-15T02:41:46.234102+00:00",
+    "name": "Container Port Binding Mismatch Recovery",
+    "classification": "container_port_binding_mismatch",
+    "description": "Draft playbook generated from fallback analysis for container port binding mismatch. Review before operational use.",
+    "steps": [
+      "verify_container_port_binding",
+      "inspect_host_port_mapping",
+      "check_firewall_rules"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_02261c921027",
+    "created_at": "2026-05-15T02:42:41.209055+00:00",
+    "updated_at": "2026-05-15T02:42:41.209076+00:00",
+    "name": "Container Service Registration Issue Recovery",
+    "classification": "container_service_registration_issue",
+    "description": "Draft playbook generated from fallback analysis for container service registration issue. Review before operational use.",
+    "steps": [
+      "validate_container_target_registration",
+      "inspect_security_group_ingress_rules",
+      "verify_container_port_exposure_configuration"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_4c2febd30240",
+    "created_at": "2026-05-15T02:43:42.347690+00:00",
+    "updated_at": "2026-05-15T02:43:42.347719+00:00",
+    "name": "Ecs Service Networking Issue Recovery",
+    "classification": "ecs_service_networking_issue",
+    "description": "Draft playbook generated from fallback analysis for ecs service networking issue. Review before operational use.",
+    "steps": [
+      "verify_ecs_service_network_configuration",
+      "inspect_target_group_registration_status",
+      "validate_container_port_mapping_and_security_group_rules"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_75948fbe5459",
+    "created_at": "2026-05-18T20:16:34.659833+00:00",
+    "updated_at": "2026-05-18T20:16:34.659854+00:00",
+    "name": "Disk Usage Exceeds Threshold Due To Temporary Files Recovery",
+    "classification": "disk_usage_exceeds_threshold_due_to_temporary_files",
+    "description": "Draft playbook generated from fallback analysis for disk usage exceeds threshold due to temporary files. Review before operational use.",
+    "steps": [
+      "validate_disk_usage_statistics",
+      "inspect_tmp_directory_contents",
+      "review_log_rotation_configuration",
+      "monitor_disk_usage_for_threshold_exceedance"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_d4743f2c0707",
+    "created_at": "2026-05-18T21:26:37.375928+00:00",
+    "updated_at": "2026-05-18T21:26:37.375959+00:00",
+    "name": "Disk Usage Exceeding Threshold Recovery",
+    "classification": "disk_usage_exceeding_threshold",
+    "description": "Draft playbook generated from fallback analysis for disk usage exceeding threshold. Review before operational use.",
+    "steps": [
+      "validate_disk_usage_statistics",
+      "inspect_tmp_directory_contents",
+      "review_log_rotation_configuration",
+      "review_and_adjust_disk_space_allocation"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_1299ea3256f0",
+    "created_at": "2026-06-16T15:30:17.543670+00:00",
+    "updated_at": "2026-06-16T15:30:17.543727+00:00",
+    "name": "Vpn Password Reset Authentication Failure Recovery",
+    "classification": "vpn_password_reset_authentication_failure",
+    "description": "Draft playbook generated from fallback analysis for vpn password reset authentication failure. Review before operational use.",
+    "steps": [
+      "verify_vpn_server_config",
+      "inspect_user_account_lockout_policies",
+      "check_ldap_sync_status"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_0e74fc7a561d",
+    "created_at": "2026-06-17T01:31:34.163848+00:00",
+    "updated_at": "2026-06-17T01:31:34.163869+00:00",
+    "name": "Connection Reset Error Recovery",
+    "classification": "connection_reset_error",
+    "description": "Draft playbook generated from fallback analysis for connection reset error. Review before operational use.",
+    "steps": [
+      "verify_network_connectivity",
+      "inspect_tls_configuration",
+      "check_server_side_timeout_settings"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_27605dbda4a1",
+    "created_at": "2026-06-17T01:32:02.855355+00:00",
+    "updated_at": "2026-06-17T01:32:02.855373+00:00",
+    "name": "Encrypted Payload Routing Subsystem Checksum Mismatch Recovery",
+    "classification": "encrypted_payload_routing_subsystem_checksum_mismatch",
+    "description": "Draft playbook generated from fallback analysis for encrypted payload routing subsystem checksum mismatch. Review before operational use.",
+    "steps": [
+      "verify_checksum_algorithm_configuration",
+      "inspect_encrypted_payload_integrity",
+      "compare_node_cluster_states",
+      "isolate_and_revalidate_affected_nodes"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_6c36042824d7",
+    "created_at": "2026-06-17T02:18:54.130583+00:00",
+    "updated_at": "2026-06-17T02:18:54.130635+00:00",
+    "name": "Incident Data Insufficient Recovery",
+    "classification": "incident_data_insufficient",
+    "description": "Draft playbook generated from fallback analysis for incident data insufficient. Review before operational use.",
+    "steps": [
+      "verify_ticket_context",
+      "inspect_error_logs",
+      "compare_system_configuration",
+      "gather_additional_error_details"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_da76e8c5dc4c",
+    "created_at": "2026-06-17T02:24:07.340070+00:00",
+    "updated_at": "2026-06-17T02:24:07.340088+00:00",
+    "name": "Insufficient Information Recovery",
+    "classification": "insufficient_information",
+    "description": "Draft playbook generated from fallback analysis for insufficient information. Review before operational use.",
+    "steps": [
+      "verify_ticket_details",
+      "inspect_relevant_logs",
+      "gather_additional_context",
+      "request_additional_information"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_5997f2b2c923",
+    "created_at": "2026-06-17T02:24:53.959366+00:00",
+    "updated_at": "2026-06-17T02:24:53.959385+00:00",
+    "name": "Server Unavailability Recovery",
+    "classification": "server_unavailability",
+    "description": "Draft playbook generated from fallback analysis for server unavailability. Review before operational use.",
+    "steps": [
+      "verify_server_network_connectivity",
+      "inspect_system_resource_utilization",
+      "review_server_configuration_files"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_61df7e27408c",
+    "created_at": "2026-06-17T02:25:10.736013+00:00",
+    "updated_at": "2026-06-17T02:25:10.736031+00:00",
+    "name": "Database Connection Timeout Recovery",
+    "classification": "database_connection_timeout",
+    "description": "Draft playbook generated from fallback analysis for database connection timeout. Review before operational use.",
+    "steps": [
+      "verify_database_server_status",
+      "inspect_network_connection_latency",
+      "check_connection_pool_configuration",
+      "adjust_connection_pool_settings_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_5692080ff245",
+    "created_at": "2026-06-17T02:29:24.291874+00:00",
+    "updated_at": "2026-06-17T02:29:24.291893+00:00",
+    "name": "Authentication Credentials Mismatch Recovery",
+    "classification": "authentication_credentials_mismatch",
+    "description": "Draft playbook generated from fallback analysis for authentication credentials mismatch. Review before operational use.",
+    "steps": [
+      "verify_user_credentials",
+      "check_account_lockout_policies",
+      "inspect_authentication_server_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_a0585d639f68",
+    "created_at": "2026-06-17T02:29:45.663048+00:00",
+    "updated_at": "2026-06-17T02:29:45.663066+00:00",
+    "name": "Authentication Protocol Mismatch Recovery",
+    "classification": "authentication_protocol_mismatch",
+    "description": "Draft playbook generated from fallback analysis for authentication protocol mismatch. Review before operational use.",
+    "steps": [
+      "verify_user_credentials",
+      "inspect_authentication_protocol_logs",
+      "compare_password_policy_versions"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_dde6e07f14f2",
+    "created_at": "2026-06-17T02:30:20.180326+00:00",
+    "updated_at": "2026-06-17T02:30:20.180350+00:00",
+    "name": "Network Packet Loss Issue Recovery",
+    "classification": "network_packet_loss_issue",
+    "description": "Draft playbook generated from fallback analysis for network packet loss issue. Review before operational use.",
+    "steps": [
+      "inspect_network_interface_settings",
+      "verify_router_queue_sizes",
+      "check_link_bandwidth_utilization",
+      "adjust_router_queue_sizes_if_necessary",
+      "optimize_link_bandwidth_allocation"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_ea0d0e154bc1",
+    "created_at": "2026-06-17T02:39:33.805835+00:00",
+    "updated_at": "2026-06-17T02:39:33.805852+00:00",
+    "name": "Memory Leak Issue Recovery",
+    "classification": "memory_leak_issue",
+    "description": "Draft playbook generated from fallback analysis for memory leak issue. Review before operational use.",
+    "steps": [
+      "inspect_heap_dump",
+      "verify_garbage_collection_settings",
+      "compare_memory_usage_patterns"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_46c297fc20d6",
+    "created_at": "2026-06-17T02:42:47.820043+00:00",
+    "updated_at": "2026-06-17T02:42:47.820105+00:00",
+    "name": "Network Packet Loss Recovery",
+    "classification": "network_packet_loss",
+    "description": "Draft playbook generated from fallback analysis for network packet loss. Review before operational use.",
+    "steps": [
+      "inspect_network_interface_utilization",
+      "verify_mtu_settings",
+      "check_routing_table_configuration",
+      "isolate_and_test_network_segment"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_a7fda1291af7",
+    "created_at": "2026-06-17T02:43:03.277841+00:00",
+    "updated_at": "2026-06-17T02:43:03.277864+00:00",
+    "name": "Memory Leak Out Of Memory Error Recovery",
+    "classification": "memory_leak_out_of_memory_error",
+    "description": "Draft playbook generated from fallback analysis for memory leak out of memory error. Review before operational use.",
+    "steps": [
+      "inspect_heap_dump",
+      "verify_garbage_collection_settings",
+      "compare_memory_usage_patterns",
+      "optimize_garbage_collection_config"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_c5fda12f6e8a",
+    "created_at": "2026-06-17T02:43:17.575429+00:00",
+    "updated_at": "2026-06-17T02:43:17.575447+00:00",
+    "name": "Kubernetes Pod Crashloopbackoff Recovery",
+    "classification": "kubernetes_pod_crashloopbackoff",
+    "description": "Draft playbook generated from fallback analysis for kubernetes pod crashloopbackoff. Review before operational use.",
+    "steps": [
+      "inspect_pod_logs",
+      "verify_liveness_probe_configuration",
+      "check_container_resource_limits"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_77cd4cd393e2",
+    "created_at": "2026-06-17T02:43:31.263699+00:00",
+    "updated_at": "2026-06-17T02:43:31.263722+00:00",
+    "name": "Vpn Connection Authentication Failure Recovery",
+    "classification": "vpn_connection_authentication_failure",
+    "description": "Draft playbook generated from fallback analysis for vpn connection authentication failure. Review before operational use.",
+    "steps": [
+      "verify_vpn_server_certificate_validity",
+      "inspect_vpn_client_logs_for_errors",
+      "compare_vpn_tunnel_configuration"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_5dfcdeeb1cef",
+    "created_at": "2026-06-17T02:43:44.822197+00:00",
+    "updated_at": "2026-06-17T02:43:44.822219+00:00",
+    "name": "Ssl Certificate Expiration Recovery",
+    "classification": "ssl_certificate_expiration",
+    "description": "Draft playbook generated from fallback analysis for ssl certificate expiration. Review before operational use.",
+    "steps": [
+      "verify_certificate_expiration_date",
+      "inspect_tls_config_files",
+      "check_certificate_renewal_logs",
+      "update_tls_config_files",
+      "renew_expired_certificate"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_a0e8399f5aa5",
+    "created_at": "2026-06-17T02:43:58.679154+00:00",
+    "updated_at": "2026-06-17T02:43:58.679174+00:00",
+    "name": "Api Gateway Backend Service Unavailability Recovery",
+    "classification": "api_gateway_backend_service_unavailability",
+    "description": "Draft playbook generated from fallback analysis for api gateway backend service unavailability. Review before operational use.",
+    "steps": [
+      "verify_api_gateway_configuration",
+      "inspect_backend_service_logs",
+      "check_load_balancer_health"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_d98946ee5924",
+    "created_at": "2026-06-17T02:44:13.173396+00:00",
+    "updated_at": "2026-06-17T02:44:13.173425+00:00",
+    "name": "Storage Quota Exceeded Recovery",
+    "classification": "storage_quota_exceeded",
+    "description": "Draft playbook generated from fallback analysis for storage quota exceeded. Review before operational use.",
+    "steps": [
+      "verify_disk_usage_statistics",
+      "inspect_log_rotation_policies",
+      "compare_storage_allocation_to_expected_usage",
+      "request_storage_quota_increase_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_6fcee029ab5b",
+    "created_at": "2026-06-17T02:46:20.019416+00:00",
+    "updated_at": "2026-06-17T02:46:20.019431+00:00",
+    "name": "Api Gateway Backend Unavailability Recovery",
+    "classification": "api_gateway_backend_unavailability",
+    "description": "Draft playbook generated from fallback analysis for api gateway backend unavailability. Review before operational use.",
+    "steps": [
+      "verify_backend_service_status",
+      "inspect_load_balancer_configuration",
+      "check_api_gateway_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_b15f465114b9",
+    "created_at": "2026-06-17T02:50:01.271381+00:00",
+    "updated_at": "2026-06-17T02:50:01.271402+00:00",
+    "name": "Authentication Credentials Issue Recovery",
+    "classification": "authentication_credentials_issue",
+    "description": "Draft playbook generated from fallback analysis for authentication credentials issue. Review before operational use.",
+    "steps": [
+      "verify_user_credentials",
+      "check_account_lockout_status",
+      "inspect_session_token_expiration",
+      "reset_password_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_ddb9bde03cc8",
+    "created_at": "2026-06-17T02:50:27.647813+00:00",
+    "updated_at": "2026-06-17T02:50:27.647831+00:00",
+    "name": "Oauth Token Expiration Recovery",
+    "classification": "oauth_token_expiration",
+    "description": "Draft playbook generated from fallback analysis for oauth token expiration. Review before operational use.",
+    "steps": [
+      "verify_token_expiration_time",
+      "check_token_refresh_logs",
+      "inspect_oauth_client_configuration",
+      "regenerate_token_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_3caf928085c9",
+    "created_at": "2026-06-17T02:50:41.105346+00:00",
+    "updated_at": "2026-06-17T02:50:41.105363+00:00",
+    "name": "Saml Assertion Validation Failure Recovery",
+    "classification": "saml_assertion_validation_failure",
+    "description": "Draft playbook generated from fallback analysis for saml assertion validation failure. Review before operational use.",
+    "steps": [
+      "verify_idp_metadata_configuration",
+      "check_saml_certificate_expiration",
+      "inspect_saml_assertion_logs",
+      "update_saml_certificate_if_expired"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_44b65aa368bc",
+    "created_at": "2026-06-18T16:23:47.737938+00:00",
+    "updated_at": "2026-06-18T16:23:47.737956+00:00",
+    "name": "Pod Crash Loop Recovery",
+    "classification": "pod_crash_loop",
+    "description": "Draft playbook generated from fallback analysis for pod crash loop. Review before operational use.",
+    "steps": [
+      "inspect_pod_logs",
+      "verify_container_resource_limits",
+      "compare_pod_configuration_with_baseline",
+      "isolate_and_redeploy_pod_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_fbd46377c756",
+    "created_at": "2026-06-18T17:59:57.897527+00:00",
+    "updated_at": "2026-06-18T17:59:57.897570+00:00",
+    "name": "Certificate Expiry Warning Recovery",
+    "classification": "certificate_expiry_warning",
+    "description": "Draft playbook generated from fallback analysis for certificate expiry warning. Review before operational use.",
+    "steps": [
+      "verify_certificate_expiration_date",
+      "check_certificate_renewal_process_status",
+      "inspect_certificate_configuration_files",
+      "request_certificate_renewal_if_necessary"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_e831b61a7a06",
+    "created_at": "2026-06-18T18:02:32.179149+00:00",
+    "updated_at": "2026-06-18T18:02:32.179166+00:00",
+    "name": "Api Gateway Timeout Recovery",
+    "classification": "api_gateway_timeout",
+    "description": "Draft playbook generated from fallback analysis for api gateway timeout. Review before operational use.",
+    "steps": [
+      "verify_api_gateway_configuration",
+      "check_backend_service_status",
+      "inspect_network_connectivity_logs"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  },
+  {
+    "playbook_id": "pb_f9f0e1954cec",
+    "created_at": "2026-06-18T18:03:26.591663+00:00",
+    "updated_at": "2026-06-18T18:03:26.591678+00:00",
+    "name": "High Disk Usage Recovery",
+    "classification": "high_disk_usage",
+    "description": "Draft playbook generated from fallback analysis for high disk usage. Review before operational use.",
+    "steps": [
+      "verify_disk_space_allocation",
+      "inspect_log_file_sizes",
+      "check_for_unmanaged_temporary_files",
+      "consider_increasing_disk_space_allocation"
+    ],
+    "scripts": [],
+    "approval_mode": "manual_approval_required",
+    "rollback_available": true,
+    "risk_tier": "medium",
+    "enabled": true,
+    "status": "draft",
+    "source": "manual",
+    "linked_incident_id": "",
+    "linked_rca_id": "",
+    "created_by": "Vijay",
+    "review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "reviewed_at": "",
+      "review_notes": ""
+    }
+  }
+]

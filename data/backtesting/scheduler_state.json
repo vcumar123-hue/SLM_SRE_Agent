@@ -1,0 +1,72 @@
+{
+  "last_run_at": "2026-08-01T00:00:04+00:00",
+  "last_run_date": "2026-08-01",
+  "last_run_outcome": {
+    "http_status": 200,
+    "response": {
+      "status": "ok",
+      "output_file": "data/backtesting/results/client_a_backtest_results.json",
+      "summary": {
+        "case_count": 3,
+        "average_score": 0.6824,
+        "result_counts": {
+          "partial": 2,
+          "pass": 1
+        },
+        "classification_accuracy": 1.0,
+        "scenario_accuracy": 0.0,
+        "change_correlation_accuracy": 1.0,
+        "problem_correlation_accuracy": 1.0,
+        "service_request_correlation_accuracy": 1.0,
+        "drift_correlation_accuracy": 1.0,
+        "timeline_accuracy": 0.9467,
+        "timeline_pass_rate": 1.0,
+        "core_correlation_average": 0.75,
+        "rca_quality_average": 0.6396,
+        "core_correlation_pass_rate": 0.0,
+        "rca_quality_pass_rate": 0.0,
+        "top_failures": [
+          {
+            "case_id": "bt_client_a_vpn_001",
+            "overall_score": 0.6486,
+            "expected_classification": "vpn_client_failure",
+            "actual_classification": "vpn_client_failure",
+            "expected_scenario": "authentication_or_identity_provider_dependency",
+            "matched_scenario": null,
+            "change_correlation_match": 1.0,
+            "drift_correlation_match": 1.0,
+            "core_correlation_score": 0.7833,
+            "rca_quality_score": 0.5818,
+            "quality_recommendations": [
+              "Improve enterprise pattern scenario matching for the expected associated scenario.",
+              "Improve RCA phrasing or mapping so probable causes align with the expected resolution root cause.",
+              "Improve retrieval quality or ensure client historical records are indexed for this classification."
+            ]
+          },
+          {
+            "case_id": "bt_client_a_cpu_001",
+            "overall_score": 0.6877,
+            "expected_classification": "cpu_saturation",
+            "actual_classification": "cpu_saturation",
+            "expected_scenario": "batch_job_or_scheduled_task_collision",
+            "matched_scenario": null,
+            "change_correlation_match": 1.0,
+            "drift_correlation_match": 1.0,
+            "core_correlation_score": 0.7333,
+            "rca_quality_score": 0.682,
+            "quality_recommendations": [
+              "Improve enterprise pattern scenario matching for the expected associated scenario.",
+              "Improve RCA phrasing or mapping so probable causes align with the expected resolution root cause.",
+              "Improve retrieval quality or ensure client historical records are indexed for this classification."
+            ]
+          }
+        ]
+      },
+      "total_cases": 0,
+      "results_status": "ok"
+    }
+  },
+  "scheduled_hour": 0,
+  "scheduled_minute": 0,
+  "backend": "http://aiops-app:8000"
+}

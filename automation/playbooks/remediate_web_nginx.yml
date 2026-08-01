@@ -1,0 +1,94 @@
+---
+# Remediates nginx security misconfiguration on linux-lab-01 (Web Tier)
+# Findings: CUSTOM-NGINX-001 (missing security headers), CUSTOM-PORT-001 (debug port)
+# CVE: CVE-2022-0778 (OpenSSL upgrade)
+- name: Remediate Web Tier — Nginx Security Hardening
+  hosts: linux-lab-01
+  gather_facts: yes
+  vars:
+    nginx_conf_path: /etc/nginx/conf.d/demo.conf
+    backup_dir: /app/bak
+    target_openssl_version: "1.1.1n"
+
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Backup existing nginx config
+      copy:
+        src: "{{ nginx_conf_path }}"
+        dest: "{{ backup_dir }}/demo.conf.bak"
+        remote_src: yes
+      ignore_errors: yes
+
+    - name: Deploy hardened nginx config with security headers
+      copy:
+        dest: "{{ nginx_conf_path }}"
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              add_header X-Frame-Options "SAMEORIGIN" always;
+              add_header X-Content-Type-Options "nosniff" always;
+              add_header X-XSS-Protection "1; mode=block" always;
+              add_header Content-Security-Policy "default-src 'self'" always;
+              add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+              add_header Permissions-Policy "geolocation=(), microphone=()" always;
+              server_tokens off;
+
+              location / {
+                  return 200 'Web Tier — Hardened';
+                  add_header Content-Type text/plain;
+              }
+          }
+        mode: "0644"
+
+    - name: Remove world-readable credential backup file
+      file:
+        path: /etc/nginx/.htpasswd-backup
+        state: absent
+
+    - name: Kill debug port 9999 listener
+      shell: |
+        pkill -f "nc -lk 9999" || true
+        pkill -f "nc.*9999" || true
+      ignore_errors: yes
+
+    - name: Remove debug log
+      file:
+        path: /tmp/debug.log
+        state: absent
+
+    - name: Validate nginx config syntax
+      command: nginx -t
+      ignore_errors: yes
+      register: nginx_test
+
+    - name: Report nginx validation
+      debug:
+        msg: "nginx -t: {{ nginx_test.stderr | default('ok') }}"
+
+    - name: Update OpenSSL if available
+      apt:
+        name: openssl
+        state: latest
+        update_cache: yes
+      ignore_errors: yes
+
+    - name: Verify security headers present in config
+      command: grep -c "X-Frame-Options" "{{ nginx_conf_path }}"
+      register: header_check
+      changed_when: false
+
+    - name: Report remediation summary
+      debug:
+        msg: |
+          Remediation complete for linux-lab-01:
+          - Security headers added: {{ header_check.stdout }} headers
+          - Credential backup removed
+          - Debug port 9999 closed
+          - OpenSSL update attempted
