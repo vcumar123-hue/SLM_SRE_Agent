@@ -132,13 +132,27 @@ else
     echo "   ⚠ No qdrant_snapshots.tar.gz — vectors will be rebuilt on first run."
 fi
 
-# ── 4. Restore JSON knowledge files ──────────────────────────────────────────
+# ── 4. Restore RAG processed outputs ─────────────────────────────────────────
+RAG_ARCHIVE="$DATA_DIR/rag_data.tar.gz"
+if [ -f "$RAG_ARCHIVE" ]; then
+    echo ""
+    echo "▶ Restoring RAG processed outputs ($(du -sh "$RAG_ARCHIVE" | cut -f1))..."
+    mkdir -p data/rag
+    tar -xzf "$RAG_ARCHIVE" -C .
+    echo "   ✓ data/rag/ restored — semantic retrieval fully operational."
+else
+    echo ""
+    echo "   ⚠ No rag_data.tar.gz found — RAG search will return empty results."
+    echo "     To rebuild: docker compose exec app python rag_ingestion.py"
+fi
+
+# ── 5. Restore JSON knowledge files ──────────────────────────────────────────
 JSON_ARCHIVE="$DATA_DIR/knowledge_json.tar.gz"
 if [ -f "$JSON_ARCHIVE" ]; then
     echo ""
     echo "▶ Restoring JSON knowledge files..."
     tar -xzf "$JSON_ARCHIVE" -C .
-    echo "   ✓ Knowledge JSON files restored."
+    echo "   ✓ Knowledge JSON files restored (candidates, executions, feedback, patterns)."
 fi
 
 # ── 5. Sync knowledge to Postgres (if Postgres was schema-only) ───────────────

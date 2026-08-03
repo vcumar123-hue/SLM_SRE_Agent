@@ -91,7 +91,26 @@ print(data.get('result',{}).get('name',''))
     echo "   ✓ Qdrant archive: $QDRANT_ARCHIVE ($QDRANT_SIZE)"
 fi
 
-# ── 3. Small JSON knowledge files ────────────────────────────────────────────
+# ── 3. RAG processed outputs (large — output of rag_ingestion.py) ─────────────
+echo ""
+echo "▶ Packaging data/rag/ processed outputs..."
+RAG_ARCHIVE="$OUTPUT_DIR/rag_data.tar.gz"
+RAG_FILES=""
+for f in data/rag/tickets.json data/rag/topology.json data/rag/index_ready.json data/rag/kb.json; do
+    if [ -f "$f" ] && [ "$(wc -c < "$f")" -gt 10 ]; then
+        RAG_FILES="$RAG_FILES $f"
+    fi
+done
+if [ -n "$RAG_FILES" ]; then
+    tar -czf "$RAG_ARCHIVE" $RAG_FILES 2>/dev/null || true
+    RAG_SIZE=$(du -sh "$RAG_ARCHIVE" 2>/dev/null | cut -f1 || echo "?")
+    echo "   ✓ RAG data: $RAG_ARCHIVE ($RAG_SIZE)"
+    echo "   Files included:$RAG_FILES"
+else
+    echo "   ⚠ No processed RAG files found — run rag_ingestion.py first"
+fi
+
+# ── 4. Small JSON knowledge files ────────────────────────────────────────────
 echo ""
 echo "▶ Packaging JSON knowledge files..."
 JSON_ARCHIVE="$OUTPUT_DIR/knowledge_json.tar.gz"
@@ -100,6 +119,10 @@ tar -czf "$JSON_ARCHIVE" \
     data/resolutions.json \
     data/taxonomy.json \
     data/automation_registry.json \
+    data/knowledge_candidates.json \
+    data/automation_executions.json \
+    data/feedback_learning.json \
+    data/feedback_weights.json \
     data/global_patterns/ \
     data/backtest/temporal_index.json \
     data/backtest/self_index_client_a.json \
