@@ -2574,6 +2574,10 @@ def compute_confidence_locally(
     base += min(learned_feedback_score, 0.15)
     if base <= 0:
         base = settings.MIN_PRIMARY_CONFIDENCE_FLOOR
+    # Zero retrieval quality means keyword-only classification — cap at 0.35
+    # so the UI never shows a misleadingly high confidence when there are no KB matches.
+    if retrieval_quality == 0.0:
+        base = min(base, 0.35)
     final_score = max(0.0, min(1.0, round(base, 4)))
     return {
         "embedding_score": round(embedding_score, 4),
@@ -2593,7 +2597,7 @@ def build_analysis_source_label(
 ) -> str:
     response_source = str(response_source or "").strip().lower()
     if response_source == "local_primary" and not fallback_used:
-        return "Local SLM"
+        return "RAG + SLM"
     if response_source == "fallback" or fallback_used:
         provider = (fallback_provider or "LLM").strip()
         model = (fallback_model or "").strip()
@@ -2902,6 +2906,7 @@ def should_prefer_learned_local_path(
     linked_playbook: Optional[Dict[str, Any]],
     classification: str,
     primary_confidence: float,
+    retrieval_quality: float = 0.0,
 ) -> bool:
     if force_fallback:
         return False
@@ -2917,6 +2922,11 @@ def should_prefer_learned_local_path(
     if resolution_cls and resolution_cls != cls:
         return False
     if playbook_cls and playbook_cls != cls:
+        return False
+
+    # Require actual retrieval quality — generic linked knowledge with zero retrieval
+    # means the LLM fallback should still run rather than presenting a keyword-only answer.
+    if retrieval_quality == 0.0:
         return False
 
     # If this exact classification already has linked reusable knowledge,
@@ -3050,12 +3060,29 @@ def run_hybrid_retrieval(
     return retrieved_incidents, round(embedding_score, 4), round(learned_feedback_score, 4), feedback_override, retrieval_scope
 
 
+def _fetch_nearest_neighbour_incidents(ticket: str, top_k: int = 3) -> List[Dict[str, Any]]:
+    """Cross-classification Qdrant search — returns the most semantically similar
+    incidents regardless of classification match. Used to ground the LLM when
+    the primary RAG retrieval returned zero exact-classification hits."""
+    if retrieve_incidents is None:
+        return []
+    try:
+        try:
+            raw = retrieve_incidents(ticket=ticket, limit=top_k)
+        except TypeError:
+            raw = retrieve_incidents(ticket, top_k)
+        return normalize_retrieved_incidents(raw) if raw else []
+    except Exception:
+        return []
+
+
 def maybe_run_fallback(
     ticket: str,
     primary_confidence: float,
     request_id: str,
     force_fallback: bool = False,
     reason_override: Optional[str] = None,
+    retrieved_incidents: Optional[List[Dict[str, Any]]] = None,
 ) -> Tuple[bool, Optional[Dict[str, Any]], float, Optional[str], Optional[str], Optional[str], Optional[str]]:
     fallback_used = False
     fallback_analysis = None
@@ -3064,21 +3091,78 @@ def maybe_run_fallback(
     fallback_model = None
     fallback_provider = None
     fallback_reason = None
+
     if not FALLBACK_RUNTIME_ENABLED:
         return fallback_used, fallback_analysis, fallback_confidence, fallback_source, fallback_model, fallback_provider, "runtime_disabled"
     if not settings.FALLBACK_ENABLED:
         return fallback_used, fallback_analysis, fallback_confidence, fallback_source, fallback_model, fallback_provider, "settings_disabled"
     if not force_fallback and primary_confidence >= settings.CONFIDENCE_THRESHOLD:
         return fallback_used, fallback_analysis, fallback_confidence, fallback_source, fallback_model, fallback_provider, "threshold_not_met"
+
     fallback_reason = reason_override or ("manual_override" if force_fallback else "low_confidence")
+
     if not settings.fallback_is_configured() or analyze_with_groq_fallback is None:
         return fallback_used, fallback_analysis, fallback_confidence, fallback_source, fallback_model, fallback_provider, "not_configured"
+
+    # ── Fix 1 + 2: zero-retrieval guard & nearest-neighbour grounding ──────
+    primary_hits = retrieved_incidents or []
+    context_incidents: List[Dict[str, Any]] = []
+
+    if not primary_hits:
+        # No exact-classification hits — fetch nearest neighbours by embedding
+        context_incidents = _fetch_nearest_neighbour_incidents(ticket, top_k=3)
+        if not context_incidents:
+            # No KB coverage at all — allow ungrounded LLM only for specific tickets.
+            # Vague tickets (< 6 words, no symptom signals) are still refused to prevent
+            # confabulation; specific tickets deserve an LLM best-effort with escalation.
+            try:
+                from groq_fallback_real import _is_vague_ticket as _ivt
+                _ticket_is_vague = _ivt(ticket)
+            except Exception:
+                _ticket_is_vague = True  # fail-safe: treat unknown as vague
+            if _ticket_is_vague:
+                fallback_debug(
+                    "fallback_refused_zero_retrieval",
+                    {"ticket": ticket[:120], "reason": "vague_ticket_no_rag_hits"},
+                    request_id=request_id,
+                )
+                return (
+                    False, None, 0.0, None, None, None,
+                    "zero_retrieval_no_grounding",
+                )
+            # Specific ticket with no KB coverage — call LLM ungrounded, force escalation
+            fallback_debug(
+                "fallback_ungrounded_specific_ticket",
+                {"ticket": ticket[:120], "reason": "no_kb_coverage_specific_ticket"},
+                request_id=request_id,
+            )
+            fallback_reason = "no_kb_coverage_ungrounded"
+            context_incidents = []
+        else:
+            # Nearest neighbours found — LLM will be grounded, mark as approximate
+            fallback_reason = "nearest_neighbour_grounded"
+    else:
+        # Primary hits available — pass them as context too
+        context_incidents = primary_hits
+
     try:
-        raw = analyze_with_groq_fallback(ticket)
+        raw = analyze_with_groq_fallback(ticket, context_incidents=context_incidents)
         parsed = raw if isinstance(raw, dict) else safe_parse_json(str(raw), default={})
         if parsed:
             fallback_used = True
             fallback_analysis = parsed
+            # Mark source_layer so promotion gate and UI can detect it.
+            # "fallback_candidate_grounded"   = LLM had nearest-neighbour context
+            # "fallback_candidate_no_kb"      = LLM ran on specific ticket with no KB coverage (promotable after review)
+            # "fallback_candidate"            = LLM ran with no context at all (blocked at promotion)
+            if context_incidents:
+                fallback_analysis["source_layer"] = "fallback_candidate_grounded"
+            elif fallback_reason == "no_kb_coverage_ungrounded":
+                fallback_analysis["source_layer"] = "fallback_candidate_no_kb"
+            else:
+                fallback_analysis["source_layer"] = "fallback_candidate"
+            fallback_analysis["grounding_incident_count"] = len(context_incidents)
+            fallback_analysis["fallback_reason"] = fallback_reason
             fallback_confidence = float(parsed.get("confidence", 0.0) or 0.0)
             fallback_source = parsed.get("fallback_source", "groq_chat_completions")
             fallback_model = parsed.get("fallback_model", settings.GROQ_MODEL)
@@ -3393,6 +3477,8 @@ def infer_ticket_domain(ticket: str) -> str:
         return "iam"
     if any(x in blob for x in ["goanywhere", "mft", "payload", "formatter", "nscc", "api", "batch"]):
         return "integration"
+    if any(x in blob for x in ["websphere", "weblogic", "jboss", "wildfly", "tomcat", "glassfish", "liberty", "was", "app server", "application server", "jvm", "java heap", "java process", "servlet", "ejb", "ear", "war file"]):
+        return "middleware"
     best_domain = "general"
     best_score = 0
     for domain, words in LEARNED_DOMAIN_KEYWORDS.items():
@@ -3419,6 +3505,8 @@ def canonical_domain_for_classification(classification: str, fallback_domain: st
         return "storage"
     if any(x in cls for x in ["file transfer", "integration", "mft", "goanywhere", "payload", "nscc"]):
         return "integration"
+    if any(x in cls for x in ["websphere", "weblogic", "jboss", "wildfly", "tomcat", "glassfish", "liberty", "middleware", "application server", "jvm", "servlet"]):
+        return "middleware"
     return fallback_domain or "general"
 
 
@@ -3521,10 +3609,15 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
             if retrieved_domain:
                 domain = choose_better_domain(taxonomy_domain_for_top, retrieved_domain)
             if retrieved_classification:
-                if not (top_source == "feedback_learning" and extract_ticket_intents(ticket).get("network_dns") and "browser_sso" in retrieved_classification.lower()):
-                    classification = normalize_classification_token(retrieved_classification)
-                    classification_certainty = max(classification_certainty, float(top.get("score", 0.0) or 0.0))
-                    domain = choose_better_domain(infer_domain_from_taxonomy(classification, taxonomy), domain)
+                _top_score = float(top.get("score", 0.0) or 0.0)
+                _is_topology = re.match(r"^topology_\d+$", retrieved_classification, re.IGNORECASE) is not None
+                _is_junk = retrieved_classification.lower() in {"unclassified_issue", "unknown", "general_issue", ""}
+                _meets_threshold = _top_score >= float(getattr(settings, "MIN_RETRIEVAL_SCORE", 0.25))
+                if not _is_topology and not _is_junk and _meets_threshold:
+                    if not (top_source == "feedback_learning" and extract_ticket_intents(ticket).get("network_dns") and "browser_sso" in retrieved_classification.lower()):
+                        classification = normalize_classification_token(retrieved_classification)
+                        classification_certainty = max(classification_certainty, _top_score)
+                        domain = choose_better_domain(infer_domain_from_taxonomy(classification, taxonomy), domain)
 
         domain, classification, classification_certainty, routed_intents = apply_intent_router(
             ticket=ticket,
@@ -3652,6 +3745,7 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
                     request_id=request_id,
                     force_fallback=effective_force_fallback,
                     reason_override=reason_override,
+                    retrieved_incidents=retrieved_incidents,
                 )
 
             if fallback_used and fallback_analysis:
@@ -3745,6 +3839,7 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
                 linked_playbook=linked_playbook,
                 classification=final_classification,
                 primary_confidence=primary_confidence,
+                retrieval_quality=retrieval_quality,
             ):
                 fallback_used = False
                 fallback_analysis = None

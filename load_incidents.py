@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from pathlib import Path
 
@@ -11,8 +12,8 @@ from qdrant_client.http.models import Distance, VectorParams, PointStruct
 # ----------------------------
 INCIDENTS_FILE = Path(r"C:\projects\ai\slm\data\incidents.json")
 COLLECTION_NAME = "incident_knowledge"
-LM_STUDIO_BASE = "http://127.0.0.1:1234/v1"
-EMBED_MODEL = "text-embedding-nomic-embed-text-v1.5"
+LM_STUDIO_BASE = os.getenv("MODEL_BASE_URL", "http://127.0.0.1:1234/v1")
+EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
 QDRANT_HOST = "localhost"
 QDRANT_PORT = 6333
 

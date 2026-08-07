@@ -1,5 +1,7 @@
 ﻿"""Telemetry Console page module."""
 from __future__ import annotations
+import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import streamlit as st
@@ -20,6 +22,151 @@ def analyze_telemetry_incident(incident_id: str) -> dict:
     response = SESSION.post(f"{BACKEND_URL}/telemetry/incidents/{incident_id}/analyze", timeout=REQUEST_TIMEOUT_LONG)
     response.raise_for_status()
     return response.json().get("item") or {}
+
+
+def _render_rca_table(rca: Dict[str, Any], incident: Dict[str, Any]) -> None:
+    """Render AI RCA result as a clean structured table."""
+    analysis = rca.get("analysis") or {}
+    conf_block = rca.get("confidence") or {}
+
+    classification = (
+        analysis.get("telemetry_classification_hint")
+        or analysis.get("classification")
+        or incident.get("classification")
+        or "—"
+    )
+    overall_conf = conf_block.get("overall_confidence") or analysis.get("confidence") or 0.0
+    source_label = rca.get("analysis_source_label") or rca.get("response_source") or "AI Analysis"
+    routing_method = (rca.get("routing") or {}).get("method") or "—"
+
+    # Summary strip
+    conf_pct = int(float(overall_conf) * 100) if overall_conf else 0
+    conf_color = "#16a34a" if conf_pct >= 75 else ("#d97706" if conf_pct >= 50 else "#dc2626")
+    st.markdown(
+        f"""<div style="display:flex;gap:16px;align-items:center;padding:10px 14px;
+        background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:12px;">
+        <div><span style="font-size:0.72rem;color:#64748b;font-weight:600;">CLASSIFICATION</span><br>
+        <span style="font-weight:700;font-size:0.95rem;">{nice_label(classification)}</span></div>
+        <div style="border-left:1px solid #e2e8f0;padding-left:16px;">
+        <span style="font-size:0.72rem;color:#64748b;font-weight:600;">CONFIDENCE</span><br>
+        <span style="font-weight:700;font-size:0.95rem;color:{conf_color};">{conf_pct}%</span></div>
+        <div style="border-left:1px solid #e2e8f0;padding-left:16px;">
+        <span style="font-size:0.72rem;color:#64748b;font-weight:600;">SOURCE</span><br>
+        <span style="font-size:0.85rem;">{nice_label(source_label)}</span></div>
+        <div style="border-left:1px solid #e2e8f0;padding-left:16px;">
+        <span style="font-size:0.72rem;color:#64748b;font-weight:600;">ROUTING</span><br>
+        <span style="font-size:0.85rem;">{nice_label(routing_method)}</span></div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    def _fmt_list(items: list, max_items: int = 5) -> str:
+        cleaned = [nice_label(str(x)) for x in (items or []) if str(x or "").strip()]
+        if not cleaned:
+            return "—"
+        return "<br>".join(f"• {item}" for item in cleaned[:max_items])
+
+    probable_causes = analysis.get("probable_causes") or []
+    recommended_actions = analysis.get("recommended_actions") or []
+    next_checks = analysis.get("next_checks") or []
+    resolution_summary = analysis.get("resolution_summary") or analysis.get("summary") or ""
+
+    rows = [
+        ("Probable Cause(s)", _fmt_list(probable_causes)),
+        ("Recommended Actions", _fmt_list(recommended_actions)),
+        ("Next Checks / Diagnostics", _fmt_list(next_checks)),
+    ]
+    if resolution_summary:
+        rows.append(("Resolution Summary", str(resolution_summary)[:300]))
+
+    # Similar past incidents
+    retrieved = rca.get("retrieved_incidents") or []
+    if retrieved:
+        past_items = []
+        for inc in retrieved[:3]:
+            lbl = (
+                inc.get("title")
+                or inc.get("short_description")
+                or inc.get("classification")
+                or str(inc.get("id") or "")
+            )
+            past_items.append(str(lbl or "").strip()[:80])
+        rows.append(("Similar Past Incidents", "<br>".join(f"• {x}" for x in past_items if x)))
+
+    # Render as HTML table for clean reading
+    table_html = (
+        "<table style='width:100%;border-collapse:collapse;font-size:0.86rem;'>"
+        "<colgroup><col style='width:38%'><col style='width:62%'></colgroup>"
+    )
+    for label, value in rows:
+        table_html += (
+            f"<tr style='border-bottom:1px solid #f1f5f9;'>"
+            f"<td style='padding:8px 10px 8px 0;font-weight:600;color:#374151;vertical-align:top;'>{label}</td>"
+            f"<td style='padding:8px 0;color:#1e293b;vertical-align:top;'>{value}</td>"
+            f"</tr>"
+        )
+    table_html += "</table>"
+    st.markdown(table_html, unsafe_allow_html=True)
+
+    # KB / resolution links from result
+    resolution_id = rca.get("resolution_id") or (rca.get("resolution") or {}).get("id")
+    playbook_id = rca.get("playbook_id") or (rca.get("playbook") or {}).get("id")
+    if resolution_id or playbook_id:
+        st.markdown("---")
+        link_cols = st.columns(2)
+        if resolution_id:
+            link_cols[0].caption(f"📄 Resolution linked: `{resolution_id}`")
+        if playbook_id:
+            link_cols[1].caption(f"📋 Playbook linked: `{playbook_id}`")
+
+
+def _render_alert_details_table(selected: Dict[str, Any], current_status: str) -> None:
+    """Render incident alert details as a clean two-column table."""
+    rows = [
+        ("Title", selected.get("title") or "Telemetry Alert"),
+        ("Classification", nice_label(selected.get("classification") or "unknown")),
+        ("Domain", nice_label(selected.get("domain") or "general")),
+        ("Service Scope", nice_label(selected.get("service_scope") or "general")),
+        ("Affected CI / Resource", selected.get("resource") or selected.get("service") or "unknown"),
+        ("Trigger Metric", selected.get("trigger_metric") or selected.get("metric") or "unknown"),
+        ("Trigger Value", str(selected.get("trigger_value") or selected.get("value") or "unknown")),
+        ("Environment", str(selected.get("environment") or "production").replace("_", " ").title()),
+        ("Severity", telemetry_severity_label(selected.get("severity"))),
+        ("Status", telemetry_status_label(current_status)),
+        ("ITSM Ticket", telemetry_ticket_label(selected)),
+        ("Telemetry Rule", selected.get("telemetry_rule_id") or "unknown"),
+        ("Created At", str(selected.get("created_at") or "")[:16]),
+    ]
+    if selected.get("status_note"):
+        rows.append(("Status Note", str(selected.get("status_note"))[:200]))
+
+    table_html = (
+        "<table style='width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:8px;'>"
+        "<colgroup><col style='width:42%'><col style='width:58%'></colgroup>"
+    )
+    for label, value in rows:
+        table_html += (
+            f"<tr style='border-bottom:1px solid #f1f5f9;'>"
+            f"<td style='padding:7px 10px 7px 0;font-weight:600;color:#374151;vertical-align:top;"
+            f"white-space:nowrap;'>{label}</td>"
+            f"<td style='padding:7px 0;color:#1e293b;vertical-align:top;word-break:break-word;'>{value}</td>"
+            f"</tr>"
+        )
+    table_html += "</table>"
+    st.markdown(table_html, unsafe_allow_html=True)
+
+
+def _load_snow_config(tenant_id: str) -> Optional[Dict[str, Any]]:
+    """Load ServiceNow config saved by Client Onboarding for a given tenant."""
+    if not tenant_id:
+        return None
+    try:
+        cfg_path = Path("data") / "clients" / tenant_id / "servicenow_config.json"
+        if cfg_path.exists():
+            return json.loads(cfg_path.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return None
 
 
 def clear_lightweight_page_cache() -> None:
@@ -294,9 +441,6 @@ def telemetry_severity_label(value: str) -> str:
 # ---------------------------------------------------------------------------
 
 def render_telemetry_console_page():
-    # Import render_assistant_result here to avoid a top-level circular import.
-    from ui import render_assistant_result  # noqa: PLC0415
-
     st.subheader("Telemetry Console")
     st.caption("View telemetry-triggered incidents, inspect alert context, and run AI RCA without changing the existing Incident Console flow.")
 
@@ -318,36 +462,40 @@ def render_telemetry_console_page():
                 rca_cache[iid] = latest_rca
                 rca_completed += 1
 
-    c1, c2, c3, c4 = st.columns(4)
+    # ── Metric chips row ──────────────────────────────────────────────────────
+    _chip_style = (
+        "display:flex;align-items:center;gap:12px;border-radius:10px;"
+        "padding:12px 18px;border:1px solid;height:64px;box-sizing:border-box;width:100%;"
+    )
+    c1, c2, c3, c4 = st.columns(4, gap="medium")
     with c1:
-        metric_card("Telemetry Events", str(len(events)), "dashboard")
+        st.markdown(
+            f'<div style="{_chip_style}background:#eff6ff;border-color:#bfdbfe;">'
+            f'<span style="font-size:1.6rem;font-weight:800;color:#1d4ed8;">{len(events)}</span>'
+            f'<span style="font-size:0.78rem;font-weight:600;color:#1e40af;line-height:1.35;">Telemetry<br>Events</span></div>',
+            unsafe_allow_html=True,
+        )
     with c2:
-        metric_card("Telemetry Incidents", str(len(incidents)), "dashboard")
+        st.markdown(
+            f'<div style="{_chip_style}background:#f0fdf4;border-color:#bbf7d0;">'
+            f'<span style="font-size:1.6rem;font-weight:800;color:#15803d;">{len(incidents)}</span>'
+            f'<span style="font-size:0.78rem;font-weight:600;color:#166534;line-height:1.35;">Telemetry<br>Incidents</span></div>',
+            unsafe_allow_html=True,
+        )
     with c3:
-        metric_card("Critical / High", str(critical_high), "automation")
+        st.markdown(
+            f'<div style="{_chip_style}background:#fff7ed;border-color:#fed7aa;">'
+            f'<span style="font-size:1.6rem;font-weight:800;color:#c2410c;">{critical_high}</span>'
+            f'<span style="font-size:0.78rem;font-weight:600;color:#9a3412;line-height:1.35;">Critical<br>/ High</span></div>',
+            unsafe_allow_html=True,
+        )
     with c4:
-        metric_card("Affected Resources", str(len(resources)), "neutral")
-
-    # MF-05: Evaluate & Promote action bar
-    ev_col, pr_col, spacer = st.columns([1, 1, 4])
-    with ev_col:
-        if st.button("⚡ Evaluate Events → Incidents", key="tel_evaluate_btn", use_container_width=True):
-            try:
-                result = call_telemetry_evaluate()
-                created = result.get("created_incidents", []) or []
-                st.success(f"Evaluation complete — {len(created)} new incident(s) created.")
-                fetch_telemetry_incidents.clear()
-                st.rerun()
-            except Exception as exc:
-                st.error(f"Evaluation failed: {exc}")
-    with pr_col:
-        if st.button("📤 Promote to Knowledge", key="tel_promote_btn", use_container_width=True):
-            try:
-                result = call_telemetry_promote(limit=50)
-                promoted = result.get("promoted", 0) or len(result.get("items", []))
-                st.success(f"Promotion complete — {promoted} pattern(s) promoted.")
-            except Exception as exc:
-                st.error(f"Promotion failed: {exc}")
+        st.markdown(
+            f'<div style="{_chip_style}background:#faf5ff;border-color:#e9d5ff;">'
+            f'<span style="font-size:1.6rem;font-weight:800;color:#7e22ce;">{len(resources)}</span>'
+            f'<span style="font-size:0.78rem;font-weight:600;color:#6b21a8;line-height:1.35;">Affected<br>Resources</span></div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown("---")
 
@@ -357,7 +505,7 @@ def render_telemetry_console_page():
             <div style="text-align:center;padding:40px 20px;color:#6b7280;">
               <div style="font-size:2rem;margin-bottom:10px;">📡</div>
               <div style="font-size:1.05rem;font-weight:600;margin-bottom:6px;">No telemetry incidents yet</div>
-              <div style="font-size:0.85rem;">Click <strong>Evaluate Events → Incidents</strong> above to promote raw telemetry events into the incident queue,<br>or send an Alertmanager alert to the <code>/telemetry/events</code> endpoint.</div>
+              <div style="font-size:0.85rem;">Click the button above to convert raw telemetry events into the incident queue,<br>or send an Alertmanager alert to the <code>/telemetry/events</code> endpoint.</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -403,7 +551,34 @@ def render_telemetry_console_page():
         })
 
     # UX-08: Card-based incident queue — each card has an "Inspect" button to select it
-    st.markdown("### Telemetry Incident Queue")
+    st.markdown(
+        """<style>
+        div[data-testid="stButton"] button[kind="primaryFormSubmit"]:has(+ *),
+        div[data-testid="column"]:nth-of-type(2) div[data-testid="stButton"] > button {
+            background-color: #1e3a5f !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+        div[data-testid="column"]:nth-of-type(2) div[data-testid="stButton"] > button:hover {
+            background-color: #162d4a !important;
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    _q_left, _q_btn, _q_right = st.columns([2, 2, 2])
+    with _q_left:
+        st.markdown("### Telemetry Incident Queue")
+    with _q_btn:
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+        if st.button("Click here to update the incident queue", key="tel_evaluate_btn", use_container_width=True, type="primary"):
+            try:
+                result = call_telemetry_evaluate()
+                created = result.get("created_incidents", []) or []
+                st.success(f"Queue updated — {len(created)} new incident(s) added.")
+                fetch_telemetry_incidents.clear()
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Update failed: {exc}")
     st.caption("Incidents automatically promoted from telemetry event rules. Select a card to inspect details and run AI RCA.")
 
     _sev_colors = {"critical": "#dc2626", "high": "#ea580c", "medium": "#d97706", "low": "#16a34a", "info": "#2563eb"}
@@ -486,113 +661,193 @@ def render_telemetry_console_page():
     if existing_rca:
         rca_cache[selected_id] = existing_rca
 
-    left, right = st.columns([1.05, 1.35])
-    with left:
-        st.markdown("### Alert Details")
-        d1, d2 = st.columns(2)
-        d1.metric("Severity", telemetry_severity_label(selected.get("severity")))
-        d2.metric("Environment", str(selected.get("environment") or "unknown").replace("_", " ").title())
-        st.markdown(f"**Lifecycle Status:** {telemetry_status_label(selected.get('status') or ('rca_complete' if existing_rca else 'new'))}")
-        st.markdown(f"**Title:** {selected.get('title') or 'Telemetry Alert'}")
-        st.markdown(f"**Classification Hint:** `{selected.get('classification') or 'unknown'}`")
-        st.markdown(f"**Domain:** {nice_label(selected.get('domain') or 'general')}")
-        st.markdown(f"**Affected CI:** `{selected.get('resource') or selected.get('service') or 'unknown'}`")
-        st.markdown(f"**Trigger Metric:** `{selected.get('trigger_metric') or selected.get('metric') or 'unknown'}`")
-        st.markdown(f"**Trigger Value:** `{selected.get('trigger_value') or selected.get('value') or 'unknown'}`")
-        st.markdown(f"**Rule:** `{selected.get('telemetry_rule_id') or 'unknown'}`")
-        st.markdown("### Lifecycle")
-        current_status = str(selected.get("status") or ("rca_complete" if existing_rca else "new")).lower()
-        st.markdown(f"**Status:** {telemetry_status_label(current_status)}")
-        st.markdown(f"**ITSM:** {telemetry_ticket_label(selected)}")
-        if selected.get("status_note"):
-            st.caption(f"Latest note: {selected.get('status_note')}")
+    current_status = str(selected.get("status") or ("rca_complete" if existing_rca else "new")).lower()
 
-        action_notes = st.text_input(
-            "Lifecycle note",
-            value="",
-            placeholder="Optional note for audit trail",
-            key=f"telemetry_status_note_{selected_id}",
-        )
-        a1, a2 = st.columns(2)
-        with a1:
-            if st.button("Acknowledge", key=f"ack_tel_{selected_id}", width="stretch", disabled=current_status in {"acknowledged", "in_progress", "resolved", "suppressed"}):
-                try:
-                    update_telemetry_incident_status(selected_id, "acknowledged", notes=action_notes or "Telemetry incident acknowledged.")
-                    st.session_state.telemetry_rca_cache.pop(selected_id, None)
-                    st.success("Telemetry incident acknowledged.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Status update failed: {e}")
-            if st.button("Mark In Progress", key=f"progress_tel_{selected_id}", width="stretch", disabled=current_status in {"in_progress", "resolved", "suppressed"}):
-                try:
-                    update_telemetry_incident_status(selected_id, "in_progress", notes=action_notes or "Investigation started.")
-                    st.session_state.telemetry_rca_cache.pop(selected_id, None)
-                    st.success("Telemetry incident marked in progress.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Status update failed: {e}")
-        with a2:
-            if st.button("Mark Resolved", key=f"resolve_tel_{selected_id}", width="stretch", disabled=current_status in {"resolved", "suppressed"}):
-                try:
-                    update_telemetry_incident_status(selected_id, "resolved", notes=action_notes or "Telemetry incident resolved.")
-                    st.session_state.telemetry_rca_cache.pop(selected_id, None)
-                    st.success("Telemetry incident resolved.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Status update failed: {e}")
-            if st.button("Suppress", key=f"suppress_tel_{selected_id}", width="stretch", disabled=current_status == "suppressed"):
-                try:
-                    update_telemetry_incident_status(selected_id, "suppressed", notes=action_notes or "Telemetry incident suppressed as duplicate/noise.")
-                    st.session_state.telemetry_rca_cache.pop(selected_id, None)
-                    st.success("Telemetry incident suppressed.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Status update failed: {e}")
-
-        with st.expander("ITSM readiness", expanded=False):
-            st.caption("Stub mode only: this simulates ServiceNow readiness without calling a live ITSM API.")
-            st.markdown(f"**External System:** {selected.get('external_system') or 'Not linked'}")
-            ticket_url = selected.get("external_ticket_url")
-            ticket_id = selected.get("external_ticket_id") or "Not linked"
-            if ticket_url:
-                st.markdown(f"**External Ticket:** [{ticket_id}]({ticket_url})")
+    # ── Section 1: Alert Details | AI RCA Investigation ───────────────────────
+    with st.container(border=True):
+        left, right = st.columns([1.05, 1.35])
+        with left:
+            st.markdown("##### Alert Details")
+            _render_alert_details_table(selected, current_status)
+        with right:
+            st.markdown("##### AI RCA Investigation")
+            rca_btn_col, _ = st.columns([1, 2])
+            with rca_btn_col:
+                if existing_rca:
+                    if st.button("Re-run AI RCA", key=f"rerun_telemetry_rca_{selected_id}", use_container_width=True):
+                        try:
+                            with st.spinner("Running AI RCA..."):
+                                result = analyze_telemetry_incident(selected_id)
+                            rca_cache[selected_id] = result
+                            clear_lightweight_page_cache()
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Telemetry RCA failed: {e}")
+                else:
+                    if st.button("Run AI RCA", key=f"analyze_telemetry_rca_{selected_id}", type="primary", use_container_width=True):
+                        try:
+                            with st.spinner("Running AI RCA..."):
+                                result = analyze_telemetry_incident(selected_id)
+                            rca_cache[selected_id] = result
+                            clear_lightweight_page_cache()
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Telemetry RCA failed: {e}")
+            rca_to_show = existing_rca or rca_cache.get(selected_id) or {}
+            if rca_to_show:
+                rca_to_show = apply_ui_telemetry_rca_display_guardrail(rca_to_show, selected)
+                rca_cache[selected_id] = rca_to_show
+                _render_rca_table(rca_to_show, selected)
             else:
-                st.markdown(f"**External Ticket:** {ticket_id}")
-            st.markdown(f"**Sync Status:** {nice_label(selected.get('ticket_sync_status') or 'not_linked')}")
-            if selected.get("last_synced_at"):
-                st.markdown(f"**Last Synced:** {selected.get('last_synced_at')}")
+                st.info("No RCA available. Click **Run AI RCA** to classify this incident and generate recommended actions.")
 
-            st.markdown("#### ITSM stub actions")
+    # ── Section 2: Lifecycle Actions | Status Audit History ───────────────────
+    with st.container(border=True):
+        lc_left, lc_right = st.columns([1, 1.4])
+        with lc_left:
+            st.markdown("##### Lifecycle Actions")
+            if selected.get("status_note"):
+                st.caption(f"Latest note: {selected.get('status_note')}")
+            action_notes = st.text_input(
+                "Note for audit trail (optional)",
+                value="",
+                placeholder="e.g. CPU spike from backup job",
+                key=f"telemetry_status_note_{selected_id}",
+            )
+            a1, a2 = st.columns(2)
+            with a1:
+                if st.button("Acknowledge", key=f"ack_tel_{selected_id}", use_container_width=True, disabled=current_status in {"acknowledged", "in_progress", "resolved", "suppressed"}):
+                    try:
+                        update_telemetry_incident_status(selected_id, "acknowledged", notes=action_notes or "Telemetry incident acknowledged.")
+                        st.session_state.telemetry_rca_cache.pop(selected_id, None)
+                        st.success("Acknowledged.")
+                        clear_lightweight_page_cache()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Status update failed: {e}")
+                if st.button("Mark In Progress", key=f"progress_tel_{selected_id}", use_container_width=True, disabled=current_status in {"in_progress", "resolved", "suppressed"}):
+                    try:
+                        update_telemetry_incident_status(selected_id, "in_progress", notes=action_notes or "Investigation started.")
+                        st.session_state.telemetry_rca_cache.pop(selected_id, None)
+                        st.success("Marked in progress.")
+                        clear_lightweight_page_cache()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Status update failed: {e}")
+            with a2:
+                if st.button("Mark Resolved", key=f"resolve_tel_{selected_id}", use_container_width=True, disabled=current_status in {"resolved", "suppressed"}):
+                    try:
+                        update_telemetry_incident_status(selected_id, "resolved", notes=action_notes or "Telemetry incident resolved.")
+                        st.session_state.telemetry_rca_cache.pop(selected_id, None)
+                        st.success("Marked resolved.")
+                        clear_lightweight_page_cache()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Status update failed: {e}")
+                if st.button("Suppress", key=f"suppress_tel_{selected_id}", use_container_width=True, disabled=current_status == "suppressed"):
+                    try:
+                        update_telemetry_incident_status(selected_id, "suppressed", notes=action_notes or "Telemetry incident suppressed as duplicate/noise.")
+                        st.session_state.telemetry_rca_cache.pop(selected_id, None)
+                        st.success("Suppressed.")
+                        clear_lightweight_page_cache()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Status update failed: {e}")
+        with lc_right:
+            st.markdown("##### Status Audit History")
+            history_rows = fetch_telemetry_status_history(selected_id, limit=50)
+            if history_rows:
+                st.dataframe(
+                    [
+                        {
+                            "Time": str(row.get("created_at") or "")[:16],
+                            "From": telemetry_status_label(row.get("old_status")),
+                            "To": telemetry_status_label(row.get("new_status")),
+                            "By": row.get("updated_by"),
+                            "Notes": row.get("notes"),
+                        }
+                        for row in history_rows
+                    ],
+                    use_container_width=True,
+                    hide_index=True,
+                    height=220,
+                )
+            else:
+                st.caption("No status changes recorded yet.")
+
+    # ── Section 3: Create ITSM Incident ──────────────────────────────────────
+    with st.container(border=True):
+        st.markdown("##### Create ITSM Incident")
+        st.caption("Stub mode — simulates ServiceNow ticket creation without calling a live API.")
+
+        _tenant_id = st.session_state.get("tenant_id", st.session_state.get("selected_tenant_id", ""))
+        _snow_cfg = _load_snow_config(_tenant_id)
+        _snow_instance = (_snow_cfg or {}).get("instance_url", "").strip()
+        _snow_table = ((_snow_cfg or {}).get("table_mapping") or {}).get("incidents", "incident")
+
+        if _snow_cfg and _snow_instance:
+            st.success(f"ServiceNow configured — instance: `{_snow_instance}` · table: `{_snow_table}`")
+        else:
+            st.warning(
+                "ServiceNow not configured for this tenant. "
+                "Go to **Client Onboarding → ServiceNow Integration** to set up the connection first."
+            )
+
+        itsm_left, itsm_right = st.columns([1, 1.4])
+        with itsm_left:
+            # Current ticket link status
+            _ticket_rows = [
+                ("External System", selected.get("external_system") or "Not linked"),
+                ("External Ticket", selected.get("external_ticket_id") or "Not linked"),
+                ("Sync Status", nice_label(selected.get("ticket_sync_status") or "not_linked")),
+            ]
+            if selected.get("last_synced_at"):
+                _ticket_rows.append(("Last Synced", str(selected.get("last_synced_at"))[:16]))
+            if selected.get("external_ticket_url"):
+                _ticket_rows[1] = ("External Ticket", f"[{selected.get('external_ticket_id')}]({selected.get('external_ticket_url')})")
+            _tbl_html = "<table style='width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:10px;'>"
+            for _lbl, _val in _ticket_rows:
+                _tbl_html += (
+                    f"<tr style='border-bottom:1px solid #f1f5f9;'>"
+                    f"<td style='padding:6px 10px 6px 0;font-weight:600;color:#374151;width:42%;'>{_lbl}</td>"
+                    f"<td style='padding:6px 0;color:#1e293b;'>{_val}</td></tr>"
+                )
+            _tbl_html += "</table>"
+            st.markdown(_tbl_html, unsafe_allow_html=True)
+
+        with itsm_right:
+            _itsm_options = ["ServiceNow", "Other ITSM"]
+            _itsm_default = 0 if (_snow_cfg or not selected.get("external_system")) else (
+                1 if selected.get("external_system", "").lower() not in ("servicenow", "service_now") else 0
+            )
             itsm_system = st.selectbox(
                 "External system",
-                options=["ServiceNow", "Other ITSM"],
-                index=0,
+                options=_itsm_options,
+                index=_itsm_default,
                 key=f"itsm_system_{selected_id}",
             )
             itsm_note = st.text_input(
-                "ITSM note",
+                "Note (optional)",
                 value="",
-                placeholder="Optional note for ticket/work-notes audit",
+                placeholder="Audit note for ticket",
                 key=f"itsm_note_{selected_id}",
             )
-
-            c_create, c_push = st.columns(2)
-            with c_create:
-                if st.button("Create ITSM Ticket", key=f"create_itsm_{selected_id}", width="stretch"):
+            _a1, _a2 = st.columns(2)
+            with _a1:
+                if st.button("Create ITSM Ticket", key=f"create_itsm_{selected_id}", use_container_width=True, type="primary"):
                     try:
-                        create_telemetry_itsm_ticket(selected_id, external_system=itsm_system, notes=itsm_note)
+                        _note = itsm_note or f"Telemetry incident via {itsm_system}, table={_snow_table}"
+                        if _snow_instance:
+                            _note += f" (instance: {_snow_instance})"
+                        create_telemetry_itsm_ticket(selected_id, external_system=itsm_system, notes=_note)
                         st.session_state.telemetry_rca_cache.pop(selected_id, None)
                         st.success("ITSM ticket stub created.")
                         clear_lightweight_page_cache()
                         st.rerun()
                     except Exception as e:
                         st.error(f"ITSM create failed: {e}")
-            with c_push:
-                if st.button("Push RCA to Work Notes", key=f"push_itsm_notes_{selected_id}", width="stretch", disabled=not selected.get("external_ticket_id")):
+            with _a2:
+                if st.button("Push RCA to Work Notes", key=f"push_itsm_notes_{selected_id}", use_container_width=True, disabled=not selected.get("external_ticket_id")):
                     try:
                         push_telemetry_itsm_work_notes(selected_id, external_system=itsm_system, notes=itsm_note)
                         st.session_state.telemetry_rca_cache.pop(selected_id, None)
@@ -602,94 +857,37 @@ def render_telemetry_console_page():
                     except Exception as e:
                         st.error(f"Push work notes failed: {e}")
 
-            st.markdown("##### Link existing ticket")
-            link_ticket_id = st.text_input(
-                "Existing ITSM ticket ID",
-                value="",
-                placeholder="Example: INC0012345",
-                key=f"link_itsm_ticket_{selected_id}",
-            )
-            link_ticket_url = st.text_input(
-                "Existing ITSM ticket URL",
-                value="",
-                placeholder="Optional",
-                key=f"link_itsm_url_{selected_id}",
-            )
-            if st.button("Link Existing Ticket", key=f"link_itsm_{selected_id}", width="stretch", disabled=not link_ticket_id.strip()):
-                try:
-                    link_telemetry_itsm_ticket(
-                        selected_id,
-                        external_ticket_id=link_ticket_id.strip(),
-                        external_system=itsm_system,
-                        external_ticket_url=link_ticket_url.strip() or None,
-                        notes=itsm_note,
+            with st.expander("Link an existing ticket", expanded=False):
+                _lnk1, _lnk2 = st.columns(2)
+                with _lnk1:
+                    link_ticket_id = st.text_input(
+                        "Existing ticket ID",
+                        value="",
+                        placeholder="INC0012345",
+                        key=f"link_itsm_ticket_{selected_id}",
                     )
-                    st.session_state.telemetry_rca_cache.pop(selected_id, None)
-                    st.success("Existing ITSM ticket linked.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"ITSM link failed: {e}")
-
-        with st.expander("Lifecycle / ITSM audit history", expanded=False):
-            history_rows = fetch_telemetry_status_history(selected_id, limit=50)
-            if history_rows:
-                st.dataframe([
-                    {
-                        "Time": row.get("created_at"),
-                        "From": telemetry_status_label(row.get("old_status")),
-                        "To": telemetry_status_label(row.get("new_status")),
-                        "Updated By": row.get("updated_by"),
-                        "Notes": row.get("notes"),
-                    }
-                    for row in history_rows
-                ], width="stretch", hide_index=True)
-            else:
-                st.caption("No lifecycle status history yet.")
-
-    with right:
-        st.markdown("### AI RCA")
-        if existing_rca:
-            st.success("RCA already available for this telemetry incident.")
-            if st.button("Re-run AI RCA", key=f"rerun_telemetry_rca_{selected_id}", width="stretch"):
-                try:
-                    with st.spinner("Running AI RCA for telemetry incident..."):
-                        result = analyze_telemetry_incident(selected_id)
-                    rca_cache[selected_id] = result
-                    st.success("Telemetry RCA refreshed.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Telemetry RCA failed: {e}")
-        else:
-            st.info("No RCA result stored yet. Run AI RCA to classify, retrieve similar incidents, and generate recommended actions.")
-            if st.button("Analyze RCA", key=f"analyze_telemetry_rca_{selected_id}", type="primary", width="stretch"):
-                try:
-                    with st.spinner("Running AI RCA for telemetry incident..."):
-                        result = analyze_telemetry_incident(selected_id)
-                    rca_cache[selected_id] = result
-                    st.success("Telemetry RCA completed.")
-                    clear_lightweight_page_cache()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Telemetry RCA failed: {e}")
-
-        rca_to_show = existing_rca or rca_cache.get(selected_id) or {}
-        if rca_to_show:
-            rca_to_show = apply_ui_telemetry_rca_display_guardrail(rca_to_show, selected)
-            rca_cache[selected_id] = rca_to_show
-            render_assistant_result(rca_to_show, rca_to_show.get("submitted_ticket") or selected.get("content") or "Telemetry incident", f"telemetry_{selected_id}")
-            # Peer benchmark — text pattern match on the incident description
-            _tel_text = (
-                selected.get("short_description")
-                or selected.get("description")
-                or selected.get("content")
-                or (rca_to_show.get("analysis") or {}).get("classification")
-                or ""
-            )
-            if _tel_text:
-                from page_modules.peer_insights import render_peer_insights_panel
-                render_peer_insights_panel(_tel_text, client_id="client_a")
+                with _lnk2:
+                    link_ticket_url = st.text_input(
+                        "Ticket URL (optional)",
+                        value="",
+                        placeholder="https://instance.service-now.com/...",
+                        key=f"link_itsm_url_{selected_id}",
+                    )
+                if st.button("Link Existing Ticket", key=f"link_itsm_{selected_id}", disabled=not link_ticket_id.strip()):
+                    try:
+                        link_telemetry_itsm_ticket(
+                            selected_id,
+                            external_ticket_id=link_ticket_id.strip(),
+                            external_system=itsm_system,
+                            external_ticket_url=link_ticket_url.strip() or None,
+                            notes=itsm_note,
+                        )
+                        st.session_state.telemetry_rca_cache.pop(selected_id, None)
+                        st.success("Existing ITSM ticket linked.")
+                        clear_lightweight_page_cache()
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"ITSM link failed: {e}")
 
     with st.expander("Recent raw telemetry events", expanded=False):
         if events:
@@ -704,7 +902,7 @@ def render_telemetry_console_page():
                     "Environment": item.get("environment"),
                     "Source": item.get("source"),
                 })
-            st.dataframe(event_rows, width="stretch", hide_index=True)
+            st.dataframe(event_rows, use_container_width=True, hide_index=True)
         else:
             st.caption("No raw telemetry events available.")
 

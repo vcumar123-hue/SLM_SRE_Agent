@@ -494,9 +494,215 @@ def render_backtesting_page():
         except Exception:
             pass
 
+    # ── Pattern Analysis: Recurring Incidents & Causal Chains ───────────────
     st.markdown("---")
+    st.markdown("### 🔁 Pattern Analysis — Problem Management Intelligence")
+    st.caption(
+        "Historical analysis of your incident log. Identifies recurring patterns, "
+        "frequency trends, and — without a topology map — automatically discovers which "
+        "incidents reliably precede or follow each pattern. Use this to target root cause "
+        "fixes rather than repeatedly resolving the same symptoms."
+    )
+
+    _run_col, _sp1, _sp2, _sp3, _sp4 = st.columns([1.6, 1, 1, 1, 1])
+    with _run_col:
+        if st.button("▶ Run Pattern Analysis", key="bt_run_pmc",
+                     help="Scans incident history for recurring patterns and causal chains"):
+            try:
+                _resp = SESSION.post(
+                    f"{BACKEND_URL}/run_global_pattern_analytics",
+                    params={"dry_run": False},
+                    timeout=120,
+                )
+                if _resp.ok:
+                    _r = _resp.json()
+                    st.session_state["_pmc_result"] = _r
+                    st.success(
+                        f"Done — {_r.get('total_candidates', 0)} recurring patterns identified, "
+                        f"{_r.get('with_causal_chain', 0)} with causal chains, "
+                        f"{_r.get('high_priority', 0)} high priority."
+                    )
+                    st.rerun()
+                else:
+                    st.error("Pattern analysis failed.")
+            except Exception as _e:
+                st.error(f"Pattern analysis error: {_e}")
+
+    # Fetch candidates (live, read-only)
+    _pmc_candidates: list = []
+    try:
+        _pr = SESSION.get(f"{BACKEND_URL}/global_pattern_stats", timeout=30)
+        if _pr.ok:
+            _pmc_candidates = _pr.json().get("candidates", [])
+    except Exception:
+        pass
+
+    if _pmc_candidates:
+        _high   = sum(1 for c in _pmc_candidates if c.get("problem_management_priority") == "high")
+        _medium = sum(1 for c in _pmc_candidates if c.get("problem_management_priority") == "medium")
+        _chains = sum(1 for c in _pmc_candidates if c.get("has_causal_chain"))
+        _up     = sum(1 for c in _pmc_candidates if c.get("trend") == "increasing")
+
+        with _sp1: metric_card("Patterns", str(len(_pmc_candidates)), "dashboard")
+        with _sp2: metric_card("🔴 High", str(_high), "automation")
+        with _sp3: metric_card("With Chain", str(_chains), "knowledge")
+        with _sp4: metric_card("↑ Increasing", str(_up), "neutral")
+
+        # ── Summary table ────────────────────────────────────────────────────
+        import pandas as pd
+        _rows = []
+        for c in _pmc_candidates[:25]:
+            _rows.append({
+                "Priority": {"high": "🔴 High", "medium": "🟡 Medium", "low": "🟢 Low"}.get(
+                    c.get("problem_management_priority", "low"), "—"),
+                "Pattern": c["classification"].replace("_", " ").title(),
+                "Occurrences": c["occurrence_count"],
+                "Trend": f"{c.get('trend_arrow','→')} {c.get('trend','').title()}",
+                "Variance": c.get("variance", "").title(),
+                "Avg Confidence": round(c.get("avg_confidence", 0), 3),
+                "Recurs every": f"{c['mean_time_between_hours']}h" if c.get("mean_time_between_hours") else "—",
+                "Chain": "✅" if c.get("has_causal_chain") else "—",
+            })
+        _df = pd.DataFrame(_rows)
+        st.dataframe(
+            _df, use_container_width=True, hide_index=True,
+            column_config={
+                "Occurrences": st.column_config.ProgressColumn(
+                    min_value=0, max_value=max(r["Occurrences"] for r in _rows) or 1, format="%d"),
+                "Avg Confidence": st.column_config.ProgressColumn(
+                    min_value=0.0, max_value=1.0, format="%.3f"),
+            },
+        )
+
+        # ── Causal chain cards ───────────────────────────────────────────────
+        _chain_cands = [c for c in _pmc_candidates if c.get("has_causal_chain")]
+        if _chain_cands:
+            st.markdown("#### Causal Chain Detail")
+            st.caption(
+                "Each card shows what reliably happens **before** (upstream root cause signal) "
+                "and **after** (downstream blast radius) each recurring pattern. "
+                "Fix the upstream cause — prevent both."
+            )
+
+            for _c in _chain_cands[:10]:
+                _cls      = _c["classification"].replace("_", " ").title()
+                _priority = _c.get("problem_management_priority", "low")
+                _arrow    = _c.get("trend_arrow", "→")
+                _count    = _c.get("occurrence_count", 0)
+                _variance = _c.get("variance", "low")
+                _upstream = _c.get("upstream_precursors", [])
+                _dnstream = _c.get("downstream_impacts", [])
+                _rec      = _c.get("recommendation", "")
+                _mtbo     = _c.get("mean_time_between_hours")
+
+                _pcol  = {"high": "#ef4444", "medium": "#f59e0b", "low": "#10b981"}.get(_priority, "#6b7280")
+                _acol  = {"↑": "#ef4444", "↓": "#10b981", "→": "#94a3b8"}.get(_arrow, "#94a3b8")
+                _vcol  = {"low": "#10b981", "medium": "#f59e0b", "high": "#ef4444"}.get(_variance, "#6b7280")
+                _vdots = {"low": "●○○", "medium": "●●○", "high": "●●●"}.get(_variance, "●○○")
+
+                # Build upstream HTML nodes
+                def _node(text: str, sub: str, side: str) -> str:
+                    bg   = "#fef3c7" if side == "up" else "#dcfce7"
+                    bord = "#f59e0b" if side == "up" else "#22c55e"
+                    align = "right" if side == "up" else "left"
+                    return (
+                        f'<div style="background:{bg};border:1.5px solid {bord};border-radius:10px;'
+                        f'padding:10px 14px;text-align:{align};min-width:160px;max-width:200px;">'
+                        f'<div style="font-size:0.78rem;font-weight:700;color:#1f2937;line-height:1.3;">{text}</div>'
+                        f'<div style="font-size:0.69rem;color:#64748b;margin-top:3px;">{sub}</div>'
+                        f'</div>'
+                    )
+
+                def _arrow_seg(label: str, direction: str) -> str:
+                    col = "#f59e0b" if direction == "up" else "#22c55e"
+                    sym = "──▶" if direction == "dn" else "◀──"
+                    return (
+                        f'<div style="display:flex;flex-direction:column;align-items:center;'
+                        f'justify-content:center;padding:0 6px;min-width:80px;">'
+                        f'<div style="font-size:1.1rem;color:{col};">{sym}</div>'
+                        f'<div style="font-size:0.65rem;color:#94a3b8;text-align:center;">{label}</div>'
+                        f'</div>'
+                    )
+
+                # Anchor node (center)
+                _anchor_html = (
+                    f'<div style="background:#1e293b;border:2px solid {_pcol};border-radius:12px;'
+                    f'padding:14px 18px;text-align:center;min-width:180px;">'
+                    f'<div style="font-size:0.65rem;color:{_pcol};font-weight:700;letter-spacing:0.08em;'
+                    f'text-transform:uppercase;margin-bottom:4px;">{_priority} priority</div>'
+                    f'<div style="font-size:0.9rem;font-weight:800;color:#f1f5f9;line-height:1.25;">{_cls}</div>'
+                    f'<div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'
+                    f'<span style="font-size:0.68rem;background:#334155;color:#cbd5e1;padding:2px 7px;'
+                    f'border-radius:20px;">{_count} occurrences</span>'
+                    f'<span style="font-size:0.68rem;color:{_acol};font-weight:700;">{_arrow} {_c.get("trend","").title()}</span>'
+                    f'</div>'
+                    f'<div style="margin-top:6px;font-size:0.65rem;color:{_vcol};">'
+                    f'{_vdots} {_variance.title()} variance'
+                    + (f' · recurs ~{_mtbo}h' if _mtbo else "")
+                    + f'</div></div>'
+                )
+
+                # Upstream column
+                _up_html = ""
+                if _upstream:
+                    for _u in _upstream[:2]:
+                        _ut = _u["classification"].replace("_", " ").title()
+                        _ul = f"{int(_u['hit_rate']*100)}% · avg {_u['avg_minutes_before']}m before"
+                        _up_html += _node(_ut, _ul, "up")
+                        _up_html += '<div style="height:8px;"></div>'
+                else:
+                    _up_html = '<div style="font-size:0.72rem;color:#94a3b8;padding:8px;">No upstream signal detected</div>'
+
+                # Downstream column
+                _dn_html = ""
+                if _dnstream:
+                    for _d in _dnstream[:2]:
+                        _dt = _d["classification"].replace("_", " ").title()
+                        _dl = f"{int(_d['hit_rate']*100)}% · avg {_d['avg_minutes_after']}m after"
+                        _dn_html += _node(_dt, _dl, "dn")
+                        _dn_html += '<div style="height:8px;"></div>'
+                else:
+                    _dn_html = '<div style="font-size:0.72rem;color:#94a3b8;padding:8px;">No downstream impact detected</div>'
+
+                _up_arrow = _arrow_seg(
+                    f"{_upstream[0]['avg_minutes_before']}m" if _upstream else "", "up"
+                ) if _upstream else '<div style="width:60px;"></div>'
+                _dn_arrow = _arrow_seg(
+                    f"{_dnstream[0]['avg_minutes_after']}m" if _dnstream else "", "dn"
+                ) if _dnstream else '<div style="width:60px;"></div>'
+
+                _chain_html = (
+                    f'<div style="display:flex;align-items:center;justify-content:center;'
+                    f'gap:0;padding:16px 0;flex-wrap:wrap;">'
+                    f'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:0;">'
+                    f'{_up_html}</div>'
+                    f'{_up_arrow}'
+                    f'{_anchor_html}'
+                    f'{_dn_arrow}'
+                    f'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:0;">'
+                    f'{_dn_html}</div>'
+                    f'</div>'
+                )
+
+                with st.expander(
+                    f"{_cls}  ·  {_count} occurrences  ·  {_arrow} {_c.get('trend','').title()}  "
+                    f"·  {'🔗 Causal chain' if (_upstream or _dnstream) else ''}",
+                    expanded=False,
+                ):
+                    st.markdown(_chain_html, unsafe_allow_html=True)
+
+                    if _rec:
+                        st.markdown(
+                            f'<div style="margin-top:12px;padding:12px 16px;background:#f0f9ff;'
+                            f'border-left:4px solid #0ea5e9;border-radius:6px;font-size:0.82rem;color:#0c4a6e;">'
+                            f'<strong>Problem Management Recommendation:</strong><br>{_rec}</div>',
+                            unsafe_allow_html=True,
+                        )
+    else:
+        st.caption("Click **▶ Run Pattern Analysis** to analyse your incident history for recurring patterns and causal chains.")
 
     # ── Incident selector ────────────────────────────────────────────────────
+    st.markdown("---")
     incidents = collect_persisted_incidents()
     if not incidents:
         restore_last_incident_snapshot_if_needed()

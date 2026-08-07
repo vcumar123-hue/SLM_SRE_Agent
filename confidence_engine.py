@@ -252,6 +252,10 @@ def compute_confidence_score(
         staleness_score=clamp01(staleness_score),
         collection_priority_score=clamp01(collection_priority_score),
     )
+    # Zero retrieval quality = no KB matches at all — keyword-only classification.
+    # Cap confidence at 0.35 so the UI never shows a misleadingly high score.
+    if retrieval_quality == 0.0:
+        primary_confidence = min(primary_confidence, 0.35)
     decision = decide_action(primary_confidence)
     return {
         "embedding_score": round(clamp01(embedding_score), 4),

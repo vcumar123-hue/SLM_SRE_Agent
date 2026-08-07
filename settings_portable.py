@@ -75,6 +75,7 @@ FEEDBACK_DEBUG_FILE = Path(os.getenv("FEEDBACK_DEBUG_FILE", DEBUG_LOG_DIR / "fee
 FALLBACK_DEBUG_FILE = Path(os.getenv("FALLBACK_DEBUG_FILE", DEBUG_LOG_DIR / "fallback_debug.jsonl"))
 PIPELINE_DEBUG_FILE = Path(os.getenv("PIPELINE_DEBUG_FILE", DEBUG_LOG_DIR / "pipeline_debug.jsonl"))
 UI_DEBUG_FILE = Path(os.getenv("UI_DEBUG_FILE", DEBUG_LOG_DIR / "ui_debug.jsonl"))
+PROMOTION_AUDIT_FILE = Path(os.getenv("PROMOTION_AUDIT_FILE", DEBUG_LOG_DIR / "promotion_audit.jsonl"))
 
 # Ensure directories exist
 for p in [
@@ -92,19 +93,85 @@ for p in [
     FALLBACK_DEBUG_FILE,
     PIPELINE_DEBUG_FILE,
     UI_DEBUG_FILE,
+    PROMOTION_AUDIT_FILE,
 ]:
     ensure_dir(p.parent)
 
 
 # -------------------------------------------------------------------
-# Model / Embedding config
+# Model / Embedding config  — auto-detects LM Studio or Ollama
 # -------------------------------------------------------------------
-MODEL_BASE_URL = os.getenv("MODEL_BASE_URL", "http://localhost:1234/v1")
-PRIMARY_CHAT_MODEL = os.getenv("PRIMARY_CHAT_MODEL", "gemma-3-4b-it")
-PRIMARY_VISION_MODEL = os.getenv("PRIMARY_VISION_MODEL", PRIMARY_CHAT_MODEL)
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
 
-MODEL_API_KEY = os.getenv("MODEL_API_KEY", "lm-studio")
+# Model name translations: LM Studio filename → Ollama tag
+_OLLAMA_MODEL_MAP: Dict[str, str] = {
+    "gemma-3-4b-it":                       "gemma3:4b",
+    "google/gemma-3-4b":                   "gemma3:4b",
+    "gemma-3n-4b-vision-finetuned-i1":     "gemma3n:4b",
+    "text-embedding-nomic-embed-text-v1.5": "nomic-embed-text",
+    "qwen2.5-3b-instruct":                 "qwen2.5:3b",
+}
+
+
+def _detect_local_model_provider() -> tuple[str, str, str]:
+    """
+    Probe known local model servers in order: LM Studio → Ollama (local) → Ollama (Docker).
+    Returns (base_url, api_key, provider_label).
+    Uses only stdlib so there are no import-order issues.
+    """
+    import urllib.request
+    import urllib.error
+
+    candidates = [
+        ("lmstudio",      "http://localhost:1234/v1",  "lm-studio"),
+        ("ollama_local",  "http://localhost:11434/v1", "ollama"),
+        ("ollama_docker", "http://ollama:11434/v1",    "ollama"),
+    ]
+    for label, url, api_key in candidates:
+        try:
+            req = urllib.request.Request(
+                f"{url}/models",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            with urllib.request.urlopen(req, timeout=2) as resp:
+                if resp.status == 200:
+                    return url, api_key, label
+        except Exception:
+            continue
+    # Nothing found — fall back to LM Studio default so existing code still works
+    return "http://localhost:1234/v1", "lm-studio", "none"
+
+
+def _remap_model(name: str, provider: str) -> str:
+    """Translate an LM Studio model name to its Ollama equivalent when needed."""
+    if provider.startswith("ollama"):
+        return _OLLAMA_MODEL_MAP.get(name, name)
+    return name
+
+
+# If MODEL_BASE_URL is explicitly set, trust it and skip probing.
+_explicit_url = os.getenv("MODEL_BASE_URL")
+if _explicit_url:
+    MODEL_BASE_URL  = _explicit_url
+    MODEL_API_KEY   = os.getenv("MODEL_API_KEY", "lm-studio")
+    LOCAL_MODEL_PROVIDER = os.getenv("LOCAL_MODEL_PROVIDER", "explicit")
+else:
+    MODEL_BASE_URL, MODEL_API_KEY, LOCAL_MODEL_PROVIDER = _detect_local_model_provider()
+    print(f"[settings] Local model provider detected: {LOCAL_MODEL_PROVIDER} → {MODEL_BASE_URL}")
+
+# Model names — env vars win; otherwise use defaults remapped for the detected provider
+PRIMARY_CHAT_MODEL = os.getenv(
+    "PRIMARY_CHAT_MODEL",
+    _remap_model("gemma-3-4b-it", LOCAL_MODEL_PROVIDER),
+)
+PRIMARY_VISION_MODEL = os.getenv(
+    "PRIMARY_VISION_MODEL",
+    _remap_model("gemma-3n-4b-vision-finetuned-i1", LOCAL_MODEL_PROVIDER),
+)
+EMBEDDING_MODEL = os.getenv(
+    "EMBEDDING_MODEL",
+    _remap_model("text-embedding-nomic-embed-text-v1.5", LOCAL_MODEL_PROVIDER),
+)
+
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60"))
 
 
@@ -127,7 +194,7 @@ HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.7"))
 # -------------------------------------------------------------------
 # Confidence config
 # -------------------------------------------------------------------
-CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.40"))
+CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.65"))
 HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.75"))
 
 WEIGHT_EMBEDDING_SCORE = float(os.getenv("WEIGHT_EMBEDDING_SCORE", "0.35"))

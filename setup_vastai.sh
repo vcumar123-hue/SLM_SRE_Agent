@@ -1,115 +1,157 @@
 #!/usr/bin/env bash
-# setup_vastai.sh — One-command bootstrap for vast.ai (or any clean Linux host)
+# ============================================================
+# vast.ai Bootstrap Script
+# Run this once after launching your vast.ai instance to
+# deploy the AI SRE Platform POC.
+#
+# Prerequisites on the vast.ai instance:
+#   - Docker + docker compose installed (vast.ai base images include these)
+#   - GROQ_API_KEY environment variable set (or passed via --groq-key)
 #
 # Usage:
-#   1. SSH into your vast.ai instance
-#   2. Upload or clone this repo:
-#        git clone https://github.com/YOUR_ORG/ai-slm-platform.git /workspace/ai-slm
-#   3. Run:
-#        cd /workspace/ai-slm
-#        cp .env.vastai.example .env
-#        nano .env            # fill in GROQ_API_KEY and PGPASSWORD
-#        chmod +x setup_vastai.sh && ./setup_vastai.sh
-
+#   # On your local machine, SSH to the vast.ai instance and run:
+#   curl -sSL https://raw.githubusercontent.com/YOUR_ORG/ai-slm/main/setup_vastai.sh | bash
+#
+#   # Or upload and run:
+#   scp setup_vastai.sh root@<vast-ip>:/root/
+#   ssh root@<vast-ip> "bash setup_vastai.sh --groq-key gsk_xxx"
+# ============================================================
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-$(pwd)}"
-COMPOSE_FILE="$REPO_DIR/infra/docker-compose.vastai.yml"
+GROQ_KEY="${GROQ_API_KEY:-}"
+REPO_DIR="${REPO_DIR:-/workspace/ai-slm}"
+COMPOSE_FILE="infra/docker-compose.vastai.yml"
+PGPASSWORD="${PGPASSWORD:-AiOpsPOC2024!}"
 
-echo ""
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║      AI SRE Platform — vast.ai Setup                ║"
-echo "╚══════════════════════════════════════════════════════╝"
-echo ""
-
-# ── Preflight checks ──────────────────────────────────────────────────────────
-check_cmd() { command -v "$1" &>/dev/null || { echo "✗ Required: $1"; exit 1; }; }
-check_cmd docker
-check_cmd docker compose 2>/dev/null || check_cmd "docker-compose"
-
-if [ ! -f "$REPO_DIR/.env" ]; then
-    echo "ERROR: .env not found. Copy .env.vastai.example → .env and fill in your keys."
-    echo "  cp .env.vastai.example .env && nano .env"
-    exit 1
-fi
-
-# Validate required vars
-source "$REPO_DIR/.env"
-[ -z "${GROQ_API_KEY:-}" ] && echo "ERROR: GROQ_API_KEY not set in .env" && exit 1
-[ -z "${PGPASSWORD:-}" ]   && echo "ERROR: PGPASSWORD not set in .env" && exit 1
-
-echo "✓ .env validated"
-
-# ── Step 1: Pull / build images ───────────────────────────────────────────────
-echo ""
-echo "▶ Step 1/5 — Building Docker images (this takes ~5 min on first run)..."
-docker compose -f "$COMPOSE_FILE" build --quiet
-echo "   ✓ Images built."
-
-# ── Step 2: Start infrastructure services first ───────────────────────────────
-echo ""
-echo "▶ Step 2/5 — Starting Postgres and Qdrant..."
-docker compose -f "$COMPOSE_FILE" up -d postgres qdrant
-echo "   Waiting 15s for services to initialise..."
-sleep 15
-echo "   ✓ Infrastructure services up."
-
-# ── Step 3: Import data (Postgres dump + Qdrant snapshots) ────────────────────
-echo ""
-echo "▶ Step 3/5 — Importing data..."
-
-if [ -n "${DATA_PACKAGE_URL:-}" ]; then
-    echo "   Downloading data package from $DATA_PACKAGE_URL ..."
-    mkdir -p "$REPO_DIR/data_package"
-    curl -L "$DATA_PACKAGE_URL" | tar -xz -C "$REPO_DIR/data_package"
-fi
-
-if [ -d "$REPO_DIR/data_package" ]; then
-    docker compose -f "$COMPOSE_FILE" run --rm \
-        -v "$REPO_DIR/data_package:/data_package:ro" \
-        app bash -c "cd /app && DATA_DIR=/data_package ./scripts/import_postgres.sh"
-    echo "   ✓ Data imported."
-else
-    echo "   ⚠ No data_package/ found — platform will start with seed data only."
-    echo "     To import later: ./scripts/import_postgres.sh"
-fi
-
-# ── Step 4: Start all services ────────────────────────────────────────────────
-echo ""
-echo "▶ Step 4/5 — Starting all platform services..."
-docker compose -f "$COMPOSE_FILE" up -d
-echo "   ✓ All services started."
-
-# ── Step 5: Run POC seed ──────────────────────────────────────────────────────
-echo ""
-echo "▶ Step 5/5 — Seeding POC scenarios..."
-echo "   Waiting 30s for app to be ready..."
-sleep 30
-
-MAX_WAIT=120; WAITED=0
-until curl -sf "http://localhost:8001/health" > /dev/null 2>&1; do
-    sleep 5; WAITED=$((WAITED + 5))
-    [ $WAITED -ge $MAX_WAIT ] && echo "   ⚠ App not ready after ${MAX_WAIT}s — skipping seed" && break
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --groq-key) GROQ_KEY="$2"; shift 2 ;;
+    --dir)      REPO_DIR="$2"; shift 2 ;;
+    *) echo "Unknown: $1"; exit 1 ;;
+  esac
 done
 
-if curl -sf "http://localhost:8001/health" > /dev/null 2>&1; then
-    docker compose -f "$COMPOSE_FILE" exec -T app \
-        python poc/seed_poc.py --all --mode both 2>/dev/null
-    echo "   ✓ POC scenarios seeded."
+echo ""
+echo "══════════════════════════════════════════════════════"
+echo "  AI SRE Platform — vast.ai Setup"
+echo "══════════════════════════════════════════════════════"
+echo "  Deploy dir : $REPO_DIR"
+echo "  Compose    : $COMPOSE_FILE"
+echo ""
+
+# 1. Validate GROQ key
+if [ -z "$GROQ_KEY" ]; then
+  echo "ERROR: GROQ_API_KEY is required."
+  echo "  Set it: export GROQ_API_KEY=gsk_... or pass --groq-key gsk_..."
+  exit 1
 fi
 
-# ── Summary ───────────────────────────────────────────────────────────────────
-PUBLIC_IP=$(curl -sf http://checkip.amazonaws.com 2>/dev/null || echo "<vast-ai-public-ip>")
+# 2. Check Docker
+if ! command -v docker &>/dev/null; then
+  echo "[setup] Installing Docker..."
+  curl -fsSL https://get.docker.com | sh
+fi
+docker compose version || { echo "ERROR: docker compose not available"; exit 1; }
+
+# 3. Navigate to repo dir (assume code is already there or clone it)
+if [ ! -d "$REPO_DIR" ]; then
+  echo ""
+  echo "ERROR: Directory $REPO_DIR not found."
+  echo "  Upload or clone your AI SRE Platform code there first."
+  echo "  Example: git clone <your-repo-url> $REPO_DIR"
+  exit 1
+fi
+cd "$REPO_DIR"
+
+# 4. Write .env
+echo "[setup] Writing .env..."
+cat > .env <<EOF
+PRIMARY_PROVIDER=groq
+GROQ_API_KEY=${GROQ_KEY}
+GROQ_MODEL=llama-3.3-70b-versatile
+LM_STUDIO_BASE_URL=
+
+PGHOST=aiops-postgres
+PGPORT=5432
+PGDATABASE=aiops
+PGUSER=aiops_user
+PGPASSWORD=${PGPASSWORD}
+
+QDRANT_URL=http://aiops-qdrant:6333
+
+AIOPS_DEFAULT_TENANT_ID=poc_client
+AIOPS_TENANT_CONFIG_DIR=/app/tenant_config
+AIOPS_API_KEY=
+AIOPS_BACKEND_URL=http://aiops-app:8000
+
+CONFIDENCE_THRESHOLD=0.48
+MIN_RETRIEVAL_SCORE=0.25
+FALLBACK_PROVIDER=groq
+
+EMBEDDING_MODEL=text-embedding-nomic-embed-text-v1.5
+EMBEDDING_DEVICE=cpu
+
+STREAMLIT_SERVER_PORT=8501
+STREAMLIT_SERVER_ADDRESS=0.0.0.0
+STREAMLIT_SERVER_HEADLESS=true
+STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+
+LOG_LEVEL=info
+APP_ENV=poc
+EOF
+echo "[setup] .env written. ✓"
+
+# 5. Build images
+echo ""
+echo "[setup] Building Docker images (this takes ~5-10 min on first run)..."
+docker compose -f "$COMPOSE_FILE" build --parallel
+
+# 6. Start services
+echo ""
+echo "[setup] Starting services..."
+docker compose -f "$COMPOSE_FILE" up -d
+
+# 7. Wait for backend health
+echo ""
+echo "[setup] Waiting for backend to become healthy..."
+MAX_WAIT=180
+WAITED=0
+until docker compose -f "$COMPOSE_FILE" exec -T app curl -sf http://localhost:8000/health > /dev/null 2>&1; do
+  if [ $WAITED -ge $MAX_WAIT ]; then
+    echo "WARNING: Backend not healthy after ${MAX_WAIT}s."
+    echo "  Check logs: docker compose -f $COMPOSE_FILE logs app"
+    break
+  fi
+  echo "  ... waiting (${WAITED}s)"
+  sleep 10
+  WAITED=$((WAITED+10))
+done
+
+# 8. Run POC seed
+echo ""
+echo "[setup] Running POC seed (register CIs + seed knowledge)..."
+docker compose -f "$COMPOSE_FILE" exec app python poc/seed_poc.py --setup-only --backend http://localhost:8000
+
+# 9. Done
+VAST_IP=$(curl -sf http://ifconfig.me 2>/dev/null || echo "<your-vast-ip>")
 
 echo ""
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║  Platform ready!                                    ║"
-echo "╠══════════════════════════════════════════════════════╣"
-echo "║  UI (Streamlit):   http://$PUBLIC_IP:8501         ║"
-echo "║  API (FastAPI):    http://$PUBLIC_IP:8001/docs    ║"
-echo "║  API health:       http://$PUBLIC_IP:8001/health  ║"
-echo "╠══════════════════════════════════════════════════════╣"
-echo "║  Manage:  docker compose -f infra/docker-compose.vastai.yml logs -f  ║"
-echo "║  Stop:    docker compose -f infra/docker-compose.vastai.yml down     ║"
-echo "╚══════════════════════════════════════════════════════╝"
+echo "══════════════════════════════════════════════════════"
+echo "  ✅ Deployment complete!"
 echo ""
+echo "  Streamlit UI  → http://${VAST_IP}:8501"
+echo "  FastAPI docs  → http://${VAST_IP}:8001/docs"
+echo ""
+echo "  Next steps:"
+echo "  1. Open the UI and go to 🚀 POC Console"
+echo "  2. Click 'Setup' → Register CIs + Seed Knowledge"
+echo "  3. Upload your ticket data (optional)"
+echo "  4. Run Reactive Scenarios and Proactive Detection"
+echo ""
+echo "  Useful commands:"
+echo "  docker compose -f $COMPOSE_FILE logs -f app    # backend logs"
+echo "  docker compose -f $COMPOSE_FILE logs -f ui     # UI logs"
+echo "  docker compose -f $COMPOSE_FILE ps             # service status"
+echo "  docker compose -f $COMPOSE_FILE down           # stop all"
+echo "══════════════════════════════════════════════════════"

@@ -108,6 +108,29 @@ except Exception:
     _new_modules_loaded = False
 
 
+def _backend_post(url: str, *, json=None, data=None, files=None, timeout: int) -> "requests.Response":
+    """POST to the backend with one automatic retry on connection-abort errors.
+
+    uvicorn --reload can kill a worker mid-request (WSAECONNABORTED / RemoteDisconnected).
+    A single retry after a short pause recovers transparently in almost every case.
+    """
+    import time as _time
+    _RETRYABLE = (
+        requests.exceptions.ConnectionError,
+        requests.exceptions.ChunkedEncodingError,
+        ConnectionAbortedError,
+        ConnectionResetError,
+    )
+    for attempt in range(2):
+        try:
+            return SESSION.post(url, json=json, data=data, files=files, timeout=timeout)
+        except _RETRYABLE as exc:
+            if attempt == 0:
+                _time.sleep(1.5)
+                continue
+            raise
+
+
 def call_backend_with_text(
     user_input: str,
     use_fallback: bool = True,
@@ -138,7 +161,7 @@ def call_backend_with_text(
             )
         }
 
-        response = SESSION.post(f"{BACKEND_URL}/analyze", data=data, files=files, timeout=REQUEST_TIMEOUT_LONG)
+        response = _backend_post(f"{BACKEND_URL}/analyze", data=data, files=files, timeout=REQUEST_TIMEOUT_LONG)
         if not response.ok:
             try:
                 detail = response.json().get("detail", response.text[:500])
@@ -163,7 +186,7 @@ def call_backend_with_text(
     }
     if confirm_local_matches is not None:
         payload["confirm_local_matches"] = confirm_local_matches
-    response = SESSION.post(f"{BACKEND_URL}/analyze", json=payload, timeout=REQUEST_TIMEOUT_LONG)
+    response = _backend_post(f"{BACKEND_URL}/analyze", json=payload, timeout=REQUEST_TIMEOUT_LONG)
     if not response.ok:
         try:
             detail = response.json().get("detail", response.text[:500])
@@ -1627,15 +1650,30 @@ def render_key_metrics(result: dict):
     display_domain_clean = str(display_domain).strip().lower()
     shown_domain = domain_label_map.get(display_domain_clean, str(display_domain).title())
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        metric_card("Domain", shown_domain, variant="neutral", uniform_value_sizing=True)
-    with col2:
-        metric_card("Classification", nice_label(analysis.get("classification", "unknown")), variant="neutral", uniform_value_sizing=True)
-    with col3:
-        metric_card("Routing", routing_display_label(routing.get("method", "unknown")), variant="neutral", uniform_value_sizing=True)
-    with col4:
-        metric_card("Confidence", format_confidence(confidence.get("overall_confidence", analysis.get("confidence", 0.0)), 2), variant="neutral", uniform_value_sizing=True)
+    _conf_val = format_confidence(confidence.get("overall_confidence", analysis.get("confidence", 0.0)), 2)
+    _cls_val = nice_label(analysis.get("classification", "unknown"))
+    _route_val = routing_display_label(routing.get("method", "unknown"))
+    st.markdown(
+        f"""<div style="display:flex;border:1px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:8px;overflow:hidden;margin:6px 0 12px;background:#f0f7ff;">
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #bfdbfe;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Domain</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#1e3a5f;">{shown_domain}</div>
+          </div>
+          <div style="flex:2;padding:8px 14px;border-right:1px solid #bfdbfe;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Classification</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#1e3a5f;">{_cls_val}</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #bfdbfe;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Routing</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#1e3a5f;">{_route_val}</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Confidence</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#0f766e;">{_conf_val}</div>
+          </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
 
 def render_status_banners(result: dict):
@@ -1645,19 +1683,52 @@ def render_status_banners(result: dict):
     tenant_context = result.get("tenant_context", {}) or {}
     analysis_source_label = result.get("analysis_source_label", analysis.get("analysis_source_label", "Unknown"))
 
+    # Map raw label to display text
     source_text = analysis_source_label
-    if source_text == "Local SLM":
-        source_text = "Local SLM (primary)"
+    if source_text in {"Local SLM", "RAG + SLM"}:
+        source_text = "RAG + SLM"
     elif "LLM Fallback" in source_text:
         source_text = "LLM Fallback"
+
+    # Two distinct confidence values:
+    #   primary_conf  = RAG retrieval score (what triggered / didn't trigger fallback)
+    #   fallback_conf = LLM's own self-reported confidence (only present when fallback ran)
+    conf_block      = result.get("confidence", {})
+    primary_conf    = float(conf_block.get("primary_confidence", conf_block.get("overall_confidence", 0.0)) or 0.0)
+    fallback_conf   = float(conf_block.get("fallback_confidence", 0.0) or 0.0)
+    overall_conf    = float(conf_block.get("overall_confidence", 0.0) or 0.0)
+
+    fallback_reason = result.get("routing", {}).get("fallback_reason", "")
+    grounding_count = int(result.get("grounding_incident_count", 0) or 0)
+
+    if fallback_reason == "zero_retrieval_no_grounding":
+        source_text = "No data — escalated (zero RAG hits, LLM not invoked)"
+    elif not fallback_used and source_text == "RAG + SLM":
+        if overall_conf >= 0.70:
+            source_text += f" · high confidence ({overall_conf:.0%})"
+        elif overall_conf >= 0.40:
+            source_text += f" · moderate confidence ({overall_conf:.0%})"
+        else:
+            source_text += f" · low confidence ({overall_conf:.0%})"
+    elif fallback_used:
+        rag_pct = f"{primary_conf:.0%}" if primary_conf else "—"
+        llm_pct = f"{fallback_conf:.0%}" if fallback_conf else f"{overall_conf:.0%}"
+        if grounding_count > 0:
+            source_text += f" · RAG {rag_pct} → LLM {llm_pct} (grounded on {grounding_count} incidents)"
+        else:
+            source_text += f" · RAG {rag_pct} → LLM {llm_pct}"
 
     # Inline meta strip — compact, single line
     decision = decision_display_label(routing.get("decision", "unknown"))
     tenant_id = tenant_context.get("tenant_id", "client_a") if tenant_context else "client_a"
     st.caption(f"Source: {source_text}  ·  Decision: {decision}  ·  Tenant: {tenant_id}")
 
-    if fallback_used:
-        st.warning("LLM fallback was used — primary local path had lower confidence. Results may be less specific.")
+    if fallback_reason == "zero_retrieval_no_grounding":
+        st.error("No historical incidents found for this pattern — LLM was not invoked. Escalate to engineer and ingest real incident data from ServiceNow first.")
+    elif fallback_used and grounding_count > 0:
+        st.warning(f"LLM fallback used — grounded on {grounding_count} nearest incidents from your environment (cross-classification). Results are approximate; require stricter engineer review before promoting.")
+    elif fallback_used:
+        st.warning("LLM fallback was used — RAG confidence was below threshold. Results are LLM-generated; review carefully before promoting.")
     if analysis.get("escalate"):
         st.info("This incident is flagged for escalation or manual review.")
 
@@ -1968,15 +2039,31 @@ def render_engineer_runbook_panel(result: Dict[str, Any], ticket: str, key_suffi
     else:
         st.caption("Engineer-ready steps generated from the current incident analysis. Validate the runbook before sending it for automation review.")
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        metric_card("Runbook", "Ready", "automation", uniform_value_sizing=True)
-    with c2:
-        metric_card("Risk Tier", nice_label(runbook.get("risk_tier", "medium")), "automation", uniform_value_sizing=True)
-    with c3:
-        metric_card("Approval", nice_label(runbook.get("approval_mode", "manual_approval_required")), "automation", uniform_value_sizing=True)
-    with c4:
-        metric_card("Automation", "Approved" if has_approved_automation else ("Queued" if queue_entry else "Draft Ready"), "automation", uniform_value_sizing=True)
+    _auto_status = "Approved" if has_approved_automation else ("Queued" if queue_entry else "Draft Ready")
+    _auto_color = "#16a34a" if has_approved_automation else ("#0f766e" if queue_entry else "#1e293b")
+    _risk_val = nice_label(runbook.get("risk_tier", "medium"))
+    _approval_val = nice_label(runbook.get("approval_mode", "manual_approval_required"))
+    st.markdown(
+        f"""<div style="display:flex;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:8px;overflow:hidden;margin:6px 0 12px;background:#f0fdf4;">
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #bbf7d0;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Runbook</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#16a34a;">Ready</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #bbf7d0;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Risk Tier</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#14532d;">{_risk_val}</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #bbf7d0;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Approval</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#14532d;">{_approval_val}</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Automation</div>
+            <div style="font-size:0.9rem;font-weight:700;color:{_auto_color};">{_auto_status}</div>
+          </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
     with st.expander("View engineer runbook", expanded=True):
         st.write(f"**Objective:** {runbook['objective']}")
@@ -2136,13 +2223,31 @@ def render_knowledge_panels(result: dict):
     st.markdown("---")
     section_title("Knowledge Reuse Summary")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        metric_card("Retrieved Incidents", str(len(knowledge_summary.get("retrieved_incident_ids", []) or [])))
-    with col2:
-        metric_card("Resolution Linked", "Yes" if knowledge_summary.get("linked_resolution_id") or linked_resolution else "No")
-    with col3:
-        metric_card("Playbook Linked", "Yes" if knowledge_summary.get("linked_playbook_id") or linked_playbook else "No")
+    _retrieved_ids = knowledge_summary.get("retrieved_incident_ids", []) or []
+    _ret_count = str(len(_retrieved_ids))
+    _has_hits = len(_retrieved_ids) > 0
+    # Only show resolution/playbook as linked when there are actual retrieved incidents backing them
+    _res_linked = "Yes" if _has_hits and (knowledge_summary.get("linked_resolution_id") or linked_resolution) else ("Generic" if (knowledge_summary.get("linked_resolution_id") or linked_resolution) else "No")
+    _pb_linked = "Yes" if _has_hits and (knowledge_summary.get("linked_playbook_id") or linked_playbook) else ("Generic" if (knowledge_summary.get("linked_playbook_id") or linked_playbook) else "No")
+    _res_color = "#16a34a" if _res_linked == "Yes" else ("#d97706" if _res_linked == "Generic" else "#94a3b8")
+    _pb_color = "#16a34a" if _pb_linked == "Yes" else ("#d97706" if _pb_linked == "Generic" else "#94a3b8")
+    st.markdown(
+        f"""<div style="display:flex;border:1px solid #e9d5ff;border-left:4px solid #7c3aed;border-radius:8px;overflow:hidden;margin:6px 0 12px;background:#faf5ff;">
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #e9d5ff;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Retrieved Incidents</div>
+            <div style="font-size:0.9rem;font-weight:700;color:#3b0764;">{_ret_count}</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;border-right:1px solid #e9d5ff;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Resolution Linked</div>
+            <div style="font-size:0.9rem;font-weight:700;color:{_res_color};">{_res_linked}</div>
+          </div>
+          <div style="flex:1;padding:8px 14px;text-align:center;">
+            <div style="font-size:0.65rem;font-weight:700;color:#c4b5fd;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;">Playbook Linked</div>
+            <div style="font-size:0.9rem;font-weight:700;color:{_pb_color};">{_pb_linked}</div>
+          </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
     if linked_resolution:
         with st.expander("Linked Resolution", expanded=False):
@@ -2482,6 +2587,18 @@ def render_candidate_workflow(result: dict, ticket: str, key_suffix: str):
                 st.error(f"Approve & Learn failed: {e}")
 
     with st.expander("1) Review Candidate", expanded=not review_done and not auto_learn_done):
+        _generic_labels = {"service_degradation", "application_error", "middleware_issue",
+                           "network_issue", "general_issue", "ambiguous_post_change_service_issue",
+                           "middleware_service_issue", "unknown"}
+        _current_cls = (review_state["classification"] or "").strip().lower()
+        _is_generic = _current_cls in _generic_labels
+        if _is_generic and not review_done and not auto_learn_done:
+            st.warning(
+                f"⚠️ Classification **{nice_label(review_state['classification'])}** is generic. "
+                "Refine it to something specific (e.g. `as400_server_unavailable`, `websphere_jvm_crash`) "
+                "before approving so the knowledge base entry is useful.",
+                icon=None,
+            )
         review_state["classification"] = st.text_input(
             "Classification",
             value=review_state["classification"],
@@ -2844,15 +2961,6 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     if _ci_name or _classification:
         _render_error_tolerance_inline(_ci_name, _classification)
 
-    # Peer benchmark — text pattern match on the incident description
-    _peer_text = (
-        ticket
-        or (result.get("analysis") or {}).get("summary")
-        or (result.get("analysis") or {}).get("classification")
-        or ""
-    )
-    if _peer_text:
-        render_peer_insights_panel(_peer_text, client_id="client_a")
     render_knowledge_panels(result)
     st.markdown("---")
     render_evidence_panel(result, key_suffix)

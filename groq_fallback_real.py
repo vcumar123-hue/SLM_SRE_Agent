@@ -29,10 +29,37 @@ def should_trigger_fallback(confidence_result: dict[str, Any]) -> bool:
     return float(score or 0.0) < CONFIDENCE_THRESHOLD
 
 
+def _is_vague_ticket(ticket: str) -> bool:
+    """True when a ticket has no specific symptoms — too few words or only product names."""
+    import re as _re
+    words = [w for w in _re.sub(r"[^a-z0-9\s]", " ", ticket.lower()).split() if len(w) > 2]
+    symptom_signals = {
+        "error", "fail", "failed", "failure", "crash", "down", "unreachable", "timeout",
+        "slow", "latency", "spike", "high", "low", "memory", "cpu", "disk", "full",
+        "hung", "hang", "stuck", "loop", "exception", "traceback", "denied", "refused",
+        "cannot", "unable", "connect", "connection", "drop", "packet", "lost", "missing",
+        "alert", "alarm", "warning", "critical", "outage", "unavailable", "response",
+    }
+    has_symptom = any(w in symptom_signals for w in words)
+    return len(words) < 6 and not has_symptom
+
+
 def _build_prompt(ticket: str, context: str) -> str:
+    vague = _is_vague_ticket(ticket)
+    if vague:
+        vague_instruction = """
+IMPORTANT: This ticket is too vague to determine a specific root cause.
+- You MUST use a generic symptom-level classification (e.g. "application_error", "service_degradation", "middleware_issue").
+- Do NOT invent a specific root cause (disk space, memory leak, certificate, etc.) that is not mentioned in the ticket.
+- Set confidence to 0.2 or below and escalate=true.
+- Ask the operator for more details in next_checks.
+"""
+    else:
+        vague_instruction = ""
+
     return f"""
 You are a senior IT operations fallback analyst. Your job is to produce a precise, technically useful incident triage response.
-
+{vague_instruction}
 Ticket:
 {ticket}
 
@@ -54,47 +81,19 @@ Strict rules:
 2. classification must be:
    - lowercase
    - snake_case
-   - as specific as possible
-   - technical and root-cause-oriented
-   - derived from the ticket wording when possible
-3. Avoid vague classifications such as:
-   - service_issue
-   - general_issue
-   - unknown_issue
-   - application_problem
-4. Prefer specific classifications like:
-   - certificate_rotation_policy_conflict
-   - service_mesh_tls_misconfiguration
-   - post_change_certificate_validation_failure
-   - sidecar_policy_enforcement_issue
+   - derived from symptoms explicitly stated in the ticket
+   - if no specific symptoms are stated, use a generic symptom-level label (e.g. "application_error", "middleware_service_issue")
+3. Do NOT invent a root cause (disk_space, memory_leak, certificate, etc.) unless the ticket explicitly mentions those symptoms.
+4. Avoid hallucinating causes that are not grounded in the ticket text or retrieved context.
 5. probable_causes must be short technical causes, not broad business language.
 6. next_checks must be operationally ordered and validation-first.
    Start with inspection and validation before disruptive steps.
 7. recommended_actions must also be operationally ordered.
-   Prefer:
-   - validate
-   - inspect
-   - compare
-   - confirm
-   - isolate
-   before:
-   - restart
-   - rollback
-   - redeploy
-8. Do not recommend restart or rollback as the first action unless the ticket strongly indicates an immediate rollback condition.
-9. confidence must be between 0 and 1.
-10. Set escalate=true when evidence is weak, ambiguous, cross-domain, or the issue may require human investigation.
-11. Use at most:
-   - 1 classification
-   - 2 to 4 probable_causes
-   - 3 to 5 next_checks
-   - 3 to 5 recommended_actions
-
-Examples of good style:
-- classification: certificate_rotation_policy_conflict
-- probable_causes: ["certificate_trust_chain_mismatch", "service_mesh_policy_conflict"]
-- next_checks: ["verify_certificate_chain", "compare_mesh_policy_changes", "inspect_sidecar_proxy_logs"]
-- recommended_actions: ["validate_trust_bundle_distribution", "correct_conflicting_mesh_policy", "restart_affected_proxies_if_needed"]
+   Prefer: validate, inspect, compare, confirm, isolate — before restart, rollback, redeploy.
+8. Do not recommend restart or rollback as the first action unless the ticket strongly indicates it.
+9. confidence must be between 0 and 1. Use low values (0.1–0.3) when the ticket is vague.
+10. Set escalate=true when evidence is weak, ambiguous, or the issue may require human investigation.
+11. Use at most: 1 classification, 2–4 probable_causes, 3–5 next_checks, 3–5 recommended_actions.
 
 Now return the JSON only.
 """.strip()
@@ -190,6 +189,9 @@ def _normalize_response(parsed: dict[str, Any]) -> dict[str, Any]:
     parsed["probable_causes"] = _dedupe_keep_order(parsed.get("probable_causes", []))[:4]
     parsed["next_checks"] = _reorder_actions(parsed.get("next_checks", []))[:5]
     parsed["recommended_actions"] = _reorder_actions(parsed.get("recommended_actions", []))[:5]
+    # If LLM returned no actions, derive from next_checks so the KB is never empty.
+    if not parsed["recommended_actions"] and parsed["next_checks"]:
+        parsed["recommended_actions"] = parsed["next_checks"][:3]
 
     parsed.setdefault("confidence", 0.75)
     parsed.setdefault("escalate", True)
@@ -254,13 +256,50 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
         "max_tokens": 700,
     }
 
-    r = requests.post(
-        url,
-        headers=headers,
-        json=payload,
-        timeout=GROQ_TIMEOUT_SECONDS,
-    )
-    r.raise_for_status()
+    try:
+        r = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=GROQ_TIMEOUT_SECONDS,
+        )
+        r.raise_for_status()
+    except requests.exceptions.ConnectionError as _ce:
+        return {
+            "classification": "fallback_connection_error",
+            "probable_causes": [f"groq_api_connection_failed: {_ce}"],
+            "next_checks": ["verify_groq_api_reachability", "check_network_connectivity"],
+            "recommended_actions": ["retry_analysis", "check_groq_api_status"],
+            "confidence": 0.1,
+            "escalate": True,
+            "fallback_source": "groq_chat_completions",
+            "fallback_model": GROQ_MODEL,
+            "fallback_provider": "groq",
+        }
+    except requests.exceptions.Timeout:
+        return {
+            "classification": "fallback_timeout",
+            "probable_causes": ["groq_api_response_timeout"],
+            "next_checks": ["check_groq_api_latency"],
+            "recommended_actions": ["retry_analysis"],
+            "confidence": 0.1,
+            "escalate": True,
+            "fallback_source": "groq_chat_completions",
+            "fallback_model": GROQ_MODEL,
+            "fallback_provider": "groq",
+        }
+    except requests.exceptions.HTTPError as _he:
+        return {
+            "classification": "fallback_api_error",
+            "probable_causes": [f"groq_api_http_error: {_he}"],
+            "next_checks": ["check_groq_api_key", "verify_model_availability"],
+            "recommended_actions": ["check_groq_quota", "retry_analysis"],
+            "confidence": 0.1,
+            "escalate": True,
+            "fallback_source": "groq_chat_completions",
+            "fallback_model": GROQ_MODEL,
+            "fallback_provider": "groq",
+        }
 
     body = r.json()
     raw_text = body["choices"][0]["message"]["content"]
@@ -283,6 +322,25 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
         }
 
 
-def analyze_with_groq_fallback(ticket: str) -> dict:
-    context = ""
-    return run_openai_fallback(ticket, context)
+def build_context_from_incidents(incidents: list[dict]) -> str:
+    """Build a grounding context string from retrieved incidents for the LLM prompt."""
+    if not incidents:
+        return ""
+    lines = []
+    for i, inc in enumerate(incidents[:3], 1):
+        cls = inc.get("classification", "unknown").replace("_", " ")
+        content = (inc.get("content") or inc.get("title") or "")[:400]
+        score = inc.get("score", 0.0)
+        lines.append(
+            f"Reference incident {i} (classification: {cls}, similarity: {score:.2f}):\n{content}"
+        )
+    return "\n\n".join(lines)
+
+
+def analyze_with_groq_fallback(ticket: str, context_incidents: list[dict] | None = None) -> dict:
+    context = build_context_from_incidents(context_incidents or [])
+    result = run_openai_fallback(ticket, context)
+    if context_incidents:
+        result["fallback_grounded"] = True
+        result["grounding_incident_count"] = len(context_incidents[:3])
+    return result

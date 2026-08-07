@@ -39,6 +39,8 @@ class ReviewCandidateRequest(BaseModel):
 class PromoteCandidateRequest(BaseModel):
     candidate_id: str
     tenant_id: Optional[str] = Field(default=None, max_length=64)
+    promote_to_global: bool = False
+    promoted_by: Optional[str] = Field(default=None, max_length=128)
 
 
 class CreateResolutionRequest(BaseModel):

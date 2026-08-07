@@ -3,8 +3,8 @@ import requests
 import numpy as np
 import json
 
-LM_STUDIO_URL = "http://localhost:1234/v1"
-EMBED_MODEL = "text-embedding-nomic-embed-text-v1.5"
+LM_STUDIO_URL = os.getenv("MODEL_BASE_URL", "http://localhost:1234/v1")
+EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
 
 KB_FOLDER = "kb"
 OUTPUT_FILE = "vector_store.json"

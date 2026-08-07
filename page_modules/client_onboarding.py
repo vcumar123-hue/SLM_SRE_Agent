@@ -1727,6 +1727,179 @@ def render_rollout_readiness_submenu() -> None:
 # render_client_onboarding_page_with_submenus
 # ---------------------------------------------------------------------------
 
+def render_servicenow_integration() -> None:
+    """ServiceNow integration configuration for the selected tenant."""
+    import json, os
+
+    tenant_id = st.session_state.get("tenant_id", st.session_state.get("selected_tenant_id", ""))
+    if not tenant_id:
+        st.info("Select a tenant from the sidebar first.")
+        return
+
+    cfg_path = os.path.join("data", "clients", tenant_id, "servicenow_config.json")
+
+    def _load() -> Dict[str, Any]:
+        try:
+            with open(cfg_path) as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def _save(cfg: Dict[str, Any]) -> None:
+        os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
+        with open(cfg_path, "w") as f:
+            json.dump(cfg, f, indent=2)
+
+    cfg = _load()
+
+    st.markdown("#### ServiceNow Integration")
+    st.caption(f"Tenant: **{tenant_id}** — settings saved to `{cfg_path}`")
+
+    # ── Connection ────────────────────────────────────────────────────────
+    st.markdown("**Connection**")
+    c1, c2 = st.columns(2)
+    with c1:
+        instance_url = st.text_input(
+            "Instance URL",
+            value=cfg.get("instance_url", ""),
+            placeholder="https://your-instance.service-now.com",
+            key="snow_instance_url",
+        )
+        auth_type = st.selectbox(
+            "Authentication",
+            ["Basic (username / password)", "OAuth 2.0 (client credentials)"],
+            index=0 if cfg.get("auth_type", "basic") == "basic" else 1,
+            key="snow_auth_type",
+        )
+    with c2:
+        if "Basic" in auth_type:
+            username = st.text_input("Username", value=cfg.get("username", ""), key="snow_username")
+            password = st.text_input("Password", value=cfg.get("password", ""), type="password", key="snow_password")
+            client_id = client_secret = ""
+        else:
+            client_id     = st.text_input("Client ID",     value=cfg.get("client_id", ""),     key="snow_client_id")
+            client_secret = st.text_input("Client Secret", value=cfg.get("client_secret", ""), type="password", key="snow_client_secret")
+            username = password = ""
+
+    st.markdown("---")
+
+    # ── Table mapping ─────────────────────────────────────────────────────
+    st.markdown("**Table Mapping**")
+    st.caption("Map ServiceNow tables to SLM data types. Leave blank to skip that type.")
+    tm = cfg.get("table_mapping", {})
+    t1, t2, t3 = st.columns(3)
+    with t1:
+        tbl_incident = st.text_input("Incidents table",  value=tm.get("incidents", "incident"),  key="snow_tbl_inc")
+        tbl_change   = st.text_input("Changes table",    value=tm.get("changes",   "change_request"), key="snow_tbl_chg")
+    with t2:
+        tbl_problem  = st.text_input("Problems table",   value=tm.get("problems",  "problem"),   key="snow_tbl_prb")
+        tbl_ci       = st.text_input("CMDB CI table",    value=tm.get("cmdb_ci",   "cmdb_ci"),   key="snow_tbl_ci")
+    with t3:
+        st.markdown("**Pull filters**")
+        state_filter = st.text_input(
+            "Active incident states (comma-separated)",
+            value=cfg.get("state_filter", "1,2,3"),
+            key="snow_state_filter",
+            help="ServiceNow state values: 1=New, 2=In Progress, 3=On Hold",
+        )
+        days_back = st.number_input(
+            "Historical pull window (days)",
+            min_value=1, max_value=365,
+            value=cfg.get("days_back", 90),
+            key="snow_days_back",
+        )
+
+    st.markdown("---")
+
+    # ── Field mapping ─────────────────────────────────────────────────────
+    st.markdown("**Field Mapping** — ServiceNow field → SLM field")
+    st.caption("Customise if your instance uses non-standard field names.")
+    fm = cfg.get("field_mapping", {})
+    f1, f2 = st.columns(2)
+    with f1:
+        fm_number      = st.text_input("Ticket number",       value=fm.get("number",      "number"),       key="snow_fm_num")
+        fm_short_desc  = st.text_input("Short description",   value=fm.get("short_desc",  "short_description"), key="snow_fm_sd")
+        fm_description = st.text_input("Full description",    value=fm.get("description", "description"),  key="snow_fm_desc")
+        fm_ci          = st.text_input("Configuration item",  value=fm.get("ci",          "cmdb_ci"),      key="snow_fm_ci")
+    with f2:
+        fm_state       = st.text_input("State",               value=fm.get("state",       "state"),        key="snow_fm_state")
+        fm_priority    = st.text_input("Priority",            value=fm.get("priority",    "priority"),     key="snow_fm_prio")
+        fm_opened      = st.text_input("Opened at",           value=fm.get("opened_at",   "opened_at"),    key="snow_fm_open")
+        fm_resolved    = st.text_input("Resolved at",         value=fm.get("resolved_at", "resolved_at"),  key="snow_fm_res")
+
+    st.markdown("---")
+
+    # ── Ingestion settings ────────────────────────────────────────────────
+    st.markdown("**Ingestion Settings**")
+    i1, i2 = st.columns(2)
+    with i1:
+        batch_size   = st.number_input("Batch size (records per call)", min_value=10, max_value=1000, value=cfg.get("batch_size", 100), key="snow_batch")
+        ingest_mode  = st.selectbox("Ingest mode", ["Full refresh", "Incremental (last modified)"], index=0 if cfg.get("ingest_mode","full")=="full" else 1, key="snow_ingest_mode")
+    with i2:
+        auto_classify = st.checkbox("Auto-classify ingested tickets with LLM", value=cfg.get("auto_classify", True), key="snow_auto_classify")
+        promote_kb    = st.checkbox("Auto-promote resolved tickets to Knowledge base", value=cfg.get("promote_kb", False), key="snow_promote_kb")
+
+    # ── Save / Test ───────────────────────────────────────────────────────
+    st.markdown("---")
+    b1, b2, _ = st.columns([1, 1, 3])
+    with b1:
+        if st.button("💾 Save Configuration", type="primary", key="snow_save"):
+            new_cfg = {
+                "instance_url": instance_url,
+                "auth_type": "basic" if "Basic" in auth_type else "oauth2",
+                "username": username,
+                "password": password,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "table_mapping": {
+                    "incidents": tbl_incident,
+                    "changes": tbl_change,
+                    "problems": tbl_problem,
+                    "cmdb_ci": tbl_ci,
+                },
+                "state_filter": state_filter,
+                "days_back": int(days_back),
+                "field_mapping": {
+                    "number": fm_number, "short_desc": fm_short_desc,
+                    "description": fm_description, "ci": fm_ci,
+                    "state": fm_state, "priority": fm_priority,
+                    "opened_at": fm_opened, "resolved_at": fm_resolved,
+                },
+                "batch_size": int(batch_size),
+                "ingest_mode": "full" if "Full" in ingest_mode else "incremental",
+                "auto_classify": auto_classify,
+                "promote_kb": promote_kb,
+            }
+            _save(new_cfg)
+            st.success("Configuration saved.")
+    with b2:
+        if st.button("🔌 Test Connection", key="snow_test"):
+            if not instance_url:
+                st.error("Enter an instance URL first.")
+            else:
+                import requests
+                try:
+                    resp = requests.get(
+                        f"{instance_url.rstrip('/')}/api/now/table/incident?sysparm_limit=1",
+                        auth=(username, password) if username else None,
+                        timeout=8,
+                    )
+                    if resp.status_code == 200:
+                        st.success(f"Connected — HTTP {resp.status_code}. ServiceNow API is reachable.")
+                    elif resp.status_code == 401:
+                        st.error("Authentication failed (401). Check username / password.")
+                    else:
+                        st.warning(f"Received HTTP {resp.status_code}. Check the instance URL and credentials.")
+                except Exception as e:
+                    st.error(f"Connection failed: {e}")
+
+    # ── Current config summary ────────────────────────────────────────────
+    if cfg:
+        with st.expander("Current saved configuration", expanded=False):
+            safe = {k: ("***" if k in {"password", "client_secret"} else v) for k, v in cfg.items()}
+            st.json(safe)
+
+
 def render_client_onboarding_page_with_submenus() -> None:
     """Preserve the existing Client Onboarding Studio and add new submenus below it."""
     st.subheader("Client Onboarding")
@@ -1735,6 +1908,7 @@ def render_client_onboarding_page_with_submenus() -> None:
         "Safety Gate Evidence Setup",
         "Evidence Contract",
         "Rollout Readiness",
+        "ServiceNow Integration",
     ])
 
     with tabs[0]:
@@ -1748,4 +1922,7 @@ def render_client_onboarding_page_with_submenus() -> None:
 
     with tabs[3]:
         render_rollout_readiness_submenu()
+
+    with tabs[4]:
+        render_servicenow_integration()
 

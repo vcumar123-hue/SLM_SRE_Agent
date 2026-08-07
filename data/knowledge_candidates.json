@@ -464,7 +464,11 @@
       "inspect_radius_server_logs",
       "validate_password_hash_sync"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_vpn_client_configuration",
+      "inspect_radius_server_logs",
+      "validate_password_hash_sync"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -502,7 +506,11 @@
       "inspect_user_email_client_settings",
       "check_email_server_delivery_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_email_filtering_rules",
+      "inspect_user_email_client_settings",
+      "check_email_server_delivery_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -685,7 +693,11 @@
       "inspect_container_port_bindings",
       "Confirm DNS/VPN Are Healthy Dependencies And Not Primary Cause"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_security_group_rules",
+      "inspect_container_port_bindings",
+      "Confirm DNS/VPN Are Healthy Dependencies And Not Primary Cause"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -719,7 +731,11 @@
       "check_windows_firewall_rules",
       "inspect_iis_application_pool_status"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_iis_server_configuration",
+      "check_windows_firewall_rules",
+      "inspect_iis_application_pool_status"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -975,7 +991,11 @@
       "inspect_saas_app_traffic_logs",
       "compare_pre_post_policy_update_configs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_sase_policy_update_details",
+      "inspect_saas_app_traffic_logs",
+      "compare_pre_post_policy_update_configs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1123,7 +1143,11 @@
       "inspect_kubelet_configuration_files",
       "check_node_network_connectivity"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_eks_node_bootstrap_logs",
+      "inspect_kubelet_configuration_files",
+      "check_node_network_connectivity"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1157,7 +1181,11 @@
       "inspect_role_based_access_control_policies",
       "validate_key_rotation_timestamps"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_jwt_signing_key_distribution",
+      "inspect_role_based_access_control_policies",
+      "validate_key_rotation_timestamps"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1238,7 +1266,11 @@
       "inspect_dns_query_logs",
       "check_network_packet_loss_rates"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_dns_server_status",
+      "inspect_dns_query_logs",
+      "check_network_packet_loss_rates"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1318,7 +1350,11 @@
       "inspect_vpn_connection_logs",
       "compare_pre_post_update_firewall_configs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_firewall_rule_updates",
+      "inspect_vpn_connection_logs",
+      "compare_pre_post_update_firewall_configs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1409,7 +1445,11 @@
       "inspect_image_metadata",
       "compare_with_previous_images"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_image_format",
+      "inspect_image_metadata",
+      "compare_with_previous_images"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1487,7 +1527,11 @@
       "inspect_vpn_gateway_logs",
       "compare_vpn_gateway_configuration"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_user_credentials",
+      "check_active_directory_connectivity",
+      "inspect_vpn_gateway_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1610,7 +1654,7 @@
     "source": "llm_fallback",
     "source_layer": "fallback_candidate",
     "status": "candidate",
-    "ticket": "Alert: CPU utilization is above threshold on PROD-APP-01 Cu} Monitoring System <monitor@company.com> May 28, 2025 11:08 AM To : NOC Team A CPU utilization on PROD-APP-01 is 92% which is above the critical threshold of 85% for 10 minutes. Current Value : 92% Threshold 1 85% Duration : 10m Start Time —: May 28, 2025 11:08 AM Please investigate and take necessary actions.",
+    "ticket": "Alert: CPU utilization is above threshold on PROD-APP-01 Cu} Monitoring System <monitor@company.com> May 28, 2025 11:08 AM To : NOC Team A CPU utilization on PROD-APP-01 is 92% which is above the critical threshold of 85% for 10 minutes. Current Value : 92% Threshold 1 85% Duration : 10m Start Time \u00e2\u20ac\u201d: May 28, 2025 11:08 AM Please investigate and take necessary actions.",
     "domain": "general",
     "classification": "high_cpu_utilization",
     "probable_causes": [
@@ -1666,7 +1710,11 @@
       "inspect_api_gateway_timeout_settings",
       "check_downstream_service_port_connectivity"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_firewall_rule_changes",
+      "inspect_api_gateway_timeout_settings",
+      "check_downstream_service_port_connectivity"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1752,7 +1800,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1790,7 +1842,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1828,7 +1884,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1866,7 +1926,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1904,7 +1968,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1942,7 +2010,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -1980,7 +2052,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2018,7 +2094,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2056,7 +2136,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2094,7 +2178,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2132,7 +2220,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2170,7 +2262,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2208,7 +2304,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2246,7 +2346,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2284,7 +2388,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2322,7 +2430,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2360,7 +2472,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2398,7 +2514,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2517,7 +2637,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2555,7 +2679,11 @@
       "inspect_scheduling_policy_rules",
       "check_dependency_job_status"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_definition_syntax",
+      "inspect_scheduling_policy_rules",
+      "check_dependency_job_status"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2593,7 +2721,11 @@
       "check_network_connectivity_to_dataset_server",
       "inspect_dataset_query_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_dataset_server_status",
+      "check_network_connectivity_to_dataset_server",
+      "inspect_dataset_query_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -2835,7 +2967,11 @@
       "check_dependency_status",
       "inspect_system_resource_utilization"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_system_resource_utilization"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -3642,7 +3778,11 @@
       "verify_jcl_parameter_values",
       "check_abend_type_code_documentation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_jcl_step_definitions",
+      "verify_jcl_parameter_values",
+      "check_abend_type_code_documentation"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -3963,7 +4103,11 @@
       "check_dependency_status",
       "inspect_tws_server_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_script_syntax",
+      "check_dependency_status",
+      "inspect_tws_server_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -4123,7 +4267,11 @@
       "verify_dependency_status",
       "check_resource_allocation"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_job_logs",
+      "verify_dependency_status",
+      "check_resource_allocation"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -4161,7 +4309,11 @@
       "inspect_scheduling_policy_rules",
       "check_dependency_job_status"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_job_definition_syntax",
+      "inspect_scheduling_policy_rules",
+      "check_dependency_job_status"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -4199,7 +4351,11 @@
       "check_network_connectivity_to_dataset_server",
       "inspect_dataset_query_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_dataset_server_status",
+      "check_network_connectivity_to_dataset_server",
+      "inspect_dataset_query_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -4277,7 +4433,11 @@
       "verify_app_code_configuration_files",
       "check_database_connection_pool_settings"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_mainframe_database_logs",
+      "verify_app_code_configuration_files",
+      "check_database_connection_pool_settings"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5035,7 +5195,11 @@
       "inspect_firewall_logs",
       "compare_network_policy_changes"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_firewall_rule_configuration",
+      "inspect_firewall_logs",
+      "compare_network_policy_changes"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5079,7 +5243,11 @@
       "inspect_update_logs",
       "compare_network_configuration_before_and_after_change"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_aws_network_configuration",
+      "inspect_update_logs",
+      "compare_network_configuration_before_and_after_change"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5117,7 +5285,11 @@
       "inspect_device_connection_logs",
       "validate_dns_resolution_for_international_sites"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_firewall_rule_changes",
+      "inspect_device_connection_logs",
+      "validate_dns_resolution_for_international_sites"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5155,7 +5327,11 @@
       "inspect_iam_role_permissions",
       "compare_network_policy_versions"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_network_configuration_changes",
+      "inspect_iam_role_permissions",
+      "compare_network_policy_versions"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5273,7 +5449,11 @@
       "inspect_baseline_update_script_logs",
       "compare_network_config_before_and_after_update"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_tradops_management_config",
+      "inspect_baseline_update_script_logs",
+      "compare_network_config_before_and_after_update"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5391,7 +5571,11 @@
       "check_network_change_propagation_status",
       "inspect_foundation_dev_network_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_meraki_device_configuration",
+      "check_network_change_propagation_status",
+      "inspect_foundation_dev_network_logs"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5509,7 +5693,11 @@
       "inspect_network_change_logs",
       "compare_foundation_dev_network_policies"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_meraki_device_configuration",
+      "inspect_network_change_logs",
+      "compare_foundation_dev_network_policies"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5547,7 +5735,11 @@
       "validate_ip_address_format",
       "inspect_firewall_rule_conflicts"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_updated_policy_syntax",
+      "validate_ip_address_format",
+      "inspect_firewall_rule_conflicts"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5625,7 +5817,11 @@
       "inspect_goanywhere_production_logs",
       "compare_pgp_protocol_versions"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_pgp_key_configuration",
+      "inspect_goanywhere_production_logs",
+      "compare_pgp_protocol_versions"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5663,7 +5859,11 @@
       "inspect_efs_mount_point_configuration",
       "compare_version_installation_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_s3_bucket_permissions",
+      "inspect_efs_mount_point_configuration",
+      "compare_version_installation_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5701,7 +5901,11 @@
       "inspect_code_syntax_and_dependencies",
       "compare_commit_history"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_branch_merge_history",
+      "inspect_code_syntax_and_dependencies",
+      "compare_commit_history"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5739,7 +5943,11 @@
       "validate_code_syntax_and_semantics",
       "inspect_environmental_variable_settings"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_branch_merge_history",
+      "validate_code_syntax_and_semantics",
+      "inspect_environmental_variable_settings"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5777,7 +5985,11 @@
       "verify_branch_configuration",
       "check_file_transfer_infrastructure_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_code_changes",
+      "verify_branch_configuration",
+      "check_file_transfer_infrastructure_logs"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5815,7 +6027,11 @@
       "inspect_code_syntax_and_errors",
       "compare_environment_variables"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_branch_merge_history",
+      "inspect_code_syntax_and_errors",
+      "compare_environment_variables"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5852,7 +6068,11 @@
       "inspect_file_transfer_infrastructure_logs",
       "compare_ecpe_16655_change_history"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_wavepatch_tagging_configuration",
+      "inspect_file_transfer_infrastructure_logs",
+      "compare_ecpe_16655_change_history"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -5890,7 +6110,11 @@
       "check_os_version_compatibility",
       "inspect_rework_script_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_os_tagging_configuration",
+      "check_os_version_compatibility",
+      "inspect_rework_script_logs"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6009,7 +6233,11 @@
       "inspect_vdi_hosting_environment_settings",
       "compare_indian_bank_sites_access_policies"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_sipa_us_segment_configuration",
+      "inspect_vdi_hosting_environment_settings",
+      "compare_indian_bank_sites_access_policies"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6239,7 +6467,7 @@
     "domain": "general",
     "classification": "citrix_vdi_extension_request_issue",
     "probable_causes": [
-      "vdı_extension_configuration_error",
+      "vd\u00c4\u00b1_extension_configuration_error",
       "insufficient_licenses",
       "desktop_pool_configuration_mismatch"
     ],
@@ -6248,7 +6476,11 @@
       "check_license_availability",
       "inspect_desktop_pool_settings"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_vdi_extension_configuration",
+      "check_license_availability",
+      "inspect_desktop_pool_settings"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6286,7 +6518,11 @@
       "inspect_log_file_growth_rates",
       "check_dump_file_configuration"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_cleanup_job_status",
+      "inspect_log_file_growth_rates",
+      "check_dump_file_configuration"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6378,7 +6614,11 @@
       "inspect_kdc_logs",
       "validate_active_directory_replication_status"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_spn_configuration",
+      "check_clock_synchronization",
+      "inspect_kdc_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6496,7 +6736,11 @@
       "inspect_target_group_health_check_settings",
       "validate_container_port_exposure_and_security_groups"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_alb_listener_rules",
+      "inspect_target_group_health_check_settings",
+      "validate_container_port_exposure_and_security_groups"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6540,7 +6784,11 @@
       "inspect_host_port_mapping",
       "check_firewall_rules"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_container_port_binding",
+      "inspect_host_port_mapping",
+      "check_firewall_rules"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6578,7 +6826,11 @@
       "inspect_security_group_ingress_rules",
       "verify_container_port_exposure_configuration"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "validate_container_target_registration",
+      "inspect_security_group_ingress_rules",
+      "verify_container_port_exposure_configuration"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6623,7 +6875,11 @@
       "inspect_target_group_registration_status",
       "validate_container_port_mapping_and_security_group_rules"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_ecs_service_network_configuration",
+      "inspect_target_group_registration_status",
+      "validate_container_port_mapping_and_security_group_rules"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6753,7 +7009,11 @@
       "inspect_user_account_lockout_policies",
       "check_ldap_sync_status"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_vpn_server_config",
+      "inspect_user_account_lockout_policies",
+      "check_ldap_sync_status"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6833,7 +7093,11 @@
       "inspect_tls_configuration",
       "check_server_side_timeout_settings"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_network_connectivity",
+      "inspect_tls_configuration",
+      "check_server_side_timeout_settings"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -6994,7 +7258,11 @@
       "inspect_system_resource_utilization",
       "review_server_configuration_files"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_server_network_connectivity",
+      "inspect_system_resource_utilization",
+      "review_server_configuration_files"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7078,7 +7346,11 @@
       "check_account_lockout_policies",
       "inspect_authentication_server_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_user_credentials",
+      "check_account_lockout_policies",
+      "inspect_authentication_server_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7116,7 +7388,11 @@
       "inspect_authentication_protocol_logs",
       "compare_password_policy_versions"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_user_credentials",
+      "inspect_authentication_protocol_logs",
+      "compare_password_policy_versions"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7154,7 +7430,11 @@
       "check_network_connectivity_to_database",
       "validate_database_connection_string"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_database_server_status",
+      "check_network_connectivity_to_database",
+      "validate_database_connection_string"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7233,7 +7513,11 @@
       "check_account_lockout_status",
       "inspect_security_event_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_user_credentials",
+      "check_account_lockout_status",
+      "inspect_security_event_logs"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7271,7 +7555,11 @@
       "inspect_system_resource_utilization",
       "check_service_status"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_network_connectivity",
+      "inspect_system_resource_utilization",
+      "check_service_status"
+    ],
     "confidence": 0.6,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7315,7 +7603,11 @@
       "verify_garbage_collection_settings",
       "compare_memory_usage_patterns"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_heap_dump",
+      "verify_garbage_collection_settings",
+      "compare_memory_usage_patterns"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7353,7 +7645,11 @@
       "check_account_lockout_policies",
       "inspect_authentication_server_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_user_credentials",
+      "check_account_lockout_policies",
+      "inspect_authentication_server_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7471,7 +7767,11 @@
       "verify_liveness_probe_configuration",
       "check_container_resource_limits"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "inspect_pod_logs",
+      "verify_liveness_probe_configuration",
+      "check_container_resource_limits"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7509,7 +7809,11 @@
       "inspect_vpn_client_logs_for_errors",
       "compare_vpn_tunnel_configuration"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_vpn_server_certificate_validity",
+      "inspect_vpn_client_logs_for_errors",
+      "compare_vpn_tunnel_configuration"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7588,7 +7892,11 @@
       "inspect_backend_service_logs",
       "check_load_balancer_health"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_api_gateway_configuration",
+      "inspect_backend_service_logs",
+      "check_load_balancer_health"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7666,7 +7974,11 @@
       "inspect_load_balancer_configuration",
       "check_api_gateway_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_backend_service_status",
+      "inspect_load_balancer_configuration",
+      "check_api_gateway_logs"
+    ],
     "confidence": 0.7,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7907,7 +8219,11 @@
       "check_backend_service_status",
       "inspect_network_connectivity_logs"
     ],
-    "recommended_actions": [],
+    "recommended_actions": [
+      "verify_api_gateway_configuration",
+      "check_backend_service_status",
+      "inspect_network_connectivity_logs"
+    ],
     "confidence": 0.8,
     "fallback_provider": "groq",
     "fallback_model": "llama-3.3-70b-versatile",
@@ -7930,10 +8246,10 @@
   {
     "candidate_id": "kc_db2529ae5d46",
     "created_at": "2026-06-18T18:03:26.552867+00:00",
-    "updated_at": "2026-06-18T18:03:26.552890+00:00",
+    "updated_at": "2026-08-03T18:44:20.243789+00:00",
     "source": "llm_fallback",
     "source_layer": "fallback_candidate",
-    "status": "candidate",
+    "status": "promoted",
     "ticket": "disk usage 92 percent on web-prod-01",
     "domain": "general",
     "classification": "high_disk_usage",
@@ -7956,6 +8272,46 @@
     "retrieved_incidents": [],
     "tenant_id": "client_a",
     "knowledge_scope": "client_private",
+    "promotion_target": "client_private",
+    "promoted_by": "Vijay",
+    "promoted_at": "2026-08-03T18:44:20.243761+00:00",
+    "engineer_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "review_notes": "no deviation",
+      "approved": true,
+      "reviewed_at": "2026-08-03T18:44:20.152385+00:00"
+    }
+  },
+  {
+    "candidate_id": "kc_26663f339df8",
+    "created_at": "2026-08-03T21:12:37.840114+00:00",
+    "updated_at": "2026-08-03T21:12:37.840134+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "application java error for app 01 application",
+    "domain": "general",
+    "classification": "java_application_error",
+    "probable_causes": [
+      "java_classpath_mismatch",
+      "dependency_version_conflict",
+      "application_code_exception"
+    ],
+    "next_checks": [
+      "verify_java_classpath",
+      "inspect_application_logs",
+      "compare_dependency_versions"
+    ],
+    "recommended_actions": [
+      "isolate_and_test_affected_components"
+    ],
+    "confidence": 0.6,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
     "promotion_target": "",
     "promoted_by": "",
     "promoted_at": "",
@@ -7965,6 +8321,575 @@
       "review_notes": "",
       "approved": false,
       "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_7116ed61aab5",
+    "created_at": "2026-08-03T21:15:08.571277+00:00",
+    "updated_at": "2026-08-03T21:15:08.571309+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "sd wan router caused performance issue for a site",
+    "domain": "general",
+    "classification": "sd_wan_router_configuration_issue",
+    "probable_causes": [
+      "misconfigured_qos_policy",
+      "incorrect_wan_link_selection",
+      "router_firmware_incompatibility"
+    ],
+    "next_checks": [
+      "verify_sd_wan_router_configuration",
+      "inspect_wan_link_status",
+      "check_router_firmware_version"
+    ],
+    "recommended_actions": [
+      "update_router_firmware_if_necessary"
+    ],
+    "confidence": 0.7,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [
+      "learned::general::vpn_client_failure"
+    ],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_32fc23966d83",
+    "created_at": "2026-08-03T21:16:00.424672+00:00",
+    "updated_at": "2026-08-03T21:16:00.424726+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "client identity server not responding",
+    "domain": "general",
+    "classification": "client_identity_server_unresponsiveness",
+    "probable_causes": [
+      "certificate_validation_failure",
+      "server_config_mismatch",
+      "network_connectivity_issue"
+    ],
+    "next_checks": [
+      "verify_server_certificate",
+      "inspect_server_config_files",
+      "check_network_connectivity_to_server"
+    ],
+    "recommended_actions": [
+      "isolate_and_test_network_connectivity"
+    ],
+    "confidence": 0.7,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_68dc03ba7eb0",
+    "created_at": "2026-08-03T21:17:09.144139+00:00",
+    "updated_at": "2026-08-03T21:32:19.760329+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "promoted",
+    "ticket": "SAP application throwing error for users",
+    "domain": "general",
+    "classification": "sap_application_configuration_error",
+    "probable_causes": [
+      "invalid_user_credentials",
+      "sap_system_configuration_mismatch",
+      "database_connection_issue"
+    ],
+    "next_checks": [
+      "verify_user_credentials_and_permissions",
+      "inspect_sap_system_configuration_files",
+      "check_database_connection_strings"
+    ],
+    "recommended_actions": [
+      "test_database_connection"
+    ],
+    "confidence": 0.6,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "client_private",
+    "promoted_by": "Vijay",
+    "promoted_at": "2026-08-03T21:32:19.760305+00:00",
+    "engineer_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "review_notes": "All steps works properly",
+      "approved": true,
+      "reviewed_at": "2026-08-03T21:32:19.684948+00:00"
+    }
+  },
+  {
+    "candidate_id": "kc_db6d8bfd444a",
+    "created_at": "2026-08-03T22:31:03.313913+00:00",
+    "updated_at": "2026-08-03T22:31:03.313931+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "Ariba complex application incident (Ariba)",
+    "domain": "general",
+    "classification": "ariba_application_configuration_issue",
+    "probable_causes": [
+      "misconfigured_ariba_settings",
+      "incompatible_ariba_version",
+      "database_connection_failure"
+    ],
+    "next_checks": [
+      "verify_ariba_configuration_files",
+      "check_ariba_version_and_patches",
+      "inspect_ariba_database_connection_logs"
+    ],
+    "recommended_actions": [
+      "isolate_and_test_ariba_database_connection"
+    ],
+    "confidence": 0.6,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_96d2bc6dc186",
+    "created_at": "2026-08-04T01:40:17.682750+00:00",
+    "updated_at": "2026-08-04T01:40:17.682770+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "SAP is throwing errors for certain users",
+    "domain": "general",
+    "classification": "sap_application_configuration_error",
+    "probable_causes": [
+      "invalid_user_credentials",
+      "sap_system_configuration_mismatch",
+      "database_connection_issue"
+    ],
+    "next_checks": [
+      "verify_user_credentials_and_permissions",
+      "inspect_sap_system_configuration_files",
+      "check_database_connection_strings"
+    ],
+    "recommended_actions": [
+      "test_database_connection"
+    ],
+    "confidence": 0.51,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_454febbd9828",
+    "created_at": "2026-08-04T01:44:27.251664+00:00",
+    "updated_at": "2026-08-04T01:44:27.251713+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "SAP system throwing error to certain users",
+    "domain": "general",
+    "classification": "sap_application_configuration_error",
+    "probable_causes": [
+      "invalid_user_credentials",
+      "sap_system_configuration_mismatch",
+      "database_connection_issue"
+    ],
+    "next_checks": [
+      "verify_user_credentials_and_permissions",
+      "inspect_sap_system_configuration_files",
+      "check_database_connection_strings"
+    ],
+    "recommended_actions": [
+      "test_database_connection"
+    ],
+    "confidence": 0.6,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_78a2c307df47",
+    "created_at": "2026-08-04T16:05:53.453715+00:00",
+    "updated_at": "2026-08-04T16:05:53.453732+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "Websphere is not working properly",
+    "domain": "general",
+    "classification": "application_error",
+    "probable_causes": [
+      "configuration_issue",
+      "deployment_problem",
+      "middleware_service_issue"
+    ],
+    "next_checks": [
+      "inspect_websphere_logs",
+      "validate_websphere_configuration",
+      "compare_with_known_working_configurations"
+    ],
+    "recommended_actions": [
+      "review_recent_changes"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_3cbcba44f7ee",
+    "created_at": "2026-08-04T18:42:08.192300+00:00",
+    "updated_at": "2026-08-04T18:42:08.192327+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "IBM WebSphere system not working",
+    "domain": "general",
+    "classification": "application_error",
+    "probable_causes": [
+      "configuration_issue",
+      "deployment_error",
+      "middleware_service_issue"
+    ],
+    "next_checks": [
+      "inspect_websphere_logs",
+      "validate_vm_power_state",
+      "check_disk_path_and_capacity"
+    ],
+    "recommended_actions": [
+      "review_websphere_configuration"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_3a156063f44a",
+    "created_at": "2026-08-04T19:18:49.982671+00:00",
+    "updated_at": "2026-08-04T19:18:49.982688+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "IBM WebSphere system not working",
+    "domain": "general",
+    "classification": "middleware_issue",
+    "probable_causes": [
+      "configuration_error",
+      "deployment_problem",
+      "environmental_factor"
+    ],
+    "next_checks": [
+      "inspect_websphere_logs",
+      "validate_vm_configuration",
+      "check_disk_space_and_permissions"
+    ],
+    "recommended_actions": [
+      "review_recent_changes",
+      "consult_websphere_documentation"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_3a7ee9c832b2",
+    "created_at": "2026-08-04T20:46:56.531755+00:00",
+    "updated_at": "2026-08-04T20:46:56.531782+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate",
+    "status": "candidate",
+    "ticket": "cpe network router flapping",
+    "domain": "general",
+    "classification": "network_service_degradation",
+    "probable_causes": [
+      "interface_errors",
+      "link_saturation",
+      "carrier_circuit_instability"
+    ],
+    "next_checks": [
+      "inspect interface crc and drops",
+      "verify circuit health metrics",
+      "check wan bandwidth utilization"
+    ],
+    "recommended_actions": [
+      "engage carrier for circuit remediation"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_03b288ad1bba",
+    "created_at": "2026-08-04T20:48:12.346772+00:00",
+    "updated_at": "2026-08-04T22:29:15.474536+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate_no_kb",
+    "status": "approved",
+    "ticket": "AS400 servers not responding to querry",
+    "domain": "general",
+    "classification": "service_degradation",
+    "probable_causes": [
+      "query_timeout",
+      "connection_issue",
+      "server_overload"
+    ],
+    "next_checks": [
+      "inspect_server_logs",
+      "validate_query_syntax",
+      "check_server_resource_utilization"
+    ],
+    "recommended_actions": [
+      "inspect_server_logs",
+      "validate_query_syntax",
+      "check_server_resource_utilization"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "review_notes": "Approved via one-click UI workflow.",
+      "approved": true,
+      "reviewed_at": "2026-08-04T22:29:15.474514+00:00"
+    }
+  },
+  {
+    "candidate_id": "kc_a371db799fce",
+    "created_at": "2026-08-04T20:50:40.874521+00:00",
+    "updated_at": null,
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate_no_kb",
+    "status": "candidate",
+    "ticket": "AS400 servers not responding to query",
+    "domain": "general",
+    "classification": "service_degradation",
+    "probable_causes": [
+      "query_timeout",
+      "connection_issue",
+      "server_overload"
+    ],
+    "next_checks": [
+      "inspect_server_logs",
+      "validate_query_syntax",
+      "check_server_resource_utilization"
+    ],
+    "recommended_actions": [
+      "inspect_server_logs",
+      "validate_query_syntax",
+      "check_server_resource_utilization"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "client_private",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_f0d3dd0828f2",
+    "created_at": "2026-08-04T20:59:38.496755+00:00",
+    "updated_at": "2026-08-04T20:59:38.496774+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate_no_kb",
+    "status": "candidate",
+    "ticket": "Production database connection pool exhausted, application throwing connection timeout errors",
+    "domain": "general",
+    "classification": "connection_pool_exhaustion",
+    "probable_causes": [
+      "pool_size_too_low",
+      "connection_leak",
+      "burst_traffic_spike"
+    ],
+    "next_checks": [
+      "inspect_application_connection_reuse",
+      "verify_pool_utilization",
+      "check_burst_traffic_pattern"
+    ],
+    "recommended_actions": [
+      "fix_connection_leak",
+      "increase_pool_size",
+      "rate_limit_burst_source_traffic"
+    ],
+    "confidence": 0.6,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "",
+    "promoted_by": "",
+    "promoted_at": "",
+    "engineer_review": {
+      "reviewed": false,
+      "reviewed_by": "",
+      "review_notes": "",
+      "approved": false,
+      "reviewed_at": ""
+    }
+  },
+  {
+    "candidate_id": "kc_6bccf0a4eaad",
+    "created_at": "2026-08-04T23:25:44.563387+00:00",
+    "updated_at": "2026-08-04T23:40:52.745485+00:00",
+    "source": "llm_fallback",
+    "source_layer": "fallback_candidate_no_kb",
+    "status": "approved",
+    "ticket": "AS400 server not responding",
+    "domain": "general",
+    "classification": "service_degradation",
+    "probable_causes": [
+      "connection_issue",
+      "server_resource_exhaustion",
+      "middleware_issue"
+    ],
+    "next_checks": [
+      "inspect_server_logs",
+      "verify_network_connectivity",
+      "check_system_resource_utilization"
+    ],
+    "recommended_actions": [
+      "inspect_server_logs",
+      "verify_network_connectivity",
+      "check_system_resource_utilization"
+    ],
+    "confidence": 0.2,
+    "fallback_provider": "groq",
+    "fallback_model": "llama-3.3-70b-versatile",
+    "retrieved_incidents": [],
+    "tenant_id": "client_a",
+    "knowledge_scope": "client_private",
+    "promotion_target": "client_private",
+    "promoted_by": "engineer",
+    "promoted_at": "2026-08-04T23:38:50.287970+00:00",
+    "engineer_review": {
+      "reviewed": true,
+      "reviewed_by": "Vijay",
+      "review_notes": "Approved via one-click UI workflow.",
+      "approved": true,
+      "reviewed_at": "2026-08-04T23:40:52.745460+00:00"
     }
   }
 ]

@@ -300,14 +300,41 @@ def promote_candidate_route(request: PromoteCandidateRequest) -> Dict[str, Any]:
     if promote_candidate_to_incident is None:
         raise HTTPException(status_code=500, detail="knowledge_manager not available")
     from agents.governance import check_export_governance
-    gate = check_export_governance(tenant_id=request.tenant_id, operation="promote")
+    operation = "global_promote" if request.promote_to_global else "promote"
+    gate = check_export_governance(tenant_id=request.tenant_id, operation=operation)
     if not gate.get("allowed"):
         raise HTTPException(status_code=403, detail=gate.get("reason", "Blocked by governance policy."))
     try:
-        incident = promote_candidate_to_incident(request.candidate_id)
-        return {"status": "ok", "incident": incident}
+        result = promote_candidate_to_incident(
+            request.candidate_id,
+            tenant_id=request.tenant_id or "client_a",
+            promote_to_global=request.promote_to_global,
+            promoted_by=request.promoted_by or "engineer",
+        )
+        key = "pattern" if request.promote_to_global else "incident"
+        return {"status": "ok", key: result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/run_global_pattern_analytics")
+def run_global_pattern_analytics_route(dry_run: bool = False) -> Dict[str, Any]:
+    """Run Problem Management analytics — detect recurring patterns and causal chains."""
+    try:
+        from global_pattern_analytics import run_analytics
+        return run_analytics(dry_run=dry_run)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/global_pattern_stats")
+def get_global_pattern_stats_route() -> Dict[str, Any]:
+    """Return Problem Management candidates with causal chains (read-only, no disk write)."""
+    try:
+        from global_pattern_analytics import compute_problem_management_candidates
+        return {"candidates": compute_problem_management_candidates()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/create_resolution")
