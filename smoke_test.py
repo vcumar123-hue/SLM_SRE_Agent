@@ -5,7 +5,7 @@ Usage:  python smoke_test.py [http://localhost:8001]
 Exit 0 = all pass, Exit 1 = one or more failures.
 """
 from __future__ import annotations
-import json, sys, urllib.request, urllib.error
+import json, os, sys, urllib.request, urllib.error
 from typing import Any, Dict, List, Tuple
 
 BACKEND = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://localhost:8001"
@@ -23,6 +23,11 @@ def _req(method: str, path: str, body: Dict[str, Any] | None = None, qs: str = "
     url = BACKEND + path + (f"?{qs}" if qs else "")
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if data else {}
+    # Release 1: the backend authenticates every request. Set AIOPS_SMOKE_API_KEY (or AIOPS_UI_API_KEY /
+    # AIOPS_API_KEY) to the token of a configured principal. In open dev mode no token is needed.
+    token = (os.getenv("AIOPS_SMOKE_API_KEY") or os.getenv("AIOPS_UI_API_KEY") or os.getenv("AIOPS_API_KEY") or "").strip()
+    if token:
+        headers["Authorization"] = "Bearer " + token
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:

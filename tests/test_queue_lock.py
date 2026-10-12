@@ -31,6 +31,14 @@ def spawn(*args, env=None):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
+def close_pipes(proc):
+    for stream in (proc.stdout, proc.stderr):
+        try:
+            stream.close()
+        except Exception:
+            pass
+
+
 def wait_for(proc, token, timeout=15):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -125,6 +133,7 @@ class LockSemanticsTests(LockBase):
             self.assertLess(time.monotonic() - t0, 2.0)
         finally:
             proc.wait(10)
+            close_pipes(proc)
         with ae._queue_lock("after_holder", timeout=2.0):  # holder has exited: lock is free again
             pass
 
@@ -141,6 +150,7 @@ class LockSemanticsTests(LockBase):
         finally:
             if proc.poll() is None:
                 proc.kill()
+            close_pipes(proc)
 
     def test_unusable_lock_file_fails_fast_with_a_clear_error(self):
         # Make the lock path a directory so it can never be opened as a file.
@@ -171,6 +181,7 @@ class DoubleExecutionAcrossProcessesTests(LockBase):
         outputs = []
         for p in procs:
             out, err = p.communicate(timeout=60)
+            close_pipes(p)
             self.assertEqual(p.returncode, 0, err[:400])
             outputs.append(json.loads(out.strip().splitlines()[-1])["status"])
         self.assertEqual(sorted(outputs), ["not_executable", "ok"], outputs)
@@ -217,6 +228,7 @@ class ApiReturns503WhenLockHeldTests(LockBase):
             self.assertLess(time.monotonic() - t0, 3.0)
         finally:
             proc.wait(10)
+            close_pipes(proc)
 
 
 if __name__ == "__main__":

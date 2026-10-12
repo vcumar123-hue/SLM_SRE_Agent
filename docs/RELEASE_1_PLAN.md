@@ -31,8 +31,9 @@ The request's `autonomous_requested` flag carries no authority.
 | Wave | Scope | Status |
 |---|---|---|
 | 0 | Version control; characterization/regression tests | Done (W1/W5 regression suites; legacy `/analyze` characterization is the first task of Wave 4, before any extraction) |
-| 1 | Server-side execution authorization (W1), authentication and roles (W2), external-LLM governance (W5) | **Done** - commits `947cd44`, `14e34c2`; 62 tests pass in both trees |
-| 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Next |
+| 1 | Server-side execution authorization (W1), authentication and roles (W2), external-LLM governance (W5) | Implemented (`947cd44`, `14e34c2`); verification closed by Wave 1b |
+| 1b | Closure of the Wave 1 review: OS-level queue lock, durable fail-closed egress audit, stable warning overrides, UI contract and simulation-only workflow tests, clean-checkout validation | **See Wave 1b section below** |
+| 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | On hold until Wave 1b exit criteria are met |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Planned |
 | 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes) | Planned |
 | 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
@@ -55,3 +56,34 @@ After each wave: copy the code/config files changed on the branch into `SLM`, bu
 - **Existing queue entries:** entries approved before this change have no approval record or plan hash, so they cannot run live. Re-run the Safety Gate and approve again.
 - **External LLM:** no existing tenant has `external_llm_policy`, so Groq fallback and LLM playbook generation are denied until a tenant opts in (see `tenant_config/tenant_config_template.json`). Decisions are logged to `data/egress_audit.jsonl`.
 - **Execute API:** denied requests now return HTTP 403 with the authorization decision; the UI surfaces the reason.
+
+## Wave 1b - closure of the Wave 1 review
+Scope agreed 2026-10-11 after review of Wave 1. Wave 2 stays on hold until every exit criterion below is met.
+
+| Exit criterion | Where it is enforced / tested |
+|---|---|
+| External LLM decisions persist an audit or deny the call | `egress_policy.py`; `tests/test_egress_audit.py` |
+| Lock contention cannot stall indefinitely and returns a clear 503 | `automation_engine._queue_lock` (portalocker, bounded); `tests/test_queue_lock.py` |
+| Cross-process double-execution tests pass | `tests/test_queue_lock.py::DoubleExecutionAcrossProcessesTests` |
+| Warning approval records reason and stable warning identities | `execution_authorization.warning_identities`, `approve_automation`; `tests/test_override_workflow.py` |
+| Execution rejects new or changed warnings | `authorize_execution` + `compare_warnings`; `tests/test_override_workflow.py` |
+| Autonomous execution cannot override warnings | `authorize_execution`; `tests/test_override_workflow.py`, `tests/test_execution_authorization.py` |
+| Updated UI sends valid queue-based payloads | `ui.py` (demo steps, helpers), `page_modules/automation_queue.py`; `tests/test_ui_workflow.py` |
+| Simulation-only UI workflow passes | `tests/test_ui_workflow.py` (API layer authoritative; UI helper and AppTest layers) |
+| All tests pass in `SLM_Repo`, `SLM` and a clean checkout | see "Validation record" below |
+
+### Design decisions recorded
+- **Lock:** OS-level lock (`portalocker`, already pinned in `requirements.txt`) on a persistent file that is never deleted; released automatically when the owner dies; default wait 10 s (`AIOPS_QUEUE_LOCK_TIMEOUT`); a timeout raises `QueueBusyError` and the API returns HTTP 503 with `Retry-After`, naming the operation and queue id. When queue state moves to PostgreSQL, replace this with row/advisory locking.
+- **Audit:** PostgreSQL preferred, JSONL fallback (`fsync`). For an external endpoint the decision is persisted before the call is permitted and the call is denied if no sink persisted it. `AIOPS_ALLOW_UNAUDITED_EXTERNAL_LLM` (default false) is ignored when `AIOPS_ENV=production`. Local endpoints are never blocked; their usage is recorded best-effort. The PostgreSQL sink has not been exercised against a live database (driver absent until Wave 5); when it is enabled, confirm the connection timeout so an unreachable database cannot delay external calls.
+- **Warning overrides:** identity is `check_id` + `warning_code` + `evidence_fingerprint` (stable condition fields only, never text or timestamps). Approval of a warning gate requires an explicit override and reason and stores approver, gate run id, plan hash, target and the acknowledged warning identities. Execution re-runs the gate with the *approved* parameters, rejects new warnings, materially changed evidence, a changed target or plan, still requires an execute-time reconfirmation, and never allows an autonomous override.
+- **UI:** the demo's Safety Gate and Execute steps now create a real queue entry, bind a gate run to it and execute in **simulation only**. The queue page asks for an override reason when the gate reports warnings. Server refusals (401/403/409/503) are shown with their reason. `smoke_test.py` sends a bearer token when `AIOPS_SMOKE_API_KEY`, `AIOPS_UI_API_KEY` or `AIOPS_API_KEY` is set.
+
+### How to run the tests
+The project `.venv` has no Streamlit (installing it would conflict with the pinned `pandas`), so the suite is run with two interpreters:
+
+    .venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -t .
+        API layers run; the Streamlit UI layers are skipped (11 tests)
+    C:\Users\vcuma\AppData\Local\Programs\Python\Python314\python.exe -m unittest discover -s tests -p "test_*.py" -t .
+        this interpreter has Streamlit: nothing is skipped
+
+The failures reported from the reviewer's sandbox (egress audit rows missing, authorization suite stalling) could not be reproduced. Failure injection showed the previous designs were fragile in exactly that class of environment, and both are corrected: every wait is bounded and every failure is logged.

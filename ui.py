@@ -632,12 +632,32 @@ def queue_automation(payload: dict) -> dict:
     return response.json()
 
 
-def approve_automation_request(queue_id: str, approved_by: str = "Vijay") -> dict:
+def _raise_if_refused(response, action: str) -> None:
+    """Show the server's reason when it refuses a hardened operation (401/403/409/503)."""
+    if response.status_code in (401, 403, 409, 503):
+        try:
+            detail = response.json().get("detail", response.text)
+        except Exception:
+            detail = response.text
+        raise RuntimeError(f"{action} refused by the server ({response.status_code}): {detail}")
+
+
+def approve_automation_request(
+    queue_id: str,
+    approved_by: str = "Vijay",
+    override_gate_warnings: bool = False,
+    override_reason: str = "",
+) -> dict:
+    payload = {"queue_id": queue_id, "approved_by": approved_by}
+    if override_gate_warnings:
+        payload["override_gate_warnings"] = True
+        payload["override_reason"] = override_reason
     response = SESSION.post(
         f"{BACKEND_URL}/automation/approve",
-        json={"queue_id": queue_id, "approved_by": approved_by},
+        json=payload,
         timeout=REQUEST_TIMEOUT_MEDIUM,
     )
+    _raise_if_refused(response, "Approval")
     response.raise_for_status()
     return response.json()
 
@@ -658,12 +678,7 @@ def execute_automation_request(
         json=payload,
         timeout=REQUEST_TIMEOUT_LONG,
     )
-    if response.status_code in (401, 403, 409):
-        try:
-            detail = response.json().get("detail", response.text)
-        except Exception:
-            detail = response.text
-        raise RuntimeError(f"Execution refused by the server ({response.status_code}): {detail}")
+    _raise_if_refused(response, "Execution")
     response.raise_for_status()
     return response.json()
 
@@ -4319,6 +4334,8 @@ def _render_demo_page():  # noqa: C901
         "demo_results": {},    # step_index → {ok, summary, details}
         "demo_incident_id": None,
         "demo_snapshot_id": None,
+        "demo_queue_id": None,
+        "demo_gate_status": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -4558,19 +4575,47 @@ def _render_demo_page():  # noqa: C901
             "details": {k: v for k, v in d.items() if k in keep and v is not None} if ok else d,
         }
 
+    # The automation plan needs a classification that has an automation mapping; the Path B narrative
+    # label (api_latency_spike) has none, so its queue entry uses the closest mapped classification.
+    automation_class = classification_hint if path == "A" else "api_gateway_timeout"
+
+    def _demo_queue_entry():
+        """Create (once) the real queue entry the demo's gate and execution steps operate on."""
+        qid = st.session_state.get("demo_queue_id")
+        if qid:
+            return qid, None
+        code, d = _call("POST", "/automation/queue", json={
+            "incident_id": st.session_state.demo_incident_id or "demo-incident",
+            "classification": automation_class,
+            "requested_by": "demo",
+        })
+        if code >= 300:
+            return None, d
+        qid = (d.get("queue_entry") or {}).get("queue_id")
+        st.session_state.demo_queue_id = qid
+        return qid, None
+
     def fn_safety():
-        iid = st.session_state.demo_incident_id
+        qid, err = _demo_queue_entry()
+        if not qid:
+            return {"ok": False, "summary": "Could not create the automation queue entry", "details": err}
         code, d = _call("POST", "/automation/pre_execution_check", json={
-            "incident_id": iid or "demo-incident",
-            "ci_name": ci, "action": "remediate",
+            "queue_id": qid,
+            "incident_id": st.session_state.demo_incident_id or "demo-incident",
+            "classification": automation_class,
+            "target_host": ci,
+            "risk_tier": "medium",
+            "execution_mode": "simulation",
+            "requested_by": "demo",
         })
         ok = code < 300
-        status = d.get("safety_gate_status") or d.get("status") or ("passed" if ok else "failed")
-        keep = ("safety_gate_status", "status", "checks", "blocking_checks",
-                "safe_to_approve", "notes", "passed", "warnings")
+        status = d.get("gate_status") or d.get("status") or ("passed" if ok else "failed")
+        st.session_state.demo_gate_status = str(status).lower() if ok else None
+        keep = ("gate_status", "status", "gate_run_id", "checks", "blocking_checks", "warning_checks",
+                "safe_to_approve", "message")
         return {
             "ok": ok,
-            "summary": f"Safety gate: {str(status).upper()}",
+            "summary": f"Safety gate: {str(status).upper()} (queue {qid})",
             "details": {k: v for k, v in d.items() if k in keep and v is not None} if ok else d,
         }
 
@@ -4606,17 +4651,28 @@ def _render_demo_page():  # noqa: C901
         }
 
     def fn_execute():
-        iid = st.session_state.demo_incident_id
+        # The demo never runs a live connector: it executes the queued plan in SIMULATION. Live execution
+        # needs an approved, gate-passed plan and an l3 engineer (done from the Automation Queue page).
+        qid, err = _demo_queue_entry()
+        if not qid:
+            return {"ok": False, "summary": "Could not create the automation queue entry", "details": err}
         code, d = _call("POST", "/automation/execute", json={
-            "incident_id": iid or "demo-incident",
-            "ci_name": ci, "approved": True,
+            "queue_id": qid, "execution_mode": "simulation", "executed_by": "demo",
         })
         ok = code < 300
-        keep = ("status", "execution_id", "playbook", "task_output", "message", "result")
+        detail = d.get("detail") if isinstance(d, dict) else None
+        reason = ""
+        if not ok and isinstance(detail, dict):
+            reason = "; ".join((detail.get("authorization") or {}).get("reasons") or []) or str(detail.get("message") or "")
+        elif not ok and detail:
+            reason = str(detail)
+        execution = (d.get("execution") or {}) if ok and isinstance(d, dict) else {}
+        keep = ("status", "execution_id", "execution_mode", "steps", "evidence_summary")
         return {
             "ok": ok,
-            "summary": "Ansible playbook execution started" if ok else "Execution failed",
-            "details": {k: v for k, v in d.items() if k in keep and v is not None} if ok else d,
+            "summary": (f"Playbook executed in SIMULATION (queue {qid}, {execution.get('status', 'ok')})" if ok
+                        else f"Execution refused by the server ({code}): {reason or 'see details'}"),
+            "details": {k: v for k, v in execution.items() if k in keep and v is not None} if ok else d,
         }
 
     def fn_governance():
@@ -4791,6 +4847,8 @@ def _render_demo_page():  # noqa: C901
                 st.session_state.demo_results = {}
                 st.session_state.demo_incident_id = None
                 st.session_state.demo_snapshot_id = None
+                st.session_state.demo_queue_id = None
+                st.session_state.demo_gate_status = None
                 st.rerun()
         with col_b:
             if st.button(f"↔ Try {'Path B' if path == 'A' else 'Path A'}", use_container_width=True):
@@ -4799,6 +4857,8 @@ def _render_demo_page():  # noqa: C901
                 st.session_state.demo_results = {}
                 st.session_state.demo_incident_id = None
                 st.session_state.demo_snapshot_id = None
+                st.session_state.demo_queue_id = None
+                st.session_state.demo_gate_status = None
                 st.rerun()
         with col_c:
             if st.button("🏛️ View Governance Report", use_container_width=True, type="primary"):

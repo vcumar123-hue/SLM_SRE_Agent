@@ -649,15 +649,29 @@ def render_automation_queue_page():
             except Exception as e:
                 st.error(f"Safety gate failed: {e}")
     with col4:
+        override_reason_key = f"override_reason_{runtime_key}"
+        override_reason = ""
+        if safety_gate_status == "warning":
+            override_reason = st.text_input(
+                "Warning override reason",
+                key=override_reason_key,
+                placeholder="Why is it acceptable to proceed despite the Safety Gate warnings?",
+                help="Required to approve while the Safety Gate reports warnings. Recorded with your identity and the warnings you accepted.",
+            ).strip()
         if st.button(
             "Approve Queue",
             width="stretch",
             key=f"approve_auto_{runtime_key}",
-            disabled=approve_disabled,
+            disabled=approve_disabled or (safety_gate_status == "warning" and not override_reason),
             help="Enabled only after queue exists and the safety gate has passed. Disabled after approval.",
         ):
             try:
-                resp = approve_automation_request(queue_id, approved_by="Vijay")
+                resp = approve_automation_request(
+                    queue_id,
+                    approved_by="Vijay",
+                    override_gate_warnings=(safety_gate_status == "warning"),
+                    override_reason=override_reason,
+                )
                 runtime["approval_result"] = resp
                 runtime["queue_entry"] = resp.get("queue_entry", runtime.get("queue_entry", {}))
                 st.session_state.automation_runtime[runtime_key] = runtime
@@ -698,7 +712,11 @@ def render_automation_queue_page():
                     execution_mode=execution_mode,
                     executed_by="Vijay",
                     override_gate_warnings=(safety_gate_status == "warning"),
-                    override_reason="Engineer proceeded with execution despite Safety Gate warnings (UI confirmation).",
+                    override_reason=(
+                        st.session_state.get(f"override_reason_{runtime_key}", "").strip()
+                        or str((((runtime.get("queue_entry") or {}).get("approval")) or {}).get("override_reason") or "")
+                        or "Reconfirmed at execution from the Automation Queue page."
+                    ),
                 )
                 runtime["execution_result"] = resp
                 runtime["drift_snapshot_id"] = _snap_id
