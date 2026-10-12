@@ -14,6 +14,8 @@ Execution classes
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from dataclasses import asdict, dataclass, field
 from typing import Any, Callable, Dict, List, Optional
@@ -24,6 +26,55 @@ GATE_RUNS_FILE = ae.DATA_DIR / "automation_gate_runs.json"
 _GATE_RUNS_KEEP = 1000
 
 LIVE_EXECUTE_MIN_ROLE = "l3"
+
+
+# ── Stable warning identities ────────────────────────────────────────────────
+
+# Only fields that describe the underlying condition, never human-readable text or timestamps.
+_STABLE_EVIDENCE_KEYS = ("status", "severity", "source_system", "evidence_type", "adapter_mode",
+                         "scope", "blast_radius_level", "simulation_status")
+
+
+def _normalized_status(value: Any) -> str:
+    token = str(value or "").strip().lower()
+    return "unknown" if token in {"unknown", "missing", "not_available"} else "warn"
+
+
+def warning_identities(gate_result: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Stable identities of the warnings in a gate result: check id, warning code, evidence fingerprint.
+
+    Wording can change without the condition changing, so identity never depends on summary text.
+    """
+    checks = (gate_result or {}).get("checks") or {}
+    names = list((gate_result or {}).get("warning_checks") or [])
+    if not names:
+        names = [n for n, d in checks.items()
+                 if str((d or {}).get("status", "")).lower() in {"warn", "warning", "unknown"}]
+    out: List[Dict[str, str]] = []
+    for name in sorted(set(str(n) for n in names)):
+        detail = checks.get(name) or {}
+        code = f"{name}:stale" if detail.get("ttl_warning") else f"{name}:{_normalized_status(detail.get('status'))}"
+        material = {k: detail.get(k) for k in _STABLE_EVIDENCE_KEYS}
+        material["stale"] = bool(detail.get("ttl_warning"))
+        fingerprint = hashlib.sha256(json.dumps(material, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
+        out.append({"check_id": name, "warning_code": code, "evidence_fingerprint": fingerprint})
+    return out
+
+
+def compare_warnings(acknowledged: List[Dict[str, Any]], current: List[Dict[str, Any]]) -> List[str]:
+    """Return human-readable problems for warnings that were not acknowledged at approval (empty = all covered)."""
+    ack_exact = {(w.get("check_id"), w.get("warning_code"), w.get("evidence_fingerprint")) for w in acknowledged or []}
+    ack_code = {(w.get("check_id"), w.get("warning_code")) for w in acknowledged or []}
+    problems: List[str] = []
+    for w in current or []:
+        key = (w.get("check_id"), w.get("warning_code"), w.get("evidence_fingerprint"))
+        if key in ack_exact:
+            continue
+        if (w.get("check_id"), w.get("warning_code")) in ack_code:
+            problems.append(f"evidence for warning '{w.get('warning_code')}' changed since approval")
+        else:
+            problems.append(f"new warning '{w.get('warning_code')}' since approval")
+    return problems
 
 
 # ── Gate-run store ───────────────────────────────────────────────────────────
@@ -49,10 +100,11 @@ def record_gate_run(
         "safe_to_execute_live": bool(gate_result.get("safe_to_execute_live", False)),
         "blocking_checks": list(gate_result.get("blocking_checks", []) or []),
         "warning_checks": list(gate_result.get("warning_checks", []) or []),
+        "warnings": warning_identities(gate_result),
         "checked_at": gate_result.get("checked_at") or ae._utc_now_iso(),
         "principal": principal_id,
     }
-    with ae._queue_lock():
+    with ae._queue_lock("gate_run", run["queue_id"]):
         runs = ae._safe_read_json(GATE_RUNS_FILE, default=[])
         if not isinstance(runs, list):
             runs = []
@@ -85,6 +137,8 @@ class ExecutionAuthorization:
     gate_status: str = ""
     override: bool = False
     override_reason: str = ""
+    approval_override_reason: str = ""
+    acknowledged_warnings: List[Dict[str, Any]] = field(default_factory=list)
     reasons: List[str] = field(default_factory=list)
     decided_at: str = ""
 
@@ -173,6 +227,8 @@ def authorize_execution(
     # Fresh Safety Gate run immediately before live execution.
     try:
         run = run_gate(entry) or {}
+    except ae.QueueBusyError:
+        raise  # infrastructure contention is a 503, not a policy denial
     except Exception as exc:
         return _deny(auth, f"safety gate could not be evaluated: {type(exc).__name__}")
     auth.gate_run_id = str(run.get("gate_run_id", ""))
@@ -181,10 +237,24 @@ def authorize_execution(
     if auth.gate_status == "passed":
         pass
     elif auth.gate_status == "warning" and not autonomous_entry:
+        approval = (entry or {}).get("approval") or {}
+        approval_reason = str(approval.get("override_reason") or "").strip()
+        if not approval.get("override_requested") or not approval_reason:
+            return _deny(auth, "safety gate returned warnings but the approval does not record a warning override with a reason")
         if not override or not str(override_reason or "").strip():
-            return _deny(auth, "safety gate returned warnings; an explicit override with a reason is required")
+            return _deny(auth, "safety gate returned warnings; execution requires an explicit override confirmation with a reason")
+        gate_params = approval.get("gate_params") or {}
+        if str(run.get("target_host", "")) != str(gate_params.get("target_host", run.get("target_host", ""))):
+            return _deny(auth, "target changed since approval")
+        if run.get("plan_hash") and run.get("plan_hash") != approval.get("plan_hash"):
+            return _deny(auth, "plan changed since approval")
+        problems = compare_warnings(approval.get("acknowledged_warnings") or [], run.get("warnings") or [])
+        if problems:
+            return _deny(auth, "; ".join(problems))
         auth.override = True
         auth.override_reason = str(override_reason).strip()
+        auth.approval_override_reason = approval_reason
+        auth.acknowledged_warnings = list(approval.get("acknowledged_warnings") or [])
     else:
         return _deny(auth, f"safety gate status '{auth.gate_status}' does not permit live execution")
 

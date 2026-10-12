@@ -108,9 +108,9 @@ class AuthzBase(unittest.TestCase):
         self.assertEqual(r.status_code, 200, r.text)
         return r.json()
 
-    def approve(self, queue_id, token="tok-l3"):
+    def approve(self, queue_id, token="tok-l3", **extra):
         return self.client.post("/automation/approve", headers=bearer(token),
-                                json={"queue_id": queue_id, "approved_by": "spoofed-name"})
+                                json={"queue_id": queue_id, "approved_by": "spoofed-name", **extra})
 
     def execute(self, queue_id, mode="live", token="tok-l3", **extra):
         return self.client.post("/automation/execute", headers=bearer(token),
@@ -284,7 +284,10 @@ class HumanLiveFlowTests(AuthzBase):
         q = self.queue()
         self.gate = {**self.gate, "gate_status": "warning", "warning_checks": ["rollback_readiness"]}
         self.run_gate(q["queue_id"])
-        self.assertEqual(self.approve(q["queue_id"]).status_code, 200)
+        self.assertEqual(self.approve(q["queue_id"]).status_code, 409)  # warnings need an explicit override
+        self.assertEqual(self.approve(q["queue_id"], override_gate_warnings=True).status_code, 409)  # and a reason
+        self.assertEqual(self.approve(q["queue_id"], override_gate_warnings=True,
+                                      override_reason="Accepted by on-call").status_code, 200)
         self.assertEqual(self.execute(q["queue_id"], "live").status_code, 403)
         self.assertEqual(self.execute(q["queue_id"], "live", override_gate_warnings=True).status_code, 403)
         r = self.execute(q["queue_id"], "live", override_gate_warnings=True, override_reason="Accepted by on-call")

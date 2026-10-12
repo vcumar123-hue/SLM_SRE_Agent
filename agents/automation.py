@@ -120,6 +120,15 @@ def _require_principal(http_request: Request, minimum: str = "l1") -> Principal:
     return principal
 
 
+def _busy_http(exc: "_engine.QueueBusyError") -> HTTPException:
+    """Queue lock contention is a temporary infrastructure condition: 503, never a policy denial."""
+    return HTTPException(
+        status_code=503,
+        detail={"status": "busy", "message": str(exc), "operation": exc.operation, "queue_id": exc.queue_id},
+        headers={"Retry-After": "2"},
+    )
+
+
 def _ledger_gate_for(classification: str, tenant_id: str) -> Dict[str, Any]:
     from resolution_outcome import autonomous_gate
     return autonomous_gate(classification, tenant_id=tenant_id or "default")
@@ -144,7 +153,9 @@ def _first_playbook(entry: Dict[str, Any]) -> str:
 
 def _run_gate_for_entry(entry: Dict[str, Any], principal: Principal, mode: str = "live") -> Dict[str, Any]:
     """Evaluate the Safety Gate for a queue entry using the parameters of its last recorded run."""
-    last = exec_auth.latest_gate_run(entry.get("queue_id", "")) or {}
+    # Re-run with the parameters that were approved, not whatever check happened to run last.
+    approved = (entry.get("approval") or {}).get("gate_params") or {}
+    last = approved or exec_auth.latest_gate_run(entry.get("queue_id", "")) or {}
     params = {
         "classification": entry.get("classification", ""),
         "playbook": last.get("playbook") or _first_playbook(entry),
@@ -828,7 +839,10 @@ def automation_pre_execution_check_route(request: AutomationPreExecutionCheckReq
             "risk_tier": request.risk_tier or "medium",
             "execution_mode": request.execution_mode or "simulation",
         }
-        run = exec_auth.record_gate_run(entry, result, params, principal.id)
+        try:
+            run = exec_auth.record_gate_run(entry, result, params, principal.id)
+        except _engine.QueueBusyError as busy:
+            raise _busy_http(busy)
         result["gate_run_id"] = run["gate_run_id"]
         result["plan_hash"] = run["plan_hash"]
     return result
@@ -1276,6 +1290,8 @@ def automation_queue_route(request: AutomationPlanRequest, http_request: Request
         if isinstance(result, dict):
             result["postgres_parallel_write"] = postgres_enabled()
         return result
+    except _engine.QueueBusyError as busy:
+        raise _busy_http(busy)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1296,6 +1312,8 @@ def automation_refresh_queue_route(request: AutomationRefreshRequest) -> Dict[st
         raise HTTPException(status_code=500, detail="automation_engine refresh not available")
     try:
         return refresh_automation_queue(request.queue_id)
+    except _engine.QueueBusyError as busy:
+        raise _busy_http(busy)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1318,13 +1336,23 @@ def automation_approve_route(request: AutomationApproveRequest, http_request: Re
         raise HTTPException(status_code=409, detail="the plan changed after the safety gate ran; re-run the gate")
     if run.get("gate_status") not in {"passed", "warning"}:
         raise HTTPException(status_code=409, detail=f"safety gate status '{run.get('gate_status')}' blocks approval")
+    override_reason = str(request.override_reason or "").strip()
+    needs_override = run.get("gate_status") == "warning"
+    if needs_override and not (request.override_gate_warnings and override_reason):
+        raise HTTPException(
+            status_code=409,
+            detail={"status": "override_required",
+                    "message": "the safety gate returned warnings: approval requires override_gate_warnings=true and an override_reason",
+                    "warnings": run.get("warnings") or []},
+        )
     try:
         result = approve_automation(
             queue_id=request.queue_id,
             approved_by=principal.id,
             approver_role=principal.role,
             gate_run=run,
-            override=(run.get("gate_status") == "warning"),
+            override_requested=needs_override,
+            override_reason=override_reason if needs_override else "",
         )
         if isinstance(result, dict) and result.get("status") == "not_approvable":
             raise HTTPException(status_code=409, detail=result)
@@ -1340,6 +1368,8 @@ def automation_approve_route(request: AutomationApproveRequest, http_request: Re
         return result
     except HTTPException:
         raise
+    except _engine.QueueBusyError as busy:
+        raise _busy_http(busy)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1355,16 +1385,19 @@ def automation_execute_route(request: AutomationExecuteRequest, http_request: Re
 
     # One server-side decision. The request body supplies only the mode and an optional override;
     # `autonomous_requested` carries no authority.
-    auth = exec_auth.authorize_execution(
-        entry,
-        request.execution_mode or "simulation",
-        principal,
-        run_gate=lambda e: _run_gate_for_entry(e, principal),
-        ledger_gate=_ledger_gate_for,
-        autonomous_mapping_allowed=_autonomous_mapping_allowed,
-        override=bool(request.override_gate_warnings),
-        override_reason=request.override_reason or "",
-    )
+    try:
+        auth = exec_auth.authorize_execution(
+            entry,
+            request.execution_mode or "simulation",
+            principal,
+            run_gate=lambda e: _run_gate_for_entry(e, principal),
+            ledger_gate=_ledger_gate_for,
+            autonomous_mapping_allowed=_autonomous_mapping_allowed,
+            override=bool(request.override_gate_warnings),
+            override_reason=request.override_reason or "",
+        )
+    except _engine.QueueBusyError as busy:
+        raise _busy_http(busy)
     if not auth.allowed:
         code = 401 if principal is None else (400 if any("unsupported execution_mode" in r for r in auth.reasons) else 403)
         raise HTTPException(status_code=code, detail={"status": "denied", "authorization": auth.to_dict()})
@@ -1418,6 +1451,8 @@ def automation_execute_route(request: AutomationExecuteRequest, http_request: Re
         return result
     except HTTPException:
         raise
+    except _engine.QueueBusyError as busy:
+        raise _busy_http(busy)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

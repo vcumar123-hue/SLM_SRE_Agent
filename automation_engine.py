@@ -349,17 +349,41 @@ def _find_queue_entry(queue: List[Dict[str, Any]], queue_id: str) -> Optional[Di
 
 
 # ---------------------------------------------------------
-# Queue locking (Release 1): serialise read-modify-write so concurrent requests cannot
-# lose updates or execute the same entry twice.
+# Queue locking (Release 1): serialise read-modify-write so concurrent requests cannot lose
+# updates or execute the same entry twice.
+#
+# The lock is an operating-system file lock (portalocker: LockFileEx on Windows, flock on POSIX)
+# held on a persistent file that is never deleted. It is released automatically if the owning
+# process dies, works across processes, and every wait is bounded; a timeout raises QueueBusyError
+# (mapped to HTTP 503 by the API) instead of stalling.
 # ---------------------------------------------------------
 
+QUEUE_LOCK_TIMEOUT_SECONDS = float(os.getenv("AIOPS_QUEUE_LOCK_TIMEOUT", "10"))
 _QUEUE_THREAD_LOCK = threading.RLock()
 _QUEUE_LOCK_STATE = threading.local()
-_QUEUE_LOCK_STALE_SECONDS = 120.0
+
+
+class QueueBusyError(RuntimeError):
+    """The queue lock could not be acquired within the timeout (or the lock file is unusable)."""
+
+    def __init__(self, operation: str, queue_id: str, timeout: float, detail: str = ""):
+        self.operation = operation
+        self.queue_id = queue_id
+        self.timeout = timeout
+        msg = f"automation queue busy: could not lock for '{operation}'"
+        if queue_id:
+            msg += f" (queue_id={queue_id})"
+        msg += f" within {timeout:g}s"
+        if detail:
+            msg += f": {detail}"
+        super().__init__(msg)
 
 
 @contextmanager
-def _queue_lock(timeout: float = 20.0):
+def _queue_lock(operation: str = "queue", queue_id: str = "", timeout: Optional[float] = None):
+    import portalocker
+
+    limit = QUEUE_LOCK_TIMEOUT_SECONDS if timeout is None else float(timeout)
     if getattr(_QUEUE_LOCK_STATE, "depth", 0) > 0:  # re-entrant within a thread
         _QUEUE_LOCK_STATE.depth += 1
         try:
@@ -367,34 +391,41 @@ def _queue_lock(timeout: float = 20.0):
         finally:
             _QUEUE_LOCK_STATE.depth -= 1
         return
-    lock_path = AUTOMATION_QUEUE_FILE.with_suffix(".lock")
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with _QUEUE_THREAD_LOCK:
-        deadline = time.monotonic() + timeout
-        fd = None
-        while fd is None:
-            try:
-                fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            except FileExistsError:
-                try:
-                    if time.time() - lock_path.stat().st_mtime > _QUEUE_LOCK_STALE_SECONDS:
-                        lock_path.unlink()
-                        continue
-                except OSError:
-                    pass
-                if time.monotonic() > deadline:
-                    raise TimeoutError("automation queue lock timeout")
-                time.sleep(0.02)
+
+    deadline = time.monotonic() + limit
+    if not _QUEUE_THREAD_LOCK.acquire(timeout=max(limit, 0.0)):
+        LOGGER.error("queue lock: in-process wait timed out op=%s queue_id=%s", operation, queue_id)
+        raise QueueBusyError(operation, queue_id, limit, "another request in this process holds the lock")
+    try:
+        lock_path = AUTOMATION_QUEUE_FILE.with_suffix(".lock")
+        file_lock = None
+        try:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            file_lock = portalocker.Lock(
+                str(lock_path),
+                mode="a",
+                timeout=max(deadline - time.monotonic(), 0.0),
+                check_interval=0.05,
+                flags=portalocker.LOCK_EX | portalocker.LOCK_NB,
+            )
+            file_lock.acquire()
+        except portalocker.exceptions.LockException as exc:
+            LOGGER.error("queue lock: timed out op=%s queue_id=%s", operation, queue_id)
+            raise QueueBusyError(operation, queue_id, limit, "another process holds the lock") from exc
+        except OSError as exc:
+            LOGGER.error("queue lock: lock file unusable op=%s queue_id=%s: %s", operation, queue_id, exc)
+            raise QueueBusyError(operation, queue_id, limit, f"lock file unusable ({type(exc).__name__}: {exc})") from exc
         _QUEUE_LOCK_STATE.depth = 1
         try:
             yield
         finally:
             _QUEUE_LOCK_STATE.depth = 0
-            os.close(fd)
             try:
-                lock_path.unlink()
-            except OSError:
-                pass
+                file_lock.release()
+            except Exception as exc:  # the lock is process-scoped; never mask the caller's result
+                LOGGER.warning("queue lock: release error (lock is released with the handle): %s", exc)
+    finally:
+        _QUEUE_THREAD_LOCK.release()
 
 
 def compute_plan_hash(entry: Dict[str, Any]) -> str:
@@ -769,7 +800,7 @@ def queue_automation_plan(
     if intent:
         entry["intent"] = {**intent, "plan_hash": compute_plan_hash(entry)}
 
-    with _queue_lock():
+    with _queue_lock("queue"):
         queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
         if not isinstance(queue, list):
             queue = []
@@ -781,7 +812,7 @@ def queue_automation_plan(
 
 
 def refresh_automation_queue(queue_id: str) -> Dict[str, Any]:
-    with _queue_lock():
+    with _queue_lock("refresh", queue_id):
         queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
         if not isinstance(queue, list):
             queue = []
@@ -826,7 +857,7 @@ def close_queue_if_remediated(
     closed_by: str = "automation_engine",
     reason: str = "remediated",
 ) -> Dict[str, Any]:
-    with _queue_lock():
+    with _queue_lock("close", queue_id):
         queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
         if not isinstance(queue, list):
             queue = []
@@ -849,13 +880,17 @@ def approve_automation(
     approved_by: str = "engineer",
     approver_role: str = "",
     gate_run: Optional[Dict[str, Any]] = None,
-    override: bool = False,
+    override_requested: bool = False,
+    override_reason: str = "",
 ) -> Dict[str, Any]:
     """Record an approval bound to the current plan hash and the gate run that justified it.
 
+    When the gate returned warnings, the approval also records the explicit override: who accepted
+    which warnings (stable identities, not text), why, for which target and plan.
+
     Only a `queued` entry can be approved; terminal or executing entries cannot be re-opened.
     """
-    with _queue_lock():
+    with _queue_lock("approve", queue_id):
         queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
         if not isinstance(queue, list):
             queue = []
@@ -877,7 +912,16 @@ def approve_automation(
             "plan_hash": compute_plan_hash(item),
             "gate_run_id": gate_run.get("gate_run_id"),
             "gate_status": gate_run.get("gate_status"),
-            "override": bool(override),
+            "gate_params": {
+                "classification": gate_run.get("classification", ""),
+                "playbook": gate_run.get("playbook", ""),
+                "target_host": gate_run.get("target_host", ""),
+                "risk_tier": gate_run.get("risk_tier", ""),
+            },
+            "target_host": gate_run.get("target_host", ""),
+            "override_requested": bool(override_requested),
+            "override_reason": str(override_reason or "").strip(),
+            "acknowledged_warnings": list(gate_run.get("warnings") or []) if override_requested else [],
         }
         _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
         return {"status": "ok", "queue_entry": item}
@@ -991,7 +1035,7 @@ def execute_automation(
     queue entry, mode and current plan hash (defence in depth: the route is not the only gate).
     The entry is claimed (status -> executing) under the queue lock so it cannot run twice.
     """
-    with _queue_lock():
+    with _queue_lock("execute_claim", queue_id):
         queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
         if not isinstance(queue, list):
             queue = []
@@ -1055,7 +1099,7 @@ def execute_automation(
                 failed = True
             executed_steps.append(executed_step)
     except Exception:
-        with _queue_lock():
+        with _queue_lock("execute_failure", queue_id):
             queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
             entry = _find_queue_entry(queue if isinstance(queue, list) else [], queue_id)
             if entry:
@@ -1093,7 +1137,7 @@ def execute_automation(
     if authorization:
         execution["authorization"] = authorization
 
-    with _queue_lock():
+    with _queue_lock("execute_finish", queue_id):
         queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
         log = _safe_read_json(AUTOMATION_LOG_FILE, default=[])
         if not isinstance(queue, list):

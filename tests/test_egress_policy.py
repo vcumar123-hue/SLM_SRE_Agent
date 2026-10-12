@@ -79,12 +79,15 @@ class PolicyDecisionTests(EgressBase):
         self.assertEqual(d.redaction, "basic")
         self.assertTrue(self.audit_rows()[0]["allowed"])
 
-    def test_local_endpoints_are_not_egress_and_not_audited(self):
-        for url in ("http://localhost:1234/v1", "http://127.0.0.1:11434/v1",
-                    "http://192.168.1.20:8000/v1", "http://host.docker.internal:1234/v1"):
+    def test_local_endpoints_are_not_egress_but_their_usage_is_recorded(self):
+        urls = ("http://localhost:1234/v1", "http://127.0.0.1:11434/v1",
+                "http://192.168.1.20:8000/v1", "http://host.docker.internal:1234/v1")
+        for url in urls:
             d = egress_policy.evaluate_external_llm("no_policy", "x", url)
             self.assertTrue(d.allowed and d.local, url)
-        self.assertEqual(self.audit_rows(), [])
+        rows = self.audit_rows()
+        self.assertEqual(len(rows), len(urls))
+        self.assertTrue(all(r["local"] and r["allowed"] for r in rows))
 
     def test_require_raises_when_denied(self):
         with self.assertRaises(egress_policy.EgressDenied):

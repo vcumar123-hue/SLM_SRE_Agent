@@ -108,7 +108,10 @@ class AutomationPlanRequest(BaseModel):
 
 class AutomationApproveRequest(BaseModel):
     queue_id: str = Field(..., min_length=1)
-    approved_by: Optional[str] = "engineer"
+    approved_by: Optional[str] = "engineer"  # informational only; the approver is the authenticated principal
+    # Required (with a reason) when the latest Safety Gate run returned warnings.
+    override_gate_warnings: bool = False
+    override_reason: Optional[str] = ""
 
 
 class AutomationExecuteRequest(BaseModel):

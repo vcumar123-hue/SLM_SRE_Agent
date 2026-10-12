@@ -1417,6 +1417,38 @@ def insert_agent_trace(trace_id: str, agent_name: str, operation: str = "",
               output_summary[:500] if output_summary else "",
               latency_ms, error[:500] if error else "", Json(metadata or {})))
 
+def ensure_egress_audit_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS egress_audit (
+                id SERIAL PRIMARY KEY,
+                ts TIMESTAMPTZ NOT NULL,
+                tenant_id TEXT NOT NULL,
+                purpose TEXT,
+                provider TEXT,
+                local BOOLEAN,
+                allowed BOOLEAN NOT NULL,
+                reason TEXT,
+                redaction TEXT,
+                prompt_chars INT DEFAULT 0,
+                metadata JSONB DEFAULT '{}'
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_egress_audit_tenant_ts ON egress_audit (tenant_id, ts)")
+
+
+def insert_egress_audit(row: dict) -> None:
+    """Persist one external-LLM egress decision. Raises on failure so the caller can fall back or fail closed."""
+    ensure_egress_audit_schema()
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            INSERT INTO egress_audit (ts, tenant_id, purpose, provider, local, allowed, reason, redaction, prompt_chars)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (row.get("ts"), row.get("tenant_id") or "", row.get("purpose") or "", row.get("provider") or "",
+              bool(row.get("local")), bool(row.get("allowed")), (row.get("reason") or "")[:500],
+              row.get("redaction") or "none", int(row.get("prompt_chars") or 0)))
+
+
 def get_agent_traces(trace_id: str, limit: int = 50) -> list:
     ensure_agent_traces_schema()
     with db_cursor(dict_rows=True) as (_, cur):
