@@ -161,7 +161,7 @@ def _build_bias_context(classification: str) -> str:
         return ""
 
 
-def _call_llm(classification: str, ticket: str, rag_context: str) -> Optional[List[Dict[str, Any]]]:
+def _call_llm(classification: str, ticket: str, rag_context: str, tenant_id: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
     """Call Groq (or compatible OpenAI endpoint) to generate playbook steps."""
     api_key = os.getenv("GROQ_API_KEY", "")
     base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
@@ -177,6 +177,14 @@ def _call_llm(classification: str, ticket: str, rag_context: str) -> Optional[Li
         logger.error("PlaybookAgent: requests not available")
         return None
 
+    # Release 1 (W5): deny-by-default tenant policy for every external model call.
+    from egress_policy import EgressDenied, require_external_llm, redact
+    try:
+        _egress = require_external_llm(tenant_id, "playbook_generation", base_url)
+    except EgressDenied as denied:
+        logger.warning("PlaybookAgent: external LLM call denied for '%s': %s", classification, denied)
+        return None
+
     url = f"{base_url.rstrip('/')}/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     user_msg = _USER_TEMPLATE.format(
@@ -185,6 +193,7 @@ def _call_llm(classification: str, ticket: str, rag_context: str) -> Optional[Li
         rag_context=f"Relevant context from knowledge base:\n{rag_context}" if rag_context else "",
         bias_context=_build_bias_context(classification),
     )
+    user_msg = redact(user_msg, _egress.redaction)
 
     payload = {
         "model": model,
@@ -227,6 +236,8 @@ def generate_playbook(
     classification: str,
     ticket: str = "",
     rag_context: str = "",
+    allow_llm: bool = True,
+    tenant_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Return structured playbook steps for classification.
@@ -241,8 +252,12 @@ def generate_playbook(
         logger.debug("PlaybookAgent: cache hit for '%s' (%d steps)", classification, len(cached))
         return cached
 
+    if not allow_llm:
+        logger.info("PlaybookAgent: cache miss for '%s' — external generation not permitted for this request", classification)
+        return []
+
     logger.info("PlaybookAgent: cache miss for '%s' — calling LLM", classification)
-    steps = _call_llm(classification, ticket, rag_context)
+    steps = _call_llm(classification, ticket, rag_context, tenant_id=tenant_id)
     if steps:
         model_used = os.getenv("GROQ_MODEL", "")
         set_cached_playbook(classification, steps, model_used=model_used)

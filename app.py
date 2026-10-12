@@ -1672,6 +1672,8 @@ def get_resolution_playbook(
     classification: str,
     ticket: str = "",
     rag_context: str = "",
+    allow_external_llm: bool = True,
+    tenant_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     token = normalize_classification_token(classification)
 
@@ -1696,7 +1698,8 @@ def get_resolution_playbook(
     # Priority 4: PlaybookAgent — cache check then LLM generation
     try:
         from agents.playbook_agent import generate_playbook
-        return generate_playbook(token, ticket=ticket, rag_context=rag_context)
+        return generate_playbook(token, ticket=ticket, rag_context=rag_context,
+                                 allow_llm=allow_external_llm, tenant_id=tenant_id)
     except Exception:
         return []
 
@@ -3809,6 +3812,7 @@ def maybe_run_fallback(
     force_fallback: bool = False,
     reason_override: Optional[str] = None,
     retrieved_incidents: Optional[List[Dict[str, Any]]] = None,
+    tenant_id: Optional[str] = None,
 ) -> Tuple[bool, Optional[Dict[str, Any]], float, Optional[str], Optional[str], Optional[str], Optional[str]]:
     fallback_used = False
     fallback_analysis = None
@@ -3872,7 +3876,7 @@ def maybe_run_fallback(
         context_incidents = primary_hits
 
     try:
-        raw = analyze_with_groq_fallback(ticket, context_incidents=context_incidents)
+        raw = analyze_with_groq_fallback(ticket, context_incidents=context_incidents, tenant_id=tenant_id)
         parsed = raw if isinstance(raw, dict) else safe_parse_json(str(raw), default={})
         if parsed:
             fallback_used = True
@@ -3894,8 +3898,13 @@ def maybe_run_fallback(
             fallback_model = parsed.get("fallback_model", settings.GROQ_MODEL)
             fallback_provider = parsed.get("fallback_provider", settings.FALLBACK_PROVIDER)
     except Exception as e:
-        fallback_debug("fallback_error", {"error": str(e), "traceback": traceback.format_exc(), "fallback_reason": fallback_reason}, request_id=request_id)
-        fallback_reason = "error"
+        from egress_policy import EgressDenied
+        if isinstance(e, EgressDenied):
+            fallback_debug("fallback_egress_denied", {"reason": str(e), "tenant_id": tenant_id}, request_id=request_id)
+            fallback_reason = "egress_denied"
+        else:
+            fallback_debug("fallback_error", {"error": str(e), "traceback": traceback.format_exc(), "fallback_reason": fallback_reason}, request_id=request_id)
+            fallback_reason = "error"
     return fallback_used, fallback_analysis, fallback_confidence, fallback_source, fallback_model, fallback_provider, fallback_reason
 
 
@@ -4526,6 +4535,8 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
             rca.final_classification,
             ticket=state.ticket,
             rag_context=retrieval.rag_context[:1500] if retrieval and retrieval.rag_context else "",
+            allow_external_llm=bool(request.use_fallback),
+            tenant_id=state.tenant_id,
         ),
     }
 
@@ -4745,6 +4756,7 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
                     force_fallback=effective_force_fallback,
                     reason_override=reason_override,
                     retrieved_incidents=retrieved_incidents,
+                    tenant_id=request.tenant_id or DEFAULT_TENANT_ID,
                 )
 
             if fallback_used and fallback_analysis:
@@ -5077,6 +5089,8 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
                 classification,
                 ticket=ticket,
                 rag_context=str(rag_context or "")[:1500],
+                allow_external_llm=bool(request.use_fallback),
+                tenant_id=request.tenant_id or DEFAULT_TENANT_ID,
             ),
             "feedback_override": feedback_override,
             "linked_resolution": linked_resolution,

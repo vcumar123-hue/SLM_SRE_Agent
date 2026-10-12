@@ -69,3 +69,8 @@ data_package/
 API_Key/
 *.key
 *.secret
+
+# ── Release 1 runtime state (never commit) ────────────────────────────────────
+data/egress_audit.jsonl
+data/automation_gate_runs.json
+data/automation_queue.lock

@@ -92,6 +92,7 @@ def _do_rca(inp: RCAInput) -> RCAOutput:
             force_fallback=inp.force_fallback,
             reason_override=inp.force_fallback_reason,
             retrieved_incidents=inp.incidents,
+            tenant_id=inp.tenant_id,
         )
 
     if fallback_used and fallback_analysis:

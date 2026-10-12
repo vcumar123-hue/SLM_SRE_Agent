@@ -55,5 +55,10 @@
     "global_backtesting_enabled": false
   },
   "created_at": "{{created_at}}",
-  "updated_at": "{{updated_at}}"
+  "updated_at": "{{updated_at}}",
+  "external_llm_policy": {
+    "allow_external_llm": false,
+    "allowed_llm_providers": [],
+    "external_llm_redaction": "basic"
+  }
 }

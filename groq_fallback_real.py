@@ -215,7 +215,7 @@ def _normalize_response(parsed: dict[str, Any]) -> dict[str, Any]:
     return parsed
 
 
-def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
+def run_openai_fallback(ticket: str, context: str, tenant_id: str | None = None) -> dict[str, Any]:
     # Re-read at call time so a stale import never locks in a bad model name
     _model = os.getenv("GROQ_MODEL", GROQ_MODEL) or GROQ_MODEL
     _api_key = os.getenv("GROQ_API_KEY", GROQ_API_KEY) or GROQ_API_KEY
@@ -247,6 +247,11 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "fallback_provider": "groq",
         }
 
+    # Release 1 (W5): deny-by-default tenant policy for every external model call.
+    # Raises egress_policy.EgressDenied (audited) when the tenant has not allowed this provider.
+    from egress_policy import require_external_llm, redact
+    _egress = require_external_llm(tenant_id, "rca_fallback", _base_url)
+
     url = f"{_base_url.rstrip('/')}/chat/completions"
     headers = {
         "Authorization": f"Bearer {_api_key}",
@@ -266,7 +271,7 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             },
             {
                 "role": "user",
-                "content": _build_prompt(ticket, context),
+                "content": redact(_build_prompt(ticket, context), _egress.redaction),
             },
         ],
         "temperature": 0,
@@ -359,9 +364,9 @@ def build_context_from_incidents(incidents: list[dict]) -> str:
     return "\n\n".join(lines)
 
 
-def analyze_with_groq_fallback(ticket: str, context_incidents: list[dict] | None = None) -> dict:
+def analyze_with_groq_fallback(ticket: str, context_incidents: list[dict] | None = None, tenant_id: str | None = None) -> dict:
     context = build_context_from_incidents(context_incidents or [])
-    result = run_openai_fallback(ticket, context)
+    result = run_openai_fallback(ticket, context, tenant_id=tenant_id)
     if context_incidents:
         result["fallback_grounded"] = True
         result["grounding_incident_count"] = len(context_incidents[:3])
