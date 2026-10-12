@@ -91,3 +91,22 @@ The project `.venv` has no Streamlit (installing it would conflict with the pinn
         this interpreter has Streamlit: nothing is skipped
 
 The failures reported from the reviewer's sandbox (egress audit rows missing, authorization suite stalling) could not be reproduced. Failure injection showed the previous designs were fragile in exactly that class of environment, and both are corrected: every wait is bounded and every failure is logged.
+
+### Validation record (code commit `3db464c`, 2026-10-11)
+118 tests: 62 from Wave 1 plus 56 added in Wave 1b (lock 9, durable audit 15, override workflow 18, UI/API workflow 14).
+
+| Tree | `.venv` interpreter | System Python 3.14 (Streamlit) |
+|---|---|---|
+| `SLM_Repo` | 118 run, OK, 11 skipped (UI layers) | 118 run, OK, 0 skipped |
+| `SLM` | 118 run, OK, 11 skipped (UI layers) | 118 run, OK, 0 skipped |
+| Clean clone of the branch (no `.env`, no untracked files) | 118 run, OK, 11 skipped (UI layers) | 118 run, OK, 0 skipped |
+
+- `SLM` holds the same content as the branch for all 27 changed files (compared line-ending-insensitively).
+- The `.venv` run also passes with `ResourceWarning` treated as an error.
+- The suite does not modify `SLM`'s runtime debug logs (file timestamps identical before and after).
+
+### Not verified
+- A real browser session of the Streamlit UI. The UI layers use the real `ui.py` helpers and Streamlit `AppTest` against the real FastAPI app, with the Safety Gate, evidence, connectors and storage paths replaced; no live connector can run.
+- The queue page's override-reason input is covered through the helpers and the server contract, not by driving that page in `AppTest` (it needs candidate and registry state).
+- The PostgreSQL audit sink (`insert_egress_audit`) against a live database; the driver is absent until Wave 5.
+- The reviewer's original sandbox. The failures reported there were not reproduced; see the note above.
