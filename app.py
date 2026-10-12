@@ -268,59 +268,10 @@ app.include_router(automation_router)
 app.include_router(evidence_router)
 # ── End Phase-2 agent routers ────────────────────────────────────────
 
-# IS-02: Optional API authentication gateway via Bearer token.
-# Set AIOPS_API_KEY env var to enable. If unset, auth is open (dev mode).
-_AIOPS_API_KEY = os.getenv("AIOPS_API_KEY", "").strip()
-_AUTH_EXEMPT_PATHS = {"/health", "/startup", "/metrics", "/docs", "/openapi.json", "/redoc"}
-
-if _AIOPS_API_KEY:
-    from starlette.middleware.base import BaseHTTPMiddleware  # type: ignore[import]
-    from starlette.requests import Request as StarletteRequest  # type: ignore[import]
-    from starlette.responses import JSONResponse as StarletteJSONResponse  # type: ignore[import]
-
-    class _ApiKeyMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: StarletteRequest, call_next):  # type: ignore[override]
-            if request.url.path in _AUTH_EXEMPT_PATHS:
-                return await call_next(request)
-            auth = request.headers.get("Authorization", "")
-            if not auth.startswith("Bearer ") or auth[7:].strip() != _AIOPS_API_KEY:
-                return StarletteJSONResponse(
-                    {"error": "unauthorized", "message": "Valid Bearer token required."},
-                    status_code=401,
-                )
-            return await call_next(request)
-
-    app.add_middleware(_ApiKeyMiddleware)
-
-# IS-03: Role-based route enforcement (Item #16)
-# X-User-Role header carries the role; enforced when AIOPS_API_KEY is set.
-# Routes in _ADMIN_PATHS require admin, _L3_PATHS require l3+.
-_ADMIN_PATHS = {"/users", "/connectors/fetch"}
-_L3_PATHS    = {"/knowledge_candidates", "/playbooks", "/resolutions",
-                "/automation/approve", "/automation/reject"}
-_ROLE_RANK   = {"l1": 1, "l2": 2, "l3": 3, "admin": 4}
-
-if _AIOPS_API_KEY:
-    class _RbacMiddleware(BaseHTTPMiddleware):  # type: ignore[name-defined]
-        async def dispatch(self, request: StarletteRequest, call_next):  # type: ignore[override]
-            path = request.url.path
-            if request.url.path in _AUTH_EXEMPT_PATHS:
-                return await call_next(request)
-            role = request.headers.get("X-User-Role", "l2").lower()
-            rank = _ROLE_RANK.get(role, 1)
-            if any(path.startswith(p) for p in _ADMIN_PATHS) and rank < 4:
-                return StarletteJSONResponse(
-                    {"error": "forbidden", "message": "Admin role required."},
-                    status_code=403,
-                )
-            if any(path.startswith(p) for p in _L3_PATHS) and rank < 3:
-                return StarletteJSONResponse(
-                    {"error": "forbidden", "message": "L3 role or above required."},
-                    status_code=403,
-                )
-            return await call_next(request)
-
-    app.add_middleware(_RbacMiddleware)
+# Release 1 (W2): principal-based authentication and route-level roles. The caller-supplied
+# X-User-Role header is no longer trusted; identity comes from the credential (see security.py).
+from security import install_security as _install_security
+_install_security(app)
 
 # CQ-01: Modular domain routers
 try:

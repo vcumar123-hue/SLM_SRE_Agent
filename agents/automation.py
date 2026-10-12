@@ -9,6 +9,9 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 import settings_portable as settings
+import automation_engine as _engine
+import execution_authorization as exec_auth
+from security import Principal, principal_from_request
 from agents.helpers import _automation_classification_key
 from file_manager import append_debug_event, append_jsonl, read_json, utc_now_iso
 from models import (
@@ -104,6 +107,59 @@ except Exception:
 
 
 router = APIRouter(tags=["automation"])
+
+
+# -- Release 1: identity and authorization helpers ----------------------------
+
+def _require_principal(http_request: Request, minimum: str = "l1") -> Principal:
+    principal = principal_from_request(http_request)
+    if principal is None:
+        raise HTTPException(status_code=401, detail="authentication required")
+    if not principal.has_role(minimum):
+        raise HTTPException(status_code=403, detail=f"role {minimum} or above required")
+    return principal
+
+
+def _ledger_gate_for(classification: str, tenant_id: str) -> Dict[str, Any]:
+    from resolution_outcome import autonomous_gate
+    return autonomous_gate(classification, tenant_id=tenant_id or "default")
+
+
+def _autonomous_mapping_allowed(classification: str) -> bool:
+    if is_autonomous_registry_mapping_allowed is None:
+        return False
+    try:
+        result = is_autonomous_registry_mapping_allowed(classification=classification, action="", playbook="")
+        return bool((result or {}).get("allowed"))
+    except Exception:
+        return False
+
+
+def _first_playbook(entry: Dict[str, Any]) -> str:
+    for step in ((entry.get("plan") or {}).get("steps") or []):
+        if step.get("playbook"):
+            return str(step["playbook"])
+    return ""
+
+
+def _run_gate_for_entry(entry: Dict[str, Any], principal: Principal, mode: str = "live") -> Dict[str, Any]:
+    """Evaluate the Safety Gate for a queue entry using the parameters of its last recorded run."""
+    last = exec_auth.latest_gate_run(entry.get("queue_id", "")) or {}
+    params = {
+        "classification": entry.get("classification", ""),
+        "playbook": last.get("playbook") or _first_playbook(entry),
+        "target_host": last.get("target_host", ""),
+        "risk_tier": last.get("risk_tier") or (entry.get("plan") or {}).get("risk_tier") or "medium",
+        "execution_mode": mode,
+    }
+    gate_request = AutomationPreExecutionCheckRequest(
+        queue_id=entry.get("queue_id", ""),
+        incident_id=entry.get("incident_id", ""),
+        requested_by=principal.id,
+        **params,
+    )
+    result = _build_pre_execution_safety_gate(gate_request)
+    return exec_auth.record_gate_run(entry, result, params, principal.id)
 
 
 @router.post("/automation/plan")
@@ -756,11 +812,26 @@ def _build_pre_execution_safety_gate(request: AutomationPreExecutionCheckRequest
 
 
 @router.post("/automation/pre_execution_check")
-def automation_pre_execution_check_route(request: AutomationPreExecutionCheckRequest) -> Dict[str, Any]:
+def automation_pre_execution_check_route(request: AutomationPreExecutionCheckRequest, http_request: Request) -> Dict[str, Any]:
+    principal = _require_principal(http_request, "l1")
     try:
-        return _build_pre_execution_safety_gate(request)
+        result = _build_pre_execution_safety_gate(request)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    # Bind the run to the queue entry, plan hash and target so approval/execution can rely on it.
+    entry = _engine.get_queue_entry(request.queue_id) if request.queue_id else None
+    if entry:
+        params = {
+            "classification": request.classification or entry.get("classification", ""),
+            "playbook": request.playbook or _first_playbook(entry),
+            "target_host": request.target_host or "",
+            "risk_tier": request.risk_tier or "medium",
+            "execution_mode": request.execution_mode or "simulation",
+        }
+        run = exec_auth.record_gate_run(entry, result, params, principal.id)
+        result["gate_run_id"] = run["gate_run_id"]
+        result["plan_hash"] = run["plan_hash"]
+    return result
 
 
 @router.get("/automation/safety_gate/config")
@@ -1166,16 +1237,29 @@ def automation_autonomous_eligible_mapping_route(request: AutomationAutonomousEl
 
 
 @router.post("/automation/queue")
-def automation_queue_route(request: AutomationPlanRequest) -> Dict[str, Any]:
+def automation_queue_route(request: AutomationPlanRequest, http_request: Request) -> Dict[str, Any]:
     if queue_automation_plan is None:
         raise HTTPException(status_code=500, detail="automation_engine not available")
+    principal = _require_principal(http_request, "l2")
     try:
+        classification_key = _automation_classification_key(request.classification)
+        # An autonomous intent is created only by the server, for a service identity, when the registry
+        # mapping is enabled and the outcome ledger permits autonomous execution.
+        intent = None
+        if principal.kind == "service" and _autonomous_mapping_allowed(classification_key):
+            try:
+                tier = str(_ledger_gate_for(classification_key, _engine.DEFAULT_TENANT_ID).get("tier", ""))
+            except Exception:
+                tier = ""
+            if tier == "auto_execute":
+                intent = {"kind": "autonomous", "created_by": principal.id, "created_at": utc_now_iso(), "ledger_tier": tier}
         result = queue_automation_plan(
             incident_id=request.incident_id,
-            classification=_automation_classification_key(request.classification),
+            classification=classification_key,
             linked_resolution=request.linked_resolution,
             linked_playbook=request.linked_playbook,
-            requested_by=request.requested_by or "system",
+            requested_by=principal.id if principal.kind == "service" else (request.requested_by or "system"),
+            intent=intent,
         )
         queue_entry = result.get("queue_entry", {}) if isinstance(result, dict) else {}
         plan = queue_entry.get("plan", {}) if isinstance(queue_entry, dict) else {}
@@ -1216,59 +1300,85 @@ def automation_refresh_queue_route(request: AutomationRefreshRequest) -> Dict[st
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/automation/approve")
-def automation_approve_route(request: AutomationApproveRequest) -> Dict[str, Any]:
+def automation_approve_route(request: AutomationApproveRequest, http_request: Request) -> Dict[str, Any]:
     if approve_automation is None:
         raise HTTPException(status_code=500, detail="automation_engine not available")
+    principal = _require_principal(http_request, "l3")
+    if principal.kind != "human":
+        raise HTTPException(status_code=403, detail="service identities cannot approve plans")
+    entry = _engine.get_queue_entry(request.queue_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"queue entry '{request.queue_id}' not found")
+    if not principal.allows_tenant(entry.get("tenant_id", "")):
+        raise HTTPException(status_code=403, detail="principal is not permitted for this tenant")
+    run = exec_auth.latest_gate_run(request.queue_id)
+    if not run:
+        raise HTTPException(status_code=409, detail="run the pre-execution safety gate for this queue entry before approving")
+    if run.get("plan_hash") != _engine.compute_plan_hash(entry):
+        raise HTTPException(status_code=409, detail="the plan changed after the safety gate ran; re-run the gate")
+    if run.get("gate_status") not in {"passed", "warning"}:
+        raise HTTPException(status_code=409, detail=f"safety gate status '{run.get('gate_status')}' blocks approval")
     try:
-        result = approve_automation(queue_id=request.queue_id, approved_by=request.approved_by or "engineer")
+        result = approve_automation(
+            queue_id=request.queue_id,
+            approved_by=principal.id,
+            approver_role=principal.role,
+            gate_run=run,
+            override=(run.get("gate_status") == "warning"),
+        )
+        if isinstance(result, dict) and result.get("status") == "not_approvable":
+            raise HTTPException(status_code=409, detail=result)
         postgres_write_safe(
             "update_automation_queue_status",
             db_update_automation_queue_status,
             queue_id=request.queue_id,
             status=(result.get("queue_entry") or {}).get("status") or "approved",
-            approved_by=request.approved_by or "engineer",
+            approved_by=principal.id,
         )
         if isinstance(result, dict):
             result["postgres_parallel_write"] = postgres_enabled()
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/automation/execute")
-def automation_execute_route(request: AutomationExecuteRequest) -> Dict[str, Any]:
+def automation_execute_route(request: AutomationExecuteRequest, http_request: Request) -> Dict[str, Any]:
     if execute_automation is None:
         raise HTTPException(status_code=500, detail="automation_engine not available")
-    try:
-        # Ledger gate: only applies to explicitly autonomous execution requests.
-        # Human-approved live executions (autonomous_requested=False) are never blocked here.
-        if bool(request.autonomous_requested):
-            try:
-                from resolution_outcome import autonomous_gate as _ledger_gate
-                from automation_engine import get_queue_entry  # type: ignore[import]
-                _entry = get_queue_entry(request.queue_id) or {}
-                _cls = _entry.get("classification") or ""
-                _tid = _entry.get("tenant_id") or "default"
-                _gate = _ledger_gate(_cls, tenant_id=_tid)
-            except Exception:
-                _gate = {"tier": "hold_for_approval", "reason": "Gate check failed — defaulting to hold for approval.", "total_outcomes": 0, "success_rate": None, "confidence_signal": None}
-            if _gate["tier"] == "hold_for_approval":
-                return {
-                    "status": "blocked",
-                    "message": "Autonomous execution blocked by outcome ledger gate.",
-                    "ledger_gate": _gate,
-                    "queue_id": request.queue_id,
-                }
-            _watch_mode = _gate["tier"] == "auto_execute_watch"
-        else:
-            _watch_mode = False
-            _gate = None
+    principal = principal_from_request(http_request)
+    entry = _engine.get_queue_entry(request.queue_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"queue entry '{request.queue_id}' not found")
 
+    # One server-side decision. The request body supplies only the mode and an optional override;
+    # `autonomous_requested` carries no authority.
+    auth = exec_auth.authorize_execution(
+        entry,
+        request.execution_mode or "simulation",
+        principal,
+        run_gate=lambda e: _run_gate_for_entry(e, principal),
+        ledger_gate=_ledger_gate_for,
+        autonomous_mapping_allowed=_autonomous_mapping_allowed,
+        override=bool(request.override_gate_warnings),
+        override_reason=request.override_reason or "",
+    )
+    if not auth.allowed:
+        code = 401 if principal is None else (400 if any("unsupported execution_mode" in r for r in auth.reasons) else 403)
+        raise HTTPException(status_code=code, detail={"status": "denied", "authorization": auth.to_dict()})
+
+    try:
         result = execute_automation(
             queue_id=request.queue_id,
-            executed_by=request.executed_by or "automation_engine",
-            execution_mode=request.execution_mode or "simulation",
+            executed_by=principal.id,
+            execution_mode=auth.mode,
+            authorization=auth.to_dict(),
         )
+        status = (result or {}).get("status") if isinstance(result, dict) else None
+        if status in {"not_found", "not_executable", "not_authorized", "invalid_mode"}:
+            raise HTTPException(status_code=404 if status == "not_found" else 409, detail=result)
         execution = result.get("execution", {}) if isinstance(result, dict) else {}
         if execution:
             postgres_write_safe(
@@ -1278,12 +1388,12 @@ def automation_execute_route(request: AutomationExecuteRequest) -> Dict[str, Any
                 queue_id=execution.get("queue_id"),
                 incident_id=execution.get("incident_id"),
                 classification=execution.get("classification") or "unknown",
-                executed_by=execution.get("executed_by") or request.executed_by or "automation_engine",
+                executed_by=execution.get("executed_by") or principal.id,
                 status=execution.get("status") or "completed_simulation",
                 rollback_available=bool(execution.get("rollback_available", False)),
                 steps={
                     "steps": execution.get("steps", []),
-                    "execution_mode": execution.get("execution_mode", request.execution_mode or "simulation"),
+                    "execution_mode": execution.get("execution_mode", auth.mode),
                 },
             )
             postgres_write_safe(
@@ -1295,11 +1405,8 @@ def automation_execute_route(request: AutomationExecuteRequest) -> Dict[str, Any
             )
         if isinstance(result, dict):
             result["postgres_parallel_write"] = postgres_enabled()
-            if _gate:
-                result["ledger_gate"] = _gate
-            if _watch_mode:
-                result["watch_mode"] = True
-        # Fire webhook/Slack alert for autonomous executions (non-blocking)
+            result["authorization"] = auth.to_dict()
+        # Fire webhook/Slack alert for live executions (non-blocking)
         if execution and execution.get("execution_mode") in ("autonomous", "auto_execute", "live"):
             try:
                 from webhook_notifier import notify_execution
@@ -1309,6 +1416,8 @@ def automation_execute_route(request: AutomationExecuteRequest) -> Dict[str, Any
             except Exception:
                 pass
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1551,6 +1660,7 @@ def _safe_write_json(path, data) -> None:
 
 @router.post("/automation/rollback")
 def automation_rollback_route(
+    http_request: Request,
     execution_id: str,
     queue_id: Optional[str] = None,
     rolled_back_by: Optional[str] = "engineer",
@@ -1562,6 +1672,8 @@ def automation_rollback_route(
     (default for this lab) rollback steps are simulated; in live mode they
     would be dispatched to Ansible.
     """
+    principal = _require_principal(http_request, "l3")
+    rolled_back_by = principal.id
     if AUTOMATION_LOG_FILE is None:
         raise HTTPException(status_code=500, detail="automation_engine not available")
 

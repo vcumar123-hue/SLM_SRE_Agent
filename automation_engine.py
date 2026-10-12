@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
+import threading
+import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -344,6 +348,82 @@ def _find_queue_entry(queue: List[Dict[str, Any]], queue_id: str) -> Optional[Di
     return None
 
 
+# ---------------------------------------------------------
+# Queue locking (Release 1): serialise read-modify-write so concurrent requests cannot
+# lose updates or execute the same entry twice.
+# ---------------------------------------------------------
+
+_QUEUE_THREAD_LOCK = threading.RLock()
+_QUEUE_LOCK_STATE = threading.local()
+_QUEUE_LOCK_STALE_SECONDS = 120.0
+
+
+@contextmanager
+def _queue_lock(timeout: float = 20.0):
+    if getattr(_QUEUE_LOCK_STATE, "depth", 0) > 0:  # re-entrant within a thread
+        _QUEUE_LOCK_STATE.depth += 1
+        try:
+            yield
+        finally:
+            _QUEUE_LOCK_STATE.depth -= 1
+        return
+    lock_path = AUTOMATION_QUEUE_FILE.with_suffix(".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with _QUEUE_THREAD_LOCK:
+        deadline = time.monotonic() + timeout
+        fd = None
+        while fd is None:
+            try:
+                fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                try:
+                    if time.time() - lock_path.stat().st_mtime > _QUEUE_LOCK_STALE_SECONDS:
+                        lock_path.unlink()
+                        continue
+                except OSError:
+                    pass
+                if time.monotonic() > deadline:
+                    raise TimeoutError("automation queue lock timeout")
+                time.sleep(0.02)
+        _QUEUE_LOCK_STATE.depth = 1
+        try:
+            yield
+        finally:
+            _QUEUE_LOCK_STATE.depth = 0
+            os.close(fd)
+            try:
+                lock_path.unlink()
+            except OSError:
+                pass
+
+
+def compute_plan_hash(entry: Dict[str, Any]) -> str:
+    """Stable hash of what would actually run, so an approval cannot be reused for a different plan."""
+    plan = (entry or {}).get("plan") or {}
+    steps = [
+        {k: (s or {}).get(k) for k in ("action", "connector", "playbook", "script")}
+        for s in (plan.get("steps") or [])
+    ]
+    canonical = json.dumps(
+        {
+            "classification": (entry or {}).get("classification"),
+            "tenant_id": (entry or {}).get("tenant_id"),
+            "steps": steps,
+        },
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+
+
+def get_queue_entry(queue_id: str) -> Optional[Dict[str, Any]]:
+    queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+    if not isinstance(queue, list):
+        return None
+    entry = _find_queue_entry(queue, queue_id)
+    return dict(entry) if entry else None
+
+
 # =========================================================
 # Learned mappings
 # =========================================================
@@ -669,13 +749,9 @@ def queue_automation_plan(
     linked_resolution: Optional[Dict[str, Any]] = None,
     linked_playbook: Optional[Dict[str, Any]] = None,
     requested_by: str = "system",
+    intent: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
-    if not isinstance(queue, list):
-        queue = []
-
-    queue = _archive_old_queue_entries(queue)
-
+    """Create a queue entry. `intent` is set only by the server (never from a request body)."""
     plan = build_automation_plan(classification, linked_resolution, linked_playbook)
 
     entry = {
@@ -690,43 +766,59 @@ def queue_automation_plan(
         "linked_playbook": linked_playbook,
         "plan": plan,
     }
-    queue.append(entry)
-    _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
+    if intent:
+        entry["intent"] = {**intent, "plan_hash": compute_plan_hash(entry)}
+
+    with _queue_lock():
+        queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+        if not isinstance(queue, list):
+            queue = []
+        queue = _archive_old_queue_entries(queue)
+        queue.append(entry)
+        _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
 
     return {"status": "ok", "queue_entry": entry}
 
 
 def refresh_automation_queue(queue_id: str) -> Dict[str, Any]:
-    queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
-    if not isinstance(queue, list):
-        queue = []
+    with _queue_lock():
+        queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+        if not isinstance(queue, list):
+            queue = []
 
-    entry = _find_queue_entry(queue, queue_id)
-    if not entry:
-        return {"status": "not_found", "queue_id": queue_id}
+        entry = _find_queue_entry(queue, queue_id)
+        if not entry:
+            return {"status": "not_found", "queue_id": queue_id}
 
-    if entry.get("status") in {"closed_remediated", "execution_failed"}:
-        return {
-            "status": "not_refreshable",
-            "queue_id": queue_id,
-            "current_status": entry.get("status"),
-            "queue_entry": entry,
-        }
+        if entry.get("status") in {"closed_remediated", "execution_failed", "executing"}:
+            return {
+                "status": "not_refreshable",
+                "queue_id": queue_id,
+                "current_status": entry.get("status"),
+                "queue_entry": entry,
+            }
 
-    plan = build_automation_plan(
-        classification=entry.get("classification", ""),
-        linked_resolution=entry.get("linked_resolution"),
-        linked_playbook=entry.get("linked_playbook"),
-    )
+        plan = build_automation_plan(
+            classification=entry.get("classification", ""),
+            linked_resolution=entry.get("linked_resolution"),
+            linked_playbook=entry.get("linked_playbook"),
+        )
 
-    entry["plan"] = plan
-    entry["refreshed_at"] = _utc_now_iso()
+        entry["plan"] = plan
+        entry["refreshed_at"] = _utc_now_iso()
 
-    if entry.get("status") not in {"approved"}:
-        entry["status"] = "queued"
+        approval = entry.get("approval") or {}
+        if entry.get("status") == "approved" and approval.get("plan_hash") != compute_plan_hash(entry):
+            # The approved plan changed: the approval no longer covers what would run.
+            entry["status"] = "queued"
+            entry.pop("approval", None)
+            entry["approval_invalidated_at"] = _utc_now_iso()
+            entry["approval_invalidated_reason"] = "plan_changed_after_approval"
+        elif entry.get("status") not in {"approved"}:
+            entry["status"] = "queued"
 
-    _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
-    return {"status": "ok", "queue_entry": entry}
+        _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
+        return {"status": "ok", "queue_entry": entry}
 
 
 def close_queue_if_remediated(
@@ -734,39 +826,61 @@ def close_queue_if_remediated(
     closed_by: str = "automation_engine",
     reason: str = "remediated",
 ) -> Dict[str, Any]:
-    queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
-    if not isinstance(queue, list):
-        queue = []
+    with _queue_lock():
+        queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+        if not isinstance(queue, list):
+            queue = []
 
-    entry = _find_queue_entry(queue, queue_id)
-    if not entry:
-        return {"status": "not_found", "queue_id": queue_id}
+        entry = _find_queue_entry(queue, queue_id)
+        if not entry:
+            return {"status": "not_found", "queue_id": queue_id}
 
-    entry["status"] = "closed_remediated"
-    entry["closed_at"] = _utc_now_iso()
-    entry["closed_by"] = str(closed_by or "automation_engine")
-    entry["closure_reason"] = str(reason or "remediated")
-    _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
+        entry["status"] = "closed_remediated"
+        entry["closed_at"] = _utc_now_iso()
+        entry["closed_by"] = str(closed_by or "automation_engine")
+        entry["closure_reason"] = str(reason or "remediated")
+        _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
 
-    return {"status": "ok", "queue_entry": entry}
+        return {"status": "ok", "queue_entry": entry}
 
 
-def approve_automation(queue_id: str, approved_by: str = "engineer") -> Dict[str, Any]:
-    queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
-    if not isinstance(queue, list):
-        queue = []
+def approve_automation(
+    queue_id: str,
+    approved_by: str = "engineer",
+    approver_role: str = "",
+    gate_run: Optional[Dict[str, Any]] = None,
+    override: bool = False,
+) -> Dict[str, Any]:
+    """Record an approval bound to the current plan hash and the gate run that justified it.
 
-    found = None
-    for item in queue:
-        if isinstance(item, dict) and item.get("queue_id") == queue_id:
-            item["status"] = "approved"
-            item["approved_by"] = str(approved_by or "engineer")
-            item["approved_at"] = _utc_now_iso()
-            found = item
-            break
+    Only a `queued` entry can be approved; terminal or executing entries cannot be re-opened.
+    """
+    with _queue_lock():
+        queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+        if not isinstance(queue, list):
+            queue = []
 
-    _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
-    return {"status": "ok" if found else "not_found", "queue_entry": found}
+        item = _find_queue_entry(queue, queue_id)
+        if not item:
+            return {"status": "not_found", "queue_entry": None}
+        if item.get("status") not in {"queued", "approved"}:
+            return {"status": "not_approvable", "current_status": item.get("status"), "queue_entry": item}
+
+        gate_run = gate_run or {}
+        item["status"] = "approved"
+        item["approved_by"] = str(approved_by or "engineer")
+        item["approved_at"] = _utc_now_iso()
+        item["approval"] = {
+            "approved_by": item["approved_by"],
+            "approved_role": str(approver_role or ""),
+            "approved_at": item["approved_at"],
+            "plan_hash": compute_plan_hash(item),
+            "gate_run_id": gate_run.get("gate_run_id"),
+            "gate_status": gate_run.get("gate_status"),
+            "override": bool(override),
+        }
+        _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
+        return {"status": "ok", "queue_entry": item}
 
 
 # =========================================================
@@ -862,57 +976,92 @@ def _execute_step_live(step: Dict[str, Any], executed_by: str) -> Dict[str, Any]
         return executed_step
 
 
+_VALID_EXECUTION_MODES = {"simulation", "live"}
+
+
 def execute_automation(
     queue_id: str,
     executed_by: str = "automation_engine",
     execution_mode: Optional[str] = None,
+    authorization: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
-    log = _safe_read_json(AUTOMATION_LOG_FILE, default=[])
+    """Run a queued plan.
 
-    if not isinstance(queue, list):
-        queue = []
-    if not isinstance(log, list):
-        log = []
+    Live mode is refused unless `authorization` is an allowed decision produced by the server for this
+    queue entry, mode and current plan hash (defence in depth: the route is not the only gate).
+    The entry is claimed (status -> executing) under the queue lock so it cannot run twice.
+    """
+    with _queue_lock():
+        queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+        if not isinstance(queue, list):
+            queue = []
 
-    target = _find_queue_entry(queue, queue_id)
-    if not target:
-        return {"status": "not_found", "queue_id": queue_id}
+        target = _find_queue_entry(queue, queue_id)
+        if not target:
+            return {"status": "not_found", "queue_id": queue_id}
 
-    if target.get("status") not in {"approved", "queued"}:
-        return {
-            "status": "not_executable",
-            "queue_id": queue_id,
-            "current_status": target.get("status"),
-        }
+        if target.get("status") not in {"approved", "queued"}:
+            return {
+                "status": "not_executable",
+                "queue_id": queue_id,
+                "current_status": target.get("status"),
+            }
 
-    mode = str(
-        execution_mode or target.get("plan", {}).get("execution_mode") or DEFAULT_EXECUTION_MODE
-    ).strip().lower()
+        mode = str(
+            execution_mode or target.get("plan", {}).get("execution_mode") or DEFAULT_EXECUTION_MODE
+        ).strip().lower()
+        if mode not in _VALID_EXECUTION_MODES:
+            return {"status": "invalid_mode", "queue_id": queue_id, "execution_mode": mode}
 
-    plan = target.get("plan") or {}
-    steps = plan.get("steps") or []
-    if not steps:
-        return {
-            "status": "not_executable",
-            "queue_id": queue_id,
-            "reason": "no_executable_steps",
-            "message": "Cannot execute automation because the queue plan has zero executable steps. Enable a registry mapping and recreate or refresh the queue.",
-            "plan": plan,
-        }
+        plan = target.get("plan") or {}
+        steps = plan.get("steps") or []
+        if not steps:
+            return {
+                "status": "not_executable",
+                "queue_id": queue_id,
+                "reason": "no_executable_steps",
+                "message": "Cannot execute automation because the queue plan has zero executable steps. Enable a registry mapping and recreate or refresh the queue.",
+                "plan": plan,
+            }
+
+        if mode == "live":
+            auth = authorization or {}
+            if not (
+                auth.get("allowed") is True
+                and auth.get("queue_id") == queue_id
+                and auth.get("mode") == "live"
+                and auth.get("plan_hash") == compute_plan_hash(target)
+            ):
+                return {
+                    "status": "not_authorized",
+                    "queue_id": queue_id,
+                    "reason": "live execution requires a matching server authorization",
+                }
+
+        target["status"] = "executing"
+        target["executing_since"] = _utc_now_iso()
+        _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
 
     executed_steps: List[Dict[str, Any]] = []
     failed = False
-
-    for step in steps:
-        executed_step = (
-            _execute_step_live(step, executed_by=executed_by)
-            if mode == "live"
-            else _simulate_step(step, executed_by=executed_by)
-        )
-        if executed_step.get("status") == "failed":
-            failed = True
-        executed_steps.append(executed_step)
+    try:
+        for step in steps:
+            executed_step = (
+                _execute_step_live(step, executed_by=executed_by)
+                if mode == "live"
+                else _simulate_step(step, executed_by=executed_by)
+            )
+            if executed_step.get("status") == "failed":
+                failed = True
+            executed_steps.append(executed_step)
+    except Exception:
+        with _queue_lock():
+            queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+            entry = _find_queue_entry(queue if isinstance(queue, list) else [], queue_id)
+            if entry:
+                entry["status"] = "execution_failed"
+                _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
+        raise
 
     execution_status = (
         "completed_live"
@@ -941,26 +1090,37 @@ def execute_automation(
         },
         "steps": executed_steps,
     }
+    if authorization:
+        execution["authorization"] = authorization
 
-    log.append(execution)
+    with _queue_lock():
+        queue = _safe_read_json(AUTOMATION_QUEUE_FILE, default=[])
+        log = _safe_read_json(AUTOMATION_LOG_FILE, default=[])
+        if not isinstance(queue, list):
+            queue = []
+        if not isinstance(log, list):
+            log = []
+        log.append(execution)
 
-    target["status"] = (
-        "closed_remediated"
-        if (mode == "live" and not failed)
-        else ("executed" if not failed else "execution_failed")
-    )
-    target["executed_at"] = execution["executed_at"]
-    target["execution_id"] = execution["execution_id"]
-    target["execution_mode"] = mode
+        final = _find_queue_entry(queue, queue_id)
+        if final is not None:
+            final["status"] = (
+                "closed_remediated"
+                if (mode == "live" and not failed)
+                else ("executed" if not failed else "execution_failed")
+            )
+            final["executed_at"] = execution["executed_at"]
+            final["execution_id"] = execution["execution_id"]
+            final["execution_mode"] = mode
+            final.pop("executing_since", None)
+            if final["status"] == "closed_remediated":
+                final["closed_at"] = execution["executed_at"]
+                final["closure_reason"] = "completed_live_remediation"
 
-    if target["status"] == "closed_remediated":
-        target["closed_at"] = execution["executed_at"]
-        target["closure_reason"] = "completed_live_remediation"
-
-    # Archive terminal entries so the live queue stays lean (BF-06).
-    queue = _archive_old_queue_entries(queue)
-    _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
-    _safe_write_json(AUTOMATION_LOG_FILE, log)
+        # Archive terminal entries so the live queue stays lean (BF-06).
+        queue = _archive_old_queue_entries(queue)
+        _safe_write_json(AUTOMATION_QUEUE_FILE, queue)
+        _safe_write_json(AUTOMATION_LOG_FILE, log)
 
     return {"status": "ok", "execution": execution}
 

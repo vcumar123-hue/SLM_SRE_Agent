@@ -12,6 +12,10 @@ REQUEST_TIMEOUT_SHORT = 8
 REQUEST_TIMEOUT_MEDIUM = 15
 REQUEST_TIMEOUT_LONG = 120
 SESSION = requests.Session()
+# Release 1: the backend authenticates every request. Set AIOPS_UI_API_KEY to the token of a
+# principal configured in AIOPS_PRINCIPALS (see security.py). In open dev mode no key is needed.
+if os.getenv("AIOPS_UI_API_KEY", "").strip():
+    SESSION.headers["Authorization"] = "Bearer " + os.getenv("AIOPS_UI_API_KEY", "").strip()
 
 import re
 

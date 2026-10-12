@@ -250,7 +250,12 @@ class AutomationExecuteRequest(BaseModel):
     queue_id: str = Field(..., min_length=1)
     executed_by: Optional[str] = "automation_engine"
     execution_mode: Optional[str] = "simulation"
+    # Deprecated and ignored for authorization: autonomous execution is determined server-side from
+    # the service identity, the registry mapping and the queue entry's server-created intent.
     autonomous_requested: bool = False
+    # Explicit human override of Safety Gate warnings for live execution (role l3+, reason required).
+    override_gate_warnings: bool = False
+    override_reason: Optional[str] = ""
 
 
 class AutomationPreExecutionCheckRequest(BaseModel):

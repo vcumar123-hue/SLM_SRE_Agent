@@ -693,7 +693,13 @@ def render_automation_queue_page():
                     pass  # snapshot failure must not block execution
 
                 # ── Execute the change ───────────────────────────────────────
-                resp = execute_automation_request(queue_id, execution_mode=execution_mode, executed_by="Vijay")
+                resp = execute_automation_request(
+                    queue_id,
+                    execution_mode=execution_mode,
+                    executed_by="Vijay",
+                    override_gate_warnings=(safety_gate_status == "warning"),
+                    override_reason="Engineer proceeded with execution despite Safety Gate warnings (UI confirmation).",
+                )
                 runtime["execution_result"] = resp
                 runtime["drift_snapshot_id"] = _snap_id
                 st.session_state.automation_runtime[runtime_key] = runtime

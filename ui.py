@@ -22,6 +22,10 @@ REQUEST_TIMEOUT_LONG = 180
 
 
 SESSION = requests.Session()
+# Release 1: the backend authenticates every request. Set AIOPS_UI_API_KEY to the token of a
+# principal configured in AIOPS_PRINCIPALS (see security.py). In open dev mode no key is needed.
+if os.getenv("AIOPS_UI_API_KEY", "").strip():
+    SESSION.headers["Authorization"] = "Bearer " + os.getenv("AIOPS_UI_API_KEY", "").strip()
 
 # Disk-backed UI state keeps the latest incident available even when the
 # top navigation href causes Streamlit to create a fresh browser session.
@@ -638,12 +642,28 @@ def approve_automation_request(queue_id: str, approved_by: str = "Vijay") -> dic
     return response.json()
 
 
-def execute_automation_request(queue_id: str, execution_mode: str = "simulation", executed_by: str = "Vijay") -> dict:
+def execute_automation_request(
+    queue_id: str,
+    execution_mode: str = "simulation",
+    executed_by: str = "Vijay",
+    override_gate_warnings: bool = False,
+    override_reason: str = "",
+) -> dict:
+    payload = {"queue_id": queue_id, "executed_by": executed_by, "execution_mode": execution_mode}
+    if override_gate_warnings:
+        payload["override_gate_warnings"] = True
+        payload["override_reason"] = override_reason
     response = SESSION.post(
         f"{BACKEND_URL}/automation/execute",
-        json={"queue_id": queue_id, "executed_by": executed_by, "execution_mode": execution_mode},
+        json=payload,
         timeout=REQUEST_TIMEOUT_LONG,
     )
+    if response.status_code in (401, 403, 409):
+        try:
+            detail = response.json().get("detail", response.text)
+        except Exception:
+            detail = response.text
+        raise RuntimeError(f"Execution refused by the server ({response.status_code}): {detail}")
     response.raise_for_status()
     return response.json()
 
