@@ -86,6 +86,7 @@ from page_modules.shared import (
     render_confidence_meter, render_status_badge,
     render_automation_pipeline_steps, render_evidence_ttl_warning,
     render_incident_action_banner, render_compact_bullet_list,
+    render_resolution_playbook,
     metric_card, nice_label, format_confidence,
     section_title, system_label, natural_label,
     routing_display_label, decision_display_label,
@@ -147,7 +148,7 @@ def call_backend_with_text(
             "ticket": ticket_text,
             "use_fallback": str(use_fallback).lower(),
             "force_fallback": str(force_fallback).lower(),
-            "tenant_id": tenant_id or st.session_state.get("tenant_id", "client_a"),
+            "tenant_id": tenant_id or st.session_state.get("tenant_id", "client_c"),
             "knowledge_scope": knowledge_scope or st.session_state.get("knowledge_scope", "client_private"),
         }
         if confirm_local_matches is not None:
@@ -181,7 +182,7 @@ def call_backend_with_text(
         "ticket": ticket_text,
         "use_fallback": use_fallback,
         "force_fallback": force_fallback,
-        "tenant_id": tenant_id or st.session_state.get("tenant_id", "client_a"),
+        "tenant_id": tenant_id or st.session_state.get("tenant_id", "client_c"),
         "knowledge_scope": knowledge_scope or st.session_state.get("knowledge_scope", "client_private"),
     }
     if confirm_local_matches is not None:
@@ -203,6 +204,48 @@ def normalize_uploaded_file(uploaded_file) -> Dict[str, Any]:
         "size": len(uploaded_file.getvalue()),
         "bytes": uploaded_file.getvalue(),
     }
+
+
+def get_autonomous_gate(classification: str, tenant_id: str) -> dict:
+    """Fetch the ledger-based autonomous gate tier for a classification. Never raises."""
+    try:
+        response = SESSION.get(
+            f"{BACKEND_URL}/autonomous_gate",
+            params={"classification": classification, "tenant_id": tenant_id},
+            timeout=REQUEST_TIMEOUT_SHORT,
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        return {"tier": "hold_for_approval", "reason": "Gate check unavailable.", "total_outcomes": 0, "success_rate": None, "confidence_signal": None}
+
+
+def get_resolution_intelligence(classification: str, tenant_id: str) -> dict:
+    """Fetch historical outcome intelligence for a classification. Never raises."""
+    try:
+        response = SESSION.get(
+            f"{BACKEND_URL}/resolution_intelligence",
+            params={"classification": classification, "tenant_id": tenant_id},
+            timeout=REQUEST_TIMEOUT_SHORT,
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        return {"status": "no_history"}
+
+
+def get_pattern_intelligence(classification: str, tenant_id: str) -> dict:
+    """Fetch classification pattern intelligence from resolutions and candidates. Never raises."""
+    try:
+        response = SESSION.get(
+            f"{BACKEND_URL}/pattern_intelligence",
+            params={"classification": classification, "tenant_id": tenant_id},
+            timeout=REQUEST_TIMEOUT_SHORT,
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception:
+        return {"status": "no_history"}
 
 
 def get_fallback_control() -> dict:
@@ -241,7 +284,7 @@ def review_candidate(payload: dict) -> dict:
 def promote_candidate(candidate_id: str) -> dict:
     payload = {
         "candidate_id": candidate_id,
-        "tenant_id": st.session_state.get("tenant_id", "client_a"),
+        "tenant_id": st.session_state.get("tenant_id", "client_c"),
     }
     response = SESSION.post(f"{BACKEND_URL}/promote_candidate", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
@@ -249,14 +292,14 @@ def promote_candidate(candidate_id: str) -> dict:
 
 
 def create_resolution_record(payload: dict) -> dict:
-    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_a"))
+    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_c"))
     response = SESSION.post(f"{BACKEND_URL}/create_resolution", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
     return response.json()
 
 
 def create_playbook_record(payload: dict) -> dict:
-    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_a"))
+    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_c"))
     response = SESSION.post(f"{BACKEND_URL}/create_playbook", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
     return response.json()
@@ -1066,7 +1109,9 @@ def init_state():
         "automation_mapping_runtime": {},
         "automation_candidate_runtime": {},
         "automation_learned_actions_text": "",
-        "tenant_id": "client_a",
+        "tenant_id": "client_c",
+        "user_role": "l2",        # default: L2 for demo; resolved from DB on login
+        "user_display_name": "Engineer",
         "knowledge_scope": "client_private",
         # Persistent incident context used across top-nav page switches.
         # Streamlit reruns the script on every menu click, so the latest
@@ -1205,6 +1250,7 @@ def _sync_active_page() -> str:
         "Incident Console", "Dashboard", "Knowledge Center",
         "Telemetry Console", "Client Onboarding Studio",
         "Automation Queue", "Backtesting", "Backtest Console", "Demo",
+        "Drift Management",
     }
     requested = ""
     try:
@@ -1228,13 +1274,13 @@ def _sync_active_page() -> str:
 
 def _load_available_tenants() -> List[Dict[str, Any]]:
     """Scan tenant_config/ and return list of {tenant_id, display_name} dicts."""
-    config_dir = Path("tenant_config")
+    config_dir = Path(__file__).parent / "tenant_config"
     tenants = []
     if not config_dir.exists():
         return [{"tenant_id": "client_a", "display_name": "client_a"}]
     for f in sorted(config_dir.glob("*.json")):
         try:
-            data = json.loads(f.read_text(encoding="utf-8"))
+            data = json.loads(f.read_text(encoding="utf-8-sig"))
             tid = data.get("tenant_id", "")
             # Skip template entries
             if not tid or "{{" in tid:
@@ -1254,16 +1300,15 @@ def _load_available_tenants() -> List[Dict[str, Any]]:
 def render_sidebar_nav(current_page: str) -> None:
     """Professional dark sidebar: brand, user profile, navigation, status."""
     NAV_ITEMS = [
-        ("\U0001f6a8", "Incident Console",    "Incident Console"),
-        ("\U0001f4ca", "Dashboard",           "Dashboard"),
-        ("\U0001f4da", "Knowledge Center",    "Knowledge Center"),
-        ("\U0001f4e1", "Telemetry Console",   "Telemetry Console"),
-        ("\U0001f3e2", "Client Onboarding",   "Client Onboarding Studio"),
-        ("⚙️", "Automation Queue",  "Automation Queue"),
-        ("\U0001f4cb", "Backtesting",         "Backtesting"),
-        ("🔬", "Backtest Console",     "Backtest Console"),
-        ("🎬", "Demo",                 "Demo"),
-        ("🚀", "POC Console",          "POC Console"),
+        ("\U0001f4ca", "Dashboard",          "Dashboard"),
+        ("\U0001f6a8", "Incident Console",   "Incident Console"),
+        ("⚙️",  "Resolution Queue",  "Automation Queue"),
+        ("🔄",  "Drift Management",  "Drift Management"),
+        ("\U0001f4da", "Knowledge Library",  "Knowledge Center"),
+        ("\U0001f4cb", "Backtesting",        "Backtesting"),
+        ("\U0001f52c", "Resolution History", "Backtest Console"),
+        ("\U0001f4e1", "Telemetry Console",  "Telemetry Console"),
+        ("\U0001f3e2", "Tenant Setup",       "Client Onboarding Studio"),
     ]
 
     css = """
@@ -1484,7 +1529,7 @@ def render_sidebar_nav(current_page: str) -> None:
         '<div class="sb-avatar">VK</div>'
         "<div>"
         '<div class="sb-user-name">Vijay Kumar</div>'
-        '<div class="sb-user-role">SRE Engineer &nbsp;&middot;&nbsp; PFG</div>'
+        '<div class="sb-user-role">SRE Engineer &nbsp;&middot;&nbsp; PYPL</div>'
         "</div></div>"
         '<div class="sb-section">Navigation</div>'
     )
@@ -1497,8 +1542,19 @@ def render_sidebar_nav(current_page: str) -> None:
         '<hr class="sb-divider"/>'
     )
 
-    sidebar_logo = '<div class="app-sidebar-logo">AI SRE Platform</div>'
+    sidebar_logo = (
+        '<div class="app-sidebar-logo">AI SRE Platform</div>'
+        '<div style="text-align:center;font-size:0.70rem;color:#5a7fa8;'
+        'letter-spacing:0.03em;padding:0 12px 10px 12px;line-height:1.4;">'
+        'Resolve faster &nbsp;·&nbsp; Learn automatically &nbsp;·&nbsp; Audit everything'
+        '</div>'
+    )
     st.markdown(css + sidebar_logo + header_html, unsafe_allow_html=True)
+
+    # Signed-in user badge (RBAC Item #16)
+    from rbac import current_role as _current_role
+    _role_label = {"l1": "L1", "l2": "L2", "l3": "L3", "admin": "Admin"}.get(_current_role(), "?")
+    st.caption(f"👤 {st.session_state.get('user_display_name', 'Engineer')} · {_role_label}")
 
     # Render nav as Streamlit buttons — no href, no page reload, session preserved
     for icon, label, page_value in NAV_ITEMS:
@@ -1521,6 +1577,31 @@ def render_sidebar_nav(current_page: str) -> None:
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(footer_html, unsafe_allow_html=True)
+
+    # ── Tenant switcher ───────────────────────────────────────────────────────
+    _tenants = _load_available_tenants()
+    if len(_tenants) > 1:
+        st.markdown(
+            '<div style="padding:4px 8px 2px 8px;color:#64748b;font-size:0.63rem;'
+            'font-weight:700;letter-spacing:0.10em;text-transform:uppercase;">Active Tenant</div>',
+            unsafe_allow_html=True,
+        )
+        _tenant_labels = [f"{t['display_name']} ({t['tenant_id']})" for t in _tenants]
+        _current_tid = st.session_state.get("tenant_id", "client_c")
+        _current_idx = next((i for i, t in enumerate(_tenants) if t["tenant_id"] == _current_tid), 0)
+        _selected_label = st.selectbox(
+            "Active Tenant",
+            options=_tenant_labels,
+            index=_current_idx,
+            key="sidebar_tenant_switcher",
+            label_visibility="collapsed",
+        )
+        _selected_tid = _tenants[_tenant_labels.index(_selected_label)]["tenant_id"]
+        if _selected_tid != st.session_state.get("tenant_id"):
+            st.session_state["tenant_id"] = _selected_tid
+            st.rerun()
+    else:
+        st.caption(f"Tenant: {_tenants[0]['display_name']} ({_tenants[0]['tenant_id']})")
 
 
 def render_top_nav(current_page: str = "") -> None:
@@ -1572,7 +1653,7 @@ def render_top_nav(current_page: str = "") -> None:
         '<span class="page-hdr-title">' + current_page + "</span>"
         "</div>"
         '<div class="page-hdr-right">'
-        '<span class="page-hdr-badge">PFG</span>'
+        '<span class="page-hdr-badge">PYPL</span>'
         '<span class="page-hdr-env">&#x25cf;&nbsp;Live</span>'
         "</div></div>"
     )
@@ -1614,7 +1695,7 @@ def run_analysis_from_submission(submission):
             use_fallback=True,
             force_fallback=bool(st.session_state.force_fallback_for_next_run),
             upload_info=upload_info,
-            tenant_id=st.session_state.get("tenant_id", "client_a"),
+            tenant_id=st.session_state.get("tenant_id", "client_c"),
             knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
         )
         st.session_state.messages.append({"role": "assistant", "result": result, "ticket": text.strip() or display_text})
@@ -1646,11 +1727,22 @@ def render_key_metrics(result: dict):
         "vpn": "VPN",
         "dns": "DNS",
         "db": "Database",
+        "application_erp": "Application — ERP",
+        "application_finance": "Application — Finance",
+        "application_saas": "Application — SaaS",
+        "application_integration": "Application — Integration",
+        "application_iam": "Application — IAM",
+        "application_cloud": "Application — Cloud",
+        "application_data": "Application — Data",
+        "application_network": "Application — Network",
+        "application_general": "Application — General",
+        "sap_batch_job_failure": "SAP Batch Job",
     }
     display_domain_clean = str(display_domain).strip().lower()
     shown_domain = domain_label_map.get(display_domain_clean, str(display_domain).title())
 
-    _conf_val = format_confidence(confidence.get("overall_confidence", analysis.get("confidence", 0.0)), 2)
+    _conf_raw = confidence.get("overall_confidence", analysis.get("confidence", 0.0)) if isinstance(confidence, dict) else (confidence if isinstance(confidence, (int, float)) else 0.0)
+    _conf_val = format_confidence(_conf_raw, 2)
     _cls_val = nice_label(analysis.get("classification", "unknown"))
     _route_val = routing_display_label(routing.get("method", "unknown"))
     st.markdown(
@@ -1720,8 +1812,18 @@ def render_status_banners(result: dict):
 
     # Inline meta strip — compact, single line
     decision = decision_display_label(routing.get("decision", "unknown"))
-    tenant_id = tenant_context.get("tenant_id", "client_a") if tenant_context else "client_a"
-    st.caption(f"Source: {source_text}  ·  Decision: {decision}  ·  Tenant: {tenant_id}")
+    tenant_id = (tenant_context.get("tenant_id") if tenant_context else None) or st.session_state.get("tenant_id", "client_c")
+    if fallback_used:
+        source_html = f'<span style="color:#2ecc71;font-weight:600;">🤖 Source: {source_text}</span>'
+        st.markdown(
+            f'<p style="font-size:0.8rem;color:var(--text-color,#888);">'
+            f'{source_html}'
+            f'&nbsp;&nbsp;·&nbsp;&nbsp;Decision: {decision}&nbsp;&nbsp;·&nbsp;&nbsp;Tenant: {tenant_id}'
+            f'</p>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.caption(f"Source: {source_text}  ·  Decision: {decision}  ·  Tenant: {tenant_id}")
 
     if fallback_reason == "zero_retrieval_no_grounding":
         st.error("No historical incidents found for this pattern — LLM was not invoked. Escalate to engineer and ingest real incident data from ServiceNow first.")
@@ -1731,6 +1833,248 @@ def render_status_banners(result: dict):
         st.warning("LLM fallback was used — RAG confidence was below threshold. Results are LLM-generated; review carefully before promoting.")
     if analysis.get("escalate"):
         st.info("This incident is flagged for escalation or manual review.")
+
+
+def render_agent_timeline(result: dict) -> None:
+    """Render the agent reasoning timeline when the agentic orchestrator was used.
+    Silent no-op when trace_spans are absent (legacy pipeline path).
+    """
+    import html as _html
+    spans = result.get("trace_spans") or []
+    if not spans:
+        return
+
+    STATUS_COLOR = {"ok": "#16a34a", "error": "#dc2626", "skipped": "#94a3b8"}
+    AGENT_ICON = {
+        "orchestrator": "🎯",
+        "triage":       "🔍",
+        "merge":        "🔗",
+        "retrieval":    "📡",
+        "safety":       "🛡️",
+        "rca":          "🧠",
+        "resolution":   "📋",
+        "learning":     "💾",
+    }
+
+    rows = ""
+    for sp in spans:
+        agent  = sp.get("agent", "")
+        intent = sp.get("intent", "")
+        dur    = sp.get("duration_ms", 0)
+        out    = _html.escape(str(sp.get("output_summary", ""))[:120])
+        dec    = _html.escape(str(sp.get("decision", ""))[:60])
+        status = sp.get("status", "ok")
+        icon   = AGENT_ICON.get(agent, "⚙️")
+        color  = STATUS_COLOR.get(status, "#94a3b8")
+        rows += (
+            f"<tr>"
+            f"<td style='padding:4px 8px;font-size:.72rem;white-space:nowrap'>{icon} <b>{_html.escape(agent)}</b></td>"
+            f"<td style='padding:4px 8px;font-size:.68rem;color:#64748b'>{_html.escape(intent)}</td>"
+            f"<td style='padding:4px 8px;font-size:.68rem;text-align:right;white-space:nowrap'>{dur:.0f} ms</td>"
+            f"<td style='padding:4px 8px;font-size:.68rem'>{out}</td>"
+            f"<td style='padding:4px 8px;font-size:.68rem;color:{color};white-space:nowrap'>{dec}</td>"
+            f"</tr>"
+        )
+
+    card = (
+        "<div style='border:1px solid #e2e8f0;border-left:4px solid #7c3aed;"
+        "border-radius:8px;padding:10px 16px;margin:8px 0 12px;"
+        "background:var(--background-color,#fff);'>"
+        "<div style='font-size:.7rem;font-weight:700;text-transform:uppercase;"
+        "letter-spacing:.07em;color:#7c3aed;margin-bottom:8px;'>🤖 Agent Reasoning Timeline</div>"
+        "<div style='overflow-x:auto'>"
+        "<table style='width:100%;border-collapse:collapse'>"
+        "<thead><tr style='border-bottom:1px solid #e2e8f0'>"
+        "<th style='padding:3px 8px;font-size:.65rem;color:#64748b;text-align:left'>Agent</th>"
+        "<th style='padding:3px 8px;font-size:.65rem;color:#64748b;text-align:left'>Intent</th>"
+        "<th style='padding:3px 8px;font-size:.65rem;color:#64748b;text-align:right'>Duration</th>"
+        "<th style='padding:3px 8px;font-size:.65rem;color:#64748b;text-align:left'>Output</th>"
+        "<th style='padding:3px 8px;font-size:.65rem;color:#64748b;text-align:left'>Decision</th>"
+        "</tr></thead>"
+        f"<tbody>{rows}</tbody>"
+        "</table></div></div>"
+    )
+    st.markdown(card, unsafe_allow_html=True)
+
+
+def render_pattern_intelligence_card(classification: str, tenant_id: str) -> None:
+    """Fetch and render the Classification Pattern Intelligence card inline.
+
+    Shows what the system has learned about this classification from all resolutions
+    and candidates — not just ledger outcomes. Silent no-op when there is no history
+    or the backend call fails.
+    """
+    if not classification:
+        return
+    data = get_pattern_intelligence(classification, tenant_id)
+    if data.get("status") != "ok":
+        return
+    intel = data.get("intelligence", {})
+
+    total_res    = intel.get("total_resolutions", 0)
+    cand_count   = intel.get("candidate_count", 0)
+    causes       = intel.get("dominant_root_causes", [])
+    actions      = intel.get("dominant_actions", [])
+    trend        = intel.get("recurrence_trend", "new")
+    confidence   = intel.get("pattern_confidence", "low")
+    insight      = intel.get("insight", "")
+
+    conf_color  = {"high": "#2563eb", "moderate": "#7c3aed", "low": "#64748b"}.get(confidence, "#64748b")
+    conf_label  = {"high": "High confidence", "moderate": "Moderate confidence", "low": "Low confidence"}.get(confidence, confidence.title())
+    trend_color = {"increasing": "#dc2626", "stable": "#16a34a", "new": "#64748b"}.get(trend, "#64748b")
+    trend_label = {"increasing": "Recurring (increasing)", "stable": "Recurring (stable)", "new": "First occurrence"}.get(trend, trend.title())
+
+    import html as _html
+
+    def _pills(items: list) -> str:
+        if not items:
+            return '<span style="color:#94a3b8;font-size:0.72rem;">—</span>'
+        return "".join(
+            f'<span style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;border-radius:999px;'
+            f'padding:2px 10px;font-size:0.70rem;margin-right:4px;margin-bottom:4px;'
+            f'display:inline-block;white-space:nowrap;font-weight:600;">'
+            f'{_html.escape(item[:60])}</span>'
+            for item in items
+        )
+
+    st.markdown(
+        f"""<div style="border:1px solid #e2e8f0;border-left:4px solid {conf_color};border-radius:8px;
+                        padding:10px 16px;margin:8px 0 12px;background:var(--background-color,#fff);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;">
+              Classification Pattern Intelligence
+            </span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-size:0.7rem;font-weight:700;color:{trend_color};background:{trend_color}18;
+                           padding:2px 8px;border-radius:999px;">{trend_label}</span>
+              <span style="font-size:0.7rem;font-weight:700;color:{conf_color};background:{conf_color}18;
+                           padding:2px 8px;border-radius:999px;">{conf_label}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+            <div style="min-width:90px;">
+              <div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;">Resolutions</div>
+              <div style="font-size:1.1rem;font-weight:700;color:#1e293b;">{total_res}</div>
+            </div>
+            <div style="min-width:90px;">
+              <div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;">Candidates</div>
+              <div style="font-size:1.1rem;font-weight:700;color:#1e293b;">{cand_count}</div>
+            </div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Dominant Root Causes</div>
+            <div>{_pills(causes)}</div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;">Dominant Actions</div>
+            <div>{_pills(actions)}</div>
+          </div>
+          <div style="font-size:0.72rem;color:#475569;border-top:1px solid #f1f5f9;padding-top:6px;margin-top:4px;">
+            {_html.escape(insight)}
+          </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_autonomous_gate_badge(classification: str, tenant_id: str) -> None:
+    """Fetch and render the autonomous gate tier badge inline.
+
+    Shown only when there is a linked resolution with automation_ready.
+    Silent no-op on failure.
+    """
+    if not classification:
+        return
+    gate = get_autonomous_gate(classification, tenant_id)
+    tier = gate.get("tier", "hold_for_approval")
+    reason = gate.get("reason", "")
+    total = gate.get("total_outcomes", 0)
+    success = gate.get("success_rate")
+    success_str = f"{success:.0%}" if success is not None else "—"
+
+    _tier_cfg = {
+        "auto_execute":       ("#16a34a", "#dcfce7", "Auto-execute eligible"),
+        "auto_execute_watch": ("#d97706", "#fef3c7", "Watch mode"),
+        "hold_for_approval":  ("#dc2626", "#fee2e2", "Hold for approval"),
+    }
+    color, bg, label = _tier_cfg.get(tier, ("#6b7280", "#f3f4f6", tier.replace("_", " ").title()))
+
+    st.markdown(
+        f"""<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;
+                        border:1px solid {color}30;border-radius:8px;background:{bg};margin:6px 0 10px;">
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;">
+            Autonomous Gate
+          </span>
+          <span style="font-size:0.75rem;font-weight:700;color:{color};background:{color}18;
+                       padding:2px 10px;border-radius:999px;border:1px solid {color}40;">
+            {label}
+          </span>
+          <span style="font-size:0.72rem;color:#64748b;">
+            {total} outcome(s) · {success_str} success · {reason}
+          </span>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_historical_outcome_evidence(classification: str, tenant_id: str) -> None:
+    """Fetch and render the Historical Outcome Evidence card inline.
+
+    Shows for all confidence signals including 'insufficient' (1–2 outcomes).
+    Silent no-op when there is no history or the backend call fails.
+    """
+    if not classification:
+        return
+    intel = get_resolution_intelligence(classification, tenant_id)
+    if intel.get("status") != "ok":
+        return
+    s = intel.get("summary", {})
+    total      = s.get("total_outcomes", 0)
+    success    = s.get("success_rate", 0.0)
+    recur      = s.get("recurrence_rate", 0.0)
+    ai_used    = s.get("ai_used_rate", 0.0)
+    avg_min    = s.get("avg_resolution_minutes")
+    last_res   = s.get("last_resolved_at", "")
+    signal     = s.get("confidence_signal", "insufficient")
+    dom_mode   = s.get("dominant_execution_mode", "manual")
+
+    signal_color = {"strong": "#16a34a", "mixed": "#d97706", "insufficient": "#6b7280"}.get(signal, "#6b7280")
+    signal_label = {"strong": "Strong pattern", "mixed": "Mixed results", "insufficient": "Insufficient history"}.get(signal, signal.title())
+
+    avg_min_str = f"{avg_min:.0f} min" if avg_min is not None else "—"
+    last_str = last_res[:10] if last_res else "—"
+
+    st.markdown(
+        f"""<div style="border:1px solid #e2e8f0;border-left:4px solid {signal_color};border-radius:8px;
+                        padding:10px 16px;margin:8px 0 12px;background:var(--background-color,#fff);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;">
+              Historical Outcome Evidence
+            </span>
+            <span style="font-size:0.7rem;font-weight:700;color:{signal_color};background:{signal_color}18;
+                         padding:2px 8px;border-radius:999px;">
+              {signal_label}
+            </span>
+          </div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;">
+            <div><span style="font-size:0.65rem;color:#94a3b8;">Resolutions</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{total}</span></div>
+            <div><span style="font-size:0.65rem;color:#94a3b8;">Success rate</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{success:.0%}</span></div>
+            <div><span style="font-size:0.65rem;color:#94a3b8;">Recurrence</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{recur:.0%}</span></div>
+            <div><span style="font-size:0.65rem;color:#94a3b8;">AI recommendation used</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{ai_used:.0%}</span></div>
+            <div><span style="font-size:0.65rem;color:#94a3b8;">Avg resolution time</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{avg_min_str}</span></div>
+            <div><span style="font-size:0.65rem;color:#94a3b8;">Dominant mode</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{dom_mode.replace("_"," ").title()}</span></div>
+            <div><span style="font-size:0.65rem;color:#94a3b8;">Last resolved</span><br>
+                 <span style="font-size:0.95rem;font-weight:700;">{last_str}</span></div>
+          </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
 
 def render_condensed_confidence_panel(result: dict):
@@ -1993,9 +2337,11 @@ def create_automation_candidate_from_result(result: Dict[str, Any], ticket: str,
     incident_id = str(result.get("request_id") or f"adhoc_{classification}")
     runbook = build_engineer_runbook(result, ticket)
     linked_resolution, linked_playbook = build_draft_resolution_and_playbook(result, ticket)
+    _drift_type = str(result.get("drift_type") or "").strip() or None
     return create_automation_candidate({
         "incident_id": incident_id,
         "classification": classification,
+        "drift_type": _drift_type,
         "draft_runbook": {
             "objective": runbook.get("objective"),
             "safety": runbook.get("safety"),
@@ -2039,6 +2385,37 @@ def render_engineer_runbook_panel(result: Dict[str, Any], ticket: str, key_suffi
     else:
         st.caption("Engineer-ready steps generated from the current incident analysis. Validate the runbook before sending it for automation review.")
 
+    # ── Safety Gate — Drift Management badge ─────────────────────────────────
+    _drift_type = str(result.get("drift_type") or "").strip()
+    _drift_eligible = bool(_drift_type and _drift_type not in ("unknown_or_not_detected", "none", ""))
+    if _drift_eligible:
+        _drift_label = nice_label(_drift_type.replace("_drift", "").replace("_", " "))
+        st.markdown(
+            f"""<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 14px;
+                border:1px solid #fbbf24;border-left:4px solid #f59e0b;border-radius:8px;
+                background:#fffbeb;margin:4px 0 12px;">
+                <span style="font-size:1.1rem;margin-top:1px;">🛡️</span>
+                <div>
+                  <div style="font-size:0.78rem;font-weight:700;color:#92400e;
+                       text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">
+                    Safety Gate Active &nbsp;·&nbsp; Drift Management ENABLED
+                  </div>
+                  <div style="font-size:0.8rem;color:#78350f;line-height:1.45;">
+                    Detected drift type: <b>{_drift_label}</b>.
+                    Before executing any remediation, the system will capture a pre-execution
+                    environment snapshot (services, configs, ports) and verify no conflicting
+                    changes are in progress. A before/after diff is written to the audit trail
+                    on completion.
+                  </div>
+                  <div style="font-size:0.72rem;color:#a16207;margin-top:4px;">
+                    Drift snapshots and verification run automatically when you promote to
+                    Automation Queue and execute via human-in-loop approval.
+                  </div>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
     _auto_status = "Approved" if has_approved_automation else ("Queued" if queue_entry else "Draft Ready")
     _auto_color = "#16a34a" if has_approved_automation else ("#0f766e" if queue_entry else "#1e293b")
     _risk_val = nice_label(runbook.get("risk_tier", "medium"))
@@ -2065,25 +2442,75 @@ def render_engineer_runbook_panel(result: Dict[str, Any], ticket: str, key_suffi
         unsafe_allow_html=True,
     )
 
-    with st.expander("View engineer runbook", expanded=True):
-        st.write(f"**Objective:** {runbook['objective']}")
-        st.warning(f"Safety / Approval Guardrail: {runbook['safety']}")
-        left, mid, right = st.columns(3)
-        with left:
-            st.markdown("**1) Triage / Likely Causes**")
-            render_compact_bullet_list(runbook["probable_causes"], "No triage items available.")
-        with mid:
-            st.markdown("**2) Validation Checks**")
-            render_compact_bullet_list(runbook["validation_checks"], "No validation checks available.")
-        with right:
-            st.markdown("**3) Remediation Steps**")
-            render_compact_bullet_list(runbook["remediation_steps"], "No remediation steps available.")
+    # ── Episodic recall banner ────────────────────────────────────────────────
+    try:
+        from episodic_memory import get_recall_html as _get_recall_html
+        _recall_html = _get_recall_html(classification)
+        if _recall_html:
+            st.markdown(_recall_html, unsafe_allow_html=True)
+    except Exception:
+        pass
 
-        st.markdown("**Automation Candidate Steps**")
-        render_compact_bullet_list(runbook["automation_steps"], "No automation candidate steps available.")
+    # ── Structured Resolution Playbook ───────────────────────────────────────
+    playbook_steps = result.get("resolution_playbook") or []
+    safety = runbook.get("safety", "Validate evidence and obtain approval before executing any state-changing remediation.")
 
-        with st.expander("Draft resolution/playbook payload", expanded=False):
-            st.json({"linked_resolution": linked_resolution, "linked_playbook": linked_playbook})
+    if playbook_steps:
+        render_resolution_playbook(playbook_steps, safety_note=safety)
+    else:
+        with st.expander("Resolution Steps", expanded=True):
+            st.warning(safety)
+            st.info(
+                "No structured playbook available yet for this classification. "
+                "Use **Automation Queue → Candidate Registry** to generate and approve a playbook, "
+                "or trigger an LLM-assisted playbook via the fallback path.",
+                icon="ℹ️",
+            )
+
+    # ── Promote to Automation ─────────────────────────────────────────────────
+    st.markdown("---")
+    promote_key = f"promote_confirm_{runtime_key}_{key_suffix}"
+    if not st.session_state.get(promote_key):
+        st.markdown("#### Validate & Promote to Automation")
+        st.caption(
+            "Once you have followed the resolution playbook and confirmed the steps are correct "
+            "for this environment, promote it to the Automation Queue for human-in-loop execution. "
+            "The system will register these steps as a validated playbook for this classification."
+        )
+        if st.button(
+            "✓ I have validated the playbook — Promote to Automation",
+            key=f"promote_btn_{runtime_key}_{key_suffix}",
+            type="primary",
+        ):
+            st.session_state[promote_key] = True
+            st.rerun()
+    else:
+        st.markdown("#### Confirm Promotion")
+        st.warning(
+            "**Before confirming:** You are certifying that you have executed or reviewed each "
+            "step in the playbook above and the resolution steps are correct for this incident "
+            "classification in this environment. This will be recorded as a validated playbook."
+        )
+        col_confirm, col_cancel = st.columns([1, 1])
+        with col_confirm:
+            if st.button(
+                "Confirm & Send to Automation Queue",
+                key=f"promote_confirm_btn_{runtime_key}_{key_suffix}",
+                type="primary",
+            ):
+                st.session_state[promote_key] = False
+                persist_last_incident_result(result, ticket)
+                st.session_state.active_page = "Automation Queue"
+                try:
+                    st.query_params["page"] = "Automation Queue"
+                except Exception:
+                    pass
+                save_last_incident_snapshot()
+                st.rerun()
+        with col_cancel:
+            if st.button("Cancel", key=f"promote_cancel_{runtime_key}_{key_suffix}"):
+                st.session_state[promote_key] = False
+                st.rerun()
 
     if has_approved_automation:
         st.markdown("### Approved Automation Available")
@@ -2312,7 +2739,7 @@ def render_confirmation_panel(result: dict, ticket: str, key_suffix: str):
                     use_fallback=True,
                     force_fallback=False,
                     confirm_local_matches=True,
-                    tenant_id=st.session_state.get("tenant_id", "client_a"),
+                    tenant_id=st.session_state.get("tenant_id", "client_c"),
                     knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
                 )
                 st.session_state.messages.append({"role": "assistant", "result": confirmed_result, "ticket": ticket})
@@ -2328,7 +2755,7 @@ def render_confirmation_panel(result: dict, ticket: str, key_suffix: str):
                     use_fallback=True,
                     force_fallback=True,
                     confirm_local_matches=False,
-                    tenant_id=st.session_state.get("tenant_id", "client_a"),
+                    tenant_id=st.session_state.get("tenant_id", "client_c"),
                     knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
                 )
                 st.session_state.messages.append({"role": "assistant", "result": fallback_result, "ticket": ticket})
@@ -2437,36 +2864,86 @@ def candidate_to_playbook_steps(candidate: Dict[str, Any]) -> List[str]:
     return dedupe_lines(steps)
 
 
+def _candidate_scripts_text(candidate: Dict[str, Any]) -> str:
+    """Extract automation script lines from the candidate for playbook pre-fill."""
+    draft_runbook = candidate.get("draft_runbook") or {}
+    # Prefer linked_playbook scripts if available
+    scripts = (candidate.get("linked_playbook") or {}).get("scripts") or []
+    if not scripts:
+        scripts = draft_runbook.get("automation_steps") or candidate.get("draft_steps") or []
+    if not scripts:
+        return ""
+    return "\n".join(str(s) for s in scripts if str(s or "").strip())
+
+
 def ensure_candidate_workflow_state(candidate: Dict[str, Any]):
     candidate_id = candidate["candidate_id"]
+    draft_runbook = candidate.get("draft_runbook") or {}
+    engineer_review = candidate.get("engineer_review") or {}
+    created_by = candidate.get("created_by") or candidate.get("requested_by") or "Engineer"
+    risk_tier = candidate.get("risk_tier") or draft_runbook.get("risk_tier") or "medium"
+    approval_mode = (
+        (candidate.get("linked_playbook") or {}).get("approval_mode")
+        or draft_runbook.get("approval_mode")
+        or ("auto_approved" if risk_tier == "low" else "manual_approval_required")
+    )
+    rollback_available = bool(
+        candidate.get("rollback_available")
+        if candidate.get("rollback_available") is not None
+        else (candidate.get("linked_playbook") or {}).get("rollback_available", True)
+    )
+    objective = draft_runbook.get("objective") or ""
+    root_cause = (
+        draft_runbook.get("root_cause")
+        or (draft_runbook.get("linked_resolution") or {}).get("root_cause")
+        or candidate_to_resolution_root_cause(candidate)
+    )
+
     if candidate_id not in st.session_state.workflow_candidate_reviews:
         st.session_state.workflow_candidate_reviews[candidate_id] = {
             "classification": candidate.get("classification", ""),
-            "probable_causes_text": join_lines(candidate.get("probable_causes", [])),
-            "next_checks_text": join_lines(candidate.get("next_checks", [])),
-            "recommended_actions_text": join_lines(candidate.get("recommended_actions", [])),
-            "review_notes": candidate.get("engineer_review", {}).get("review_notes", ""),
+            "probable_causes_text": join_lines(
+                candidate.get("probable_causes") or draft_runbook.get("probable_causes") or []
+            ),
+            "next_checks_text": join_lines(
+                candidate.get("next_checks") or draft_runbook.get("validation_checks") or []
+            ),
+            "recommended_actions_text": join_lines(
+                candidate.get("recommended_actions") or draft_runbook.get("remediation_steps") or []
+            ),
+            "review_notes": engineer_review.get("review_notes") or objective or "",
         }
     if candidate_id not in st.session_state.workflow_resolution_drafts:
         st.session_state.workflow_resolution_drafts[candidate_id] = {
             "classification": candidate.get("classification", ""),
-            "root_cause": candidate_to_resolution_root_cause(candidate),
-            "validated_checks_text": join_lines(candidate.get("next_checks", [])),
-            "validated_actions_text": join_lines(candidate.get("recommended_actions", [])),
-            "confirmed_by": "Vijay",
-            "success_notes": "Validated via UI-guided approval flow.",
-            "automation_ready": False,
+            "root_cause": root_cause,
+            "validated_checks_text": join_lines(
+                candidate.get("next_checks") or draft_runbook.get("validation_checks") or []
+            ),
+            "validated_actions_text": join_lines(
+                candidate.get("recommended_actions") or draft_runbook.get("remediation_steps") or []
+            ),
+            "confirmed_by": created_by,
+            "success_notes": (
+                f"Validated via UI-guided approval flow. Risk tier: {risk_tier}."
+                + (f" Objective: {objective}" if objective else "")
+            ),
+            "automation_ready": risk_tier in ("low", "medium"),
         }
     if candidate_id not in st.session_state.workflow_playbook_drafts:
         st.session_state.workflow_playbook_drafts[candidate_id] = {
             "name": candidate_to_playbook_name(candidate),
             "classification": candidate.get("classification", ""),
-            "description": candidate_to_playbook_description(candidate),
+            "description": (
+                (candidate.get("linked_playbook") or {}).get("description")
+                or draft_runbook.get("objective")
+                or candidate_to_playbook_description(candidate)
+            ),
             "steps_text": join_lines(candidate_to_playbook_steps(candidate)),
-            "scripts_text": "",
-            "approval_mode": "manual_approval_required",
-            "rollback_available": True,
-            "risk_tier": "medium",
+            "scripts_text": _candidate_scripts_text(candidate),
+            "approval_mode": approval_mode,
+            "rollback_available": rollback_available,
+            "risk_tier": risk_tier,
         }
 
 
@@ -2533,11 +3010,112 @@ def auto_learn_candidate(candidate: Dict[str, Any]) -> Dict[str, str]:
     st.session_state.workflow_saved_playbook_ids[candidate_id] = playbook_id
     st.session_state.workflow_auto_learn_status[candidate_id] = "completed"
 
+    # Reinforce long-term + episodic memory directly from the UI path (#13/#14)
+    try:
+        _cls = system_label(resolution_state.get("classification", ""))
+        _by  = resolution_state.get("confirmed_by", "Engineer")
+        _auto = bool(resolution_state.get("automation_ready"))
+        from long_term_memory import record_outcome as _rec_outcome
+        _rec_outcome(_cls, success=True, resolved_by=_by)
+    except Exception:
+        pass
+    try:
+        from episodic_memory import record_episode as _rec_episode
+        _rec_episode(
+            classification=_cls,
+            incident_id=str(candidate.get("incident_id") or candidate_id),
+            resolved_by=_by,
+            outcome="automated" if _auto else "resolved",
+        )
+    except Exception:
+        pass
+
     return {
         "incident_id": incident_id,
         "resolution_id": resolution_id,
         "playbook_id": playbook_id,
     }
+
+
+@st.dialog("Approve & Learn", width="large")
+def _approve_learn_dialog(candidate: Dict[str, Any], key_suffix: str):
+    """Compact single-screen modal — review key fields, then execute Approve & Learn in one action."""
+    candidate_id = candidate["candidate_id"]
+    review_state = st.session_state.workflow_candidate_reviews[candidate_id]
+    resolution_state = st.session_state.workflow_resolution_drafts[candidate_id]
+    playbook_state = st.session_state.workflow_playbook_drafts[candidate_id]
+
+    st.caption("Review the pre-filled fields, adjust if needed, then click **Confirm & Learn** to save everything.")
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        review_state["classification"] = st.text_input(
+            "Classification",
+            value=review_state["classification"],
+            key=f"dlg_cls_{candidate_id}",
+        )
+        review_state["review_notes"] = st.text_area(
+            "Review Notes",
+            value=review_state["review_notes"],
+            key=f"dlg_notes_{candidate_id}",
+            height=80,
+        )
+        resolution_state["root_cause"] = st.text_area(
+            "Root Cause",
+            value=resolution_state["root_cause"],
+            key=f"dlg_rc_{candidate_id}",
+            height=100,
+        )
+    with col_b:
+        risk_opts = ["low", "medium", "high"]
+        _risk_idx = risk_opts.index(playbook_state["risk_tier"]) if playbook_state["risk_tier"] in risk_opts else 1
+        playbook_state["risk_tier"] = st.selectbox(
+            "Risk Tier", options=risk_opts, index=_risk_idx,
+            key=f"dlg_risk_{candidate_id}",
+        )
+        playbook_state["rollback_available"] = st.checkbox(
+            "Rollback Available",
+            value=bool(playbook_state["rollback_available"]),
+            key=f"dlg_rollback_{candidate_id}",
+        )
+        resolution_state["automation_ready"] = st.checkbox(
+            "Automation Ready",
+            value=bool(resolution_state["automation_ready"]),
+            key=f"dlg_auto_ready_{candidate_id}",
+        )
+        resolution_state["confirmed_by"] = st.text_input(
+            "Confirmed By",
+            value=resolution_state["confirmed_by"],
+            key=f"dlg_confirmed_by_{candidate_id}",
+        )
+
+    # Show a compact read-only summary of what will be saved
+    checks = [l for l in (review_state.get("next_checks_text") or "").splitlines() if l.strip()]
+    actions = [l for l in (review_state.get("recommended_actions_text") or "").splitlines() if l.strip()]
+    if checks or actions:
+        with st.expander("📋 Checks & Actions summary", expanded=False):
+            if checks:
+                st.markdown("**Validated Checks:**\n" + "\n".join(f"- {c}" for c in checks[:5]))
+            if actions:
+                st.markdown("**Recommended Actions:**\n" + "\n".join(f"- {a}" for a in actions[:5]))
+
+    st.markdown("---")
+    left_btn, right_btn = st.columns(2)
+    with left_btn:
+        if st.button("Confirm & Learn", key=f"dlg_confirm_{candidate_id}", type="primary", use_container_width=True):
+            # Sync any dialog edits back into session state before calling auto_learn_candidate
+            resolution_state["classification"] = system_label(review_state["classification"])
+            playbook_state["classification"]   = system_label(review_state["classification"])
+            playbook_state["name"]             = playbook_state.get("name") or candidate_to_playbook_name(candidate)
+            playbook_state["description"]      = playbook_state.get("description") or candidate_to_playbook_description(candidate)
+            try:
+                auto_learn_candidate(candidate)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Approve & Learn failed: {e}")
+    with right_btn:
+        if st.button("Cancel", key=f"dlg_cancel_{candidate_id}", use_container_width=True):
+            st.rerun()
 
 
 def render_candidate_workflow(result: dict, ticket: str, key_suffix: str):
@@ -2561,30 +3139,37 @@ def render_candidate_workflow(result: dict, ticket: str, key_suffix: str):
     playbook_done = bool(saved_playbook_id)
 
     st.markdown("---")
-    st.subheader("Guided Learning Workflow")
-    st.caption("Approve, promote, generate drafts, save knowledge, then re-test — all from the UI.")
+    st.subheader("Approve & Learn")
+    st.caption("One-click: review key fields, confirm — the system saves the resolution, playbook, and promotes the incident.")
 
+    # ── Completion status strip ───────────────────────────────────────
     if auto_learn_done:
-        st.success("Approve & Learn completed.")
-    if review_status:
-        st.success(f"Candidate review saved: {review_status}")
-    if promotion_info:
-        st.success(f"Candidate promoted as incident {promotion_info}.")
-    if saved_resolution_id:
-        st.success(f"Resolution saved: {saved_resolution_id}")
-    if saved_playbook_id:
-        st.success(f"Playbook saved: {saved_playbook_id}")
+        st.success("✅ Approve & Learn completed. Knowledge base updated.")
+    else:
+        if review_status:
+            st.success(f"✔ Candidate reviewed: {review_status}")
+        if promotion_info:
+            st.success(f"✔ Promoted as incident {promotion_info}")
+        if saved_resolution_id:
+            st.success(f"✔ Resolution saved: {saved_resolution_id}")
+        if saved_playbook_id:
+            st.success(f"✔ Playbook saved: {saved_playbook_id}")
 
-    top_left, top_right = st.columns([0.55, 0.45])
-    with top_left:
-        st.info("Fastest path: use Approve & Learn to execute review, promotion, resolution save, and playbook save in one action.")
-    with top_right:
-        if st.button("Approve & Learn", key=f"approve_and_learn_{candidate_id}_{key_suffix}", width="stretch", disabled=auto_learn_done):
-            try:
-                auto_learn_candidate(candidate)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Approve & Learn failed: {e}")
+    # ── Primary CTA ──────────────────────────────────────────────────
+    cta_col, _ = st.columns([0.4, 0.6])
+    with cta_col:
+        if st.button(
+            "⚡ Approve & Learn",
+            key=f"approve_and_learn_{candidate_id}_{key_suffix}",
+            type="primary",
+            use_container_width=True,
+            disabled=auto_learn_done,
+            help="Opens a compact review dialog — adjust key fields then confirm in one action.",
+        ):
+            _approve_learn_dialog(candidate, key_suffix)
+
+    # ── Advanced: sequential expanders ──────────────────────────────
+    st.caption("Need to control each step individually? Use the manual flow below.")
 
     with st.expander("1) Review Candidate", expanded=not review_done and not auto_learn_done):
         _generic_labels = {"service_degradation", "application_error", "middleware_issue",
@@ -2635,7 +3220,10 @@ def render_candidate_workflow(result: dict, ticket: str, key_suffix: str):
         )
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Approve Candidate", key=f"approve_candidate_{candidate_id}_{key_suffix}", width="stretch", disabled=review_done or auto_learn_done):
+            from rbac import can_approve_candidates
+            if not can_approve_candidates():
+                st.caption("🔒 L2 or higher required to approve candidates.")
+            elif st.button("Approve Candidate", key=f"approve_candidate_{candidate_id}_{key_suffix}", width="stretch", disabled=review_done or auto_learn_done):
                 try:
                     resp = review_candidate({
                         "candidate_id": candidate_id,
@@ -2884,7 +3472,7 @@ def render_candidate_workflow(result: dict, ticket: str, key_suffix: str):
                     ticket,
                     use_fallback=True,
                     force_fallback=True,
-                    tenant_id=st.session_state.get("tenant_id", "client_a"),
+                    tenant_id=st.session_state.get("tenant_id", "client_c"),
                     knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
                 )
                 st.session_state.messages.append({"role": "assistant", "result": rerun_result, "ticket": ticket})
@@ -2940,6 +3528,11 @@ def _render_error_tolerance_inline(ci_name: str, classification: str) -> None:
 
 def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     result = apply_ui_telemetry_rca_display_guardrail(result)
+    # Normalize confidence to dict — older stored results may have a raw float
+    _raw_conf = result.get("confidence")
+    if not isinstance(_raw_conf, dict):
+        _scalar = float(_raw_conf) if isinstance(_raw_conf, (int, float)) else 0.0
+        result = dict(result, confidence={"overall_confidence": _scalar, "primary_confidence": _scalar, "fallback_confidence": 0.0})
     render_key_metrics(result)
     # Confidence meter — visual progress bar for overall confidence
     overall_conf = (result.get("confidence") or {}).get("overall_confidence") or \
@@ -2949,6 +3542,12 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     render_status_banners(result)
     st.markdown("---")
     render_action_panels(result)
+    _intel_cls = (result.get("analysis") or {}).get("classification", "")
+    _intel_tid = st.session_state.get("tenant_id", "client_c")
+    render_agent_timeline(result)
+    render_historical_outcome_evidence(_intel_cls, _intel_tid)
+    render_pattern_intelligence_card(_intel_cls, _intel_tid)
+    render_autonomous_gate_badge(_intel_cls, _intel_tid)
     render_engineer_runbook_panel(result, ticket, key_suffix)
     # ── Error Tolerance check — show CI criticality & tolerance policy ──────
     _ci_name = (
@@ -2971,6 +3570,11 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     if should_render_candidate_workflow(result):
         render_candidate_workflow(result, ticket, key_suffix)
     render_feedback(result, ticket, key_suffix)
+    render_peer_insights_panel(
+        incident_text=ticket,
+        client_id=st.session_state.get("tenant_id", "client_c"),
+        rag_context=result.get("rag_context"),
+    )
 
 
 def render_error_state(error_text: str):
@@ -3009,7 +3613,7 @@ def run_analysis_from_ui(user_input: str):
             user_input,
             use_fallback=True,
             force_fallback=bool(st.session_state.force_fallback_for_next_run),
-            tenant_id=st.session_state.get("tenant_id", "client_a"),
+            tenant_id=st.session_state.get("tenant_id", "client_c"),
             knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
         )
         st.session_state.messages.append({"role": "assistant", "result": result, "ticket": user_input})
@@ -4280,25 +4884,6 @@ def main():
     with st.sidebar:
         render_sidebar_nav(current_page)
 
-        # Multi-tenant switcher
-        _tenants = _load_available_tenants()
-        if len(_tenants) > 1:
-            _tenant_labels = [f"{t['display_name']} ({t['tenant_id']})" for t in _tenants]
-            _current_tid = st.session_state.get("tenant_id", "client_a")
-            _current_idx = next((i for i, t in enumerate(_tenants) if t["tenant_id"] == _current_tid), 0)
-            _selected_label = st.selectbox(
-                "Active Tenant",
-                options=_tenant_labels,
-                index=_current_idx,
-                key="sidebar_tenant_switcher",
-            )
-            _selected_tid = _tenants[_tenant_labels.index(_selected_label)]["tenant_id"]
-            if _selected_tid != st.session_state.get("tenant_id"):
-                st.session_state["tenant_id"] = _selected_tid
-                st.rerun()
-        else:
-            st.caption(f"Tenant: {_tenants[0]['display_name']} ({_tenants[0]['tenant_id']})")
-
         with st.expander("⚙️  Engineer Controls", expanded=False):
             st.session_state.force_fallback_for_next_run = st.checkbox(
                 "Force Fallback for Next Run",
@@ -4310,10 +4895,9 @@ def main():
             )
         st.caption(
             "Incident Console → AI analysis. "
-            "Telemetry Console → alert-driven RCA. "
-            "Automation Queue → guided remediation. "
-            "Knowledge Center → promoted learnings. "
-            "Backtesting → historical replay."
+            "Resolution Queue → approve & learn. "
+            "Knowledge Library → resolutions & playbooks. "
+            "Telemetry Console → proactive detection."
         )
 
     render_top_nav(current_page)
@@ -4329,6 +4913,11 @@ def main():
             render_client_onboarding_page_with_submenus()
         elif st.session_state.active_page == "Automation Queue":
             render_automation_queue_page()
+        elif st.session_state.active_page == "Drift Management":
+            if _new_modules_loaded:
+                render_drift_page()
+            else:
+                st.warning("Drift Management module could not be loaded.", icon="⚠️")
         elif st.session_state.active_page == "Backtest Console":
             render_backtest_console_page()
         elif st.session_state.active_page == "Demo":
@@ -4409,6 +4998,70 @@ def main():
 </script>""",
             height=0,
         )
+
+        # ── Orientation: stats bar ────────────────────────────────────────
+        def _read_json_list(path: str) -> list:
+            try:
+                import json as _json
+                p = Path(path)
+                if p.exists():
+                    data = _json.loads(p.read_text(encoding="utf-8"))
+                    return data if isinstance(data, list) else []
+            except Exception:
+                pass
+            return []
+
+        _res_count  = len(_read_json_list("data/resolutions.json"))
+        _pb_count   = len(_read_json_list("data/playbooks.json"))
+        _aq_list    = _read_json_list("data/automation_candidates.json")
+        _auto_ready = sum(1 for c in _aq_list if str(c.get("status", "")).lower() in ("enabled", "approved", "ready", "automation_ready"))
+
+        st.markdown(
+            f"""
+            <div style="display:flex;justify-content:center;gap:28px;margin:0 0 28px 0;flex-wrap:wrap;">
+                <div style="text-align:center;">
+                    <div style="font-size:1.5rem;font-weight:700;color:#4F8EF7;">{_res_count}</div>
+                    <div style="font-size:0.72rem;opacity:0.55;letter-spacing:0.04em;text-transform:uppercase;">Resolutions</div>
+                </div>
+                <div style="color:#e2e8f0;font-size:1.2rem;align-self:center;">·</div>
+                <div style="text-align:center;">
+                    <div style="font-size:1.5rem;font-weight:700;color:#10B981;">{_pb_count}</div>
+                    <div style="font-size:0.72rem;opacity:0.55;letter-spacing:0.04em;text-transform:uppercase;">Playbooks</div>
+                </div>
+                <div style="color:#e2e8f0;font-size:1.2rem;align-self:center;">·</div>
+                <div style="text-align:center;">
+                    <div style="font-size:1.5rem;font-weight:700;color:#8B5CF6;">{_auto_ready}</div>
+                    <div style="font-size:0.72rem;opacity:0.55;letter-spacing:0.04em;text-transform:uppercase;">Automations Ready</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # ── Orientation: example chips ────────────────────────────────────
+        st.markdown(
+            "<div style='text-align:center;font-size:0.78rem;opacity:0.45;"
+            "letter-spacing:0.05em;text-transform:uppercase;margin-bottom:10px;'>"
+            "Try an example</div>",
+            unsafe_allow_html=True,
+        )
+        _EXAMPLE_CHIPS = [
+            ("🔐", "SAP login failure — users cannot authenticate after password policy change"),
+            ("🌐", "VPN connectivity issue — Zscaler dropping connections intermittently for remote users"),
+            ("💾", "File system full alert — /var/log mount at 98% causing application errors"),
+        ]
+        _chip_cols = st.columns(len(_EXAMPLE_CHIPS), gap="small")
+        for _col, (_icon, _chip_text) in zip(_chip_cols, _EXAMPLE_CHIPS):
+            with _col:
+                if st.button(
+                    f"{_icon}  {_chip_text[:46]}{'…' if len(_chip_text) > 46 else ''}",
+                    key=f"chip_{hash(_chip_text)}",
+                    use_container_width=True,
+                ):
+                    run_analysis_from_submission(_chip_text)
+                    st.rerun()
+
+        st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 
     submission = st.chat_input(
         "Describe the incident...",

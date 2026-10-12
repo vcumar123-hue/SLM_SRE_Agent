@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for unexpected_host_reboot
+  hosts: linux-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for unexpected_host_reboot on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Check The Instance Status Of Sapaq3Dbu02 And Sapaq3Dbu03 In The Gcp Console (Running, Stopped, Terminated).'\n        echo '- Review Serial Console Output Or Crash Logs For Kernel Panic Or Hardware Error Messages.'\n        echo '- Inspect Gcp Activity Logs For Recent Live Migration, Host Maintenance, Or Preemptible Events.'\n        echo '- Perform Network Diagnostics (Ping/Traceroute) From Another Vm To Each Host To Confirm Connectivity.'\n        echo '- If Hosts Become Reachable, Query Hana System Status Via Hana Cockpit Or Hdbsql.'\n        echo '- Open A Google Cloud Support Case, Attaching Instance Ids And Any Collected Logs.'\n        echo '- If The Instances Are Stopped, Attempt A Start/Reboot From The Gcp Console.'\n        echo '- If The Instances Are Running But Unresponsive, Use The Serial Console To Capture Logs And Consider A Forced Reset.'\n        echo '- After Host Availability, Start Hana Services In The Proper Order (Primary Then Secondary).'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

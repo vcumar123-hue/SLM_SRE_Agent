@@ -1,0 +1,24 @@
+---
+- name: Governed diagnostic playbook for sap_login_failure
+  hosts: linux-lab-01
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Show target host
+      ansible.builtin.debug:
+        msg: "Running governed diagnostic automation for sap_login_failure on {{ inventory_hostname }}."
+
+    - name: Validate host reachability
+      ansible.builtin.ping:
+
+    - name: Print reviewed candidate steps
+      ansible.builtin.shell: |
+        echo '- Validate The Exact Password Policy Changes (Length, Complexity, Expiration) Applied In The Directory Service.'\n        echo '- Inspect Sap Authentication Logs For Error Codes (E.G., Password Mismatch, Account Locked).'\n        echo '- Verify That The Password Sync Job Between The Identity Provider (E.G., Ad/Ldap) And Sap Ran Successfully After The Change.'\n        echo '- Check The Lockout Status Of Affected User Accounts In Sap And The Identity Provider.'\n        echo '- If Sync Job Failed, Manually Trigger A Password Synchronization Or Run The Relevant Connector.'\n        echo '- Reset Passwords For Users Who Are Locked Or Have Mismatched Hashes, Then Have Them Re‑Login.'\n        echo '- Monitor Authentication Attempts For A Short Period To Ensure The Issue Is Resolved.'
+      register: candidate_steps
+      changed_when: false
+      failed_when: false
+
+    - name: Display reviewed candidate steps
+      ansible.builtin.debug:
+        var: candidate_steps.stdout_lines

@@ -7,6 +7,8 @@ No keyword classification — pure text pattern matching.
 from __future__ import annotations
 from typing import Any, Dict, Optional
 import streamlit as st
+import re as _re
+from typing import List
 from page_modules.shared import BACKEND_URL, SESSION, REQUEST_TIMEOUT_SHORT
 
 
@@ -70,9 +72,72 @@ def _timeline_chart(timeline: Dict[str, Any]) -> str:
     )
 
 
+def _render_client_history(rag_context: Dict[str, Any]) -> None:
+    """Render this client's own past incidents from RAG alongside peer data."""
+    incident_patterns = rag_context.get("incident_patterns") or []
+    sources = rag_context.get("sources") or []
+    _ts = _re.compile(r"^\d{4}-\d{2}-\d{2}")
+
+    def _ok(v: str) -> bool:
+        v = (v or "").strip()
+        return len(v) >= 30 and not _ts.match(v) and not v.lower().startswith(
+            ("work notes", "system administrator", "inc", "itm")
+        )
+
+    rca_keys = ["Root Cause (Work Notes)", "Root Cause", "Work Notes", "Details", "Executive Summary"]
+    res_keys = ["Resolution", "Close Notes", "Details/Description"]
+    inc_keys = ["INC#", "Number", "Incident Number"]
+    sum_keys = ["Short Description", "Summary", "Description"]
+
+    entries = []
+    for i, pat in enumerate(incident_patterns[:4], 1):
+        fields = pat.get("fields") or {}
+        inc_num = next((fields[k] for k in inc_keys if k in fields), f"Ref {i}")
+        summary = next((fields[k] for k in sum_keys if k in fields and _ok(fields[k])), "")
+        rca     = next((fields[k] for k in rca_keys if k in fields and _ok(fields[k])), "")
+        res     = next((fields[k] for k in res_keys if k in fields and _ok(fields[k])), "")
+        if rca or res or summary:
+            entries.append({"inc": inc_num, "summary": summary[:120],
+                            "rca": rca[:250], "res": res[:250],
+                            "src": pat.get("source_file", "")})
+
+    if not entries:
+        return
+
+    src_label = ", ".join(sources) if sources else "client knowledge base"
+    st.markdown(
+        f"<div style='font-size:0.8rem;font-weight:700;color:#475569;"
+        f"text-transform:uppercase;letter-spacing:.07em;margin:10px 0 6px;'>"
+        f"This Client's Past Incidents"
+        f"<span style='font-weight:400;font-size:0.72rem;color:#94a3b8;"
+        f"margin-left:8px;text-transform:none;'>from {src_label}</span></div>",
+        unsafe_allow_html=True,
+    )
+    for e in entries:
+        body = ""
+        if e["summary"]:
+            body += f"<div style='font-size:0.78rem;color:#64748b;margin-bottom:4px;'>{e['summary']}</div>"
+        if e["rca"]:
+            body += (f"<div style='font-size:0.8rem;margin-bottom:3px;'>"
+                     f"<b style='color:#b45309;'>Root Cause:</b> {e['rca']}</div>")
+        if e["res"]:
+            body += (f"<div style='font-size:0.8rem;'>"
+                     f"<b style='color:#15803d;'>Resolution:</b> {e['res']}</div>")
+        st.markdown(
+            f"<div style='border:1px solid #e2e8f0;border-left:3px solid #0d9488;"
+            f"border-radius:5px;padding:8px 12px;margin-bottom:6px;background:#f8fafc;'>"
+            f"<div style='display:flex;justify-content:space-between;margin-bottom:4px;'>"
+            f"<span style='font-size:0.8rem;font-weight:700;color:#0f766e;'>{e['inc']}</span>"
+            f"<span style='font-size:0.68rem;color:#94a3b8;'>{e['src']}</span></div>"
+            f"{body}</div>",
+            unsafe_allow_html=True,
+        )
+
+
 def render_peer_insights_panel(
     incident_text: str,
     client_id: Optional[str] = "client_a",
+    rag_context: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Render the peer insights expander below an incident analysis result.
 
@@ -80,6 +145,8 @@ def render_peer_insights_panel(
         incident_text: The incident short_description (or any descriptive text).
                        Passed directly to the backend for token pattern matching.
         client_id:     The requesting client — excluded from the peer list.
+        rag_context:   Client RAG context from the analysis result — used to show
+                       this client's own past incidents alongside anonymous peer data.
     """
     if not incident_text or not incident_text.strip():
         return
@@ -194,6 +261,11 @@ def render_peer_insights_panel(
                         + "</div>",
                         unsafe_allow_html=True,
                     )
+
+        # This client's own past incidents from RAG
+        if rag_context:
+            st.markdown("---")
+            _render_client_history(rag_context)
 
         # Before/after callout
         before = timeline.get("before_count", 0)

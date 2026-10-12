@@ -1,6 +1,7 @@
 """Drift Management page module."""
 from __future__ import annotations
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 import streamlit as st
@@ -18,6 +19,194 @@ _LAB_CONTAINERS = ["linux-lab-01", "linux-lab-02", "network-lab-01"]
 _MODES = ["Lab (Docker container)", "CMDB (ServiceNow read)", "Dry Run (simulation)"]
 _MODE_VALUES = ["lab", "cmdb", "dry_run"]
 _CHANGE_TYPES = ["restart_service", "update_config", "install_package", "run_command"]
+
+# ---------------------------------------------------------------------------
+# Data helpers (local file reads — no backend required)
+# ---------------------------------------------------------------------------
+
+def _read_automation_candidates() -> List[dict]:
+    """Read automation_candidates.json from the data directory."""
+    candidates_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data", "automation_candidates.json"
+    )
+    try:
+        with open(candidates_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            return data.get("items", data.get("candidates", []))
+        return []
+    except Exception:
+        return []
+
+
+def _read_local_audit_log() -> List[dict]:
+    """Read drift audit records from local data/drift_audit.json or logs/drift_audit.jsonl."""
+    base = os.path.dirname(os.path.dirname(__file__))
+    # Try JSON file first
+    for rel in ("data/drift_audit.json", "logs/drift_audit.jsonl"):
+        path = os.path.join(base, rel)
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+            if not content:
+                continue
+            if path.endswith(".jsonl"):
+                return [json.loads(line) for line in content.splitlines() if line.strip()]
+            data = json.loads(content)
+            if isinstance(data, list):
+                return data
+            return data.get("items", [])
+        except Exception:
+            continue
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Public chip helper (importable by ui.py for sidebar nav label)
+# ---------------------------------------------------------------------------
+
+def _drift_activity_chip() -> str:
+    """Return a small coloured HTML indicator showing aggregate drift status.
+
+    Green  = no candidates have drift_type set.
+    Amber  = 1 candidate has drift_type set.
+    Red    = 2 or more candidates have drift_type set.
+    """
+    candidates = _read_automation_candidates()
+    drift_count = sum(
+        1 for c in candidates
+        if str(c.get("drift_type") or "").strip()
+        not in ("", "none", "unknown_or_not_detected", "null")
+    )
+    if drift_count == 0:
+        color, label, title = "#10b981", "●", "No active drift"
+    elif drift_count == 1:
+        color, label, title = "#f59e0b", "●", "1 candidate with drift"
+    else:
+        color, label, title = "#dc2626", "●", f"{drift_count} candidates with drift"
+    return (
+        f'<span title="{title}" style="color:{color};font-size:0.65rem;'
+        f'vertical-align:middle;margin-left:4px;">{label}</span>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Summary banner (call at top of drift page)
+# ---------------------------------------------------------------------------
+
+def render_drift_summary_banner() -> None:
+    """Render a compact drift-status banner above the main drift page content."""
+    candidates = _read_automation_candidates()
+    drift_candidates = [
+        c for c in candidates
+        if str(c.get("drift_type") or "").strip()
+        not in ("", "none", "unknown_or_not_detected", "null")
+    ]
+    n_candidates = len(candidates)
+    n_drift = len(drift_candidates)
+
+    # Try to get snapshot count from backend; fall back to audit log length
+    snapshots = _fetch_snapshots()
+    audit_records = _read_local_audit_log()
+    n_snapshots = len(snapshots)
+    n_audit = len(audit_records)
+
+    # Chip colour
+    if n_drift == 0:
+        gate_color, gate_bg, gate_label = "#10b981", "#f0fdf4", "No Drift Detected"
+        gate_border = "#86efac"
+    elif n_drift == 1:
+        gate_color, gate_bg, gate_label = "#d97706", "#fffbeb", "Drift Detected"
+        gate_border = "#fde68a"
+    else:
+        gate_color, gate_bg, gate_label = "#dc2626", "#fef2f2", "Multiple Drift Events"
+        gate_border = "#fecaca"
+
+    banner_html = f"""
+<div style="background:{gate_bg};border:1px solid {gate_border};border-left:4px solid {gate_color};
+     border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;
+     flex-wrap:wrap;gap:20px;align-items:center;">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span style="font-size:1.1rem;">🔍</span>
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;color:{gate_color};
+           text-transform:uppercase;letter-spacing:.06em;">Safety Gate · Drift Status</div>
+      <div style="font-size:0.82rem;font-weight:600;color:#1e293b;">{gate_label}</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div style="font-size:1.25rem;font-weight:800;color:#1e293b;">{n_snapshots}</div>
+      <div style="font-size:0.68rem;color:#64748b;">Active Snapshots</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.25rem;font-weight:800;color:#1e293b;">{n_audit}</div>
+      <div style="font-size:0.68rem;color:#64748b;">Audit Records</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.25rem;font-weight:800;color:{gate_color};">{n_drift}</div>
+      <div style="font-size:0.68rem;color:#64748b;">Drift Candidates</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.25rem;font-weight:800;color:#1e293b;">{n_candidates}</div>
+      <div style="font-size:0.68rem;color:#64748b;">Total Candidates</div>
+    </div>
+  </div>
+</div>
+"""
+    st.markdown(banner_html, unsafe_allow_html=True)
+
+    # Drift candidate list (if any)
+    if drift_candidates:
+        drift_rows = "".join(
+            f"<div style='padding:4px 0;border-bottom:1px solid #e5e7eb;font-size:0.8rem;'>"
+            f"<span style='font-weight:600;color:#1e293b;'>{c.get('incident_id','—')}</span>"
+            f"&nbsp;&nbsp;<span style='color:#64748b;'>{nice_label(str(c.get('drift_type','')))} drift</span>"
+            f"&nbsp;&nbsp;<span style='background:#fef3c7;color:#92400e;border-radius:4px;"
+            f"padding:1px 6px;font-size:0.7rem;font-weight:700;'>DRIFT</span>"
+            f"</div>"
+            for c in drift_candidates[:5]
+        )
+        st.markdown(
+            f'<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;'
+            f'padding:10px 14px;margin-bottom:14px;">'
+            f'<div style="font-size:0.72rem;font-weight:700;color:#374151;'
+            f'text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Drift-Flagged Automation Candidates</div>'
+            f'{drift_rows}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Drift Audit Trail — last 5 records (local file)
+    if audit_records:
+        trail_rows = "".join(
+            f"<div style='padding:4px 0;border-bottom:1px solid #e5e7eb;font-size:0.78rem;'>"
+            f"<span style='color:#64748b;font-size:0.7rem;'>{str(r.get('captured_at') or r.get('created_at',''))[:16] or '—'}</span>"
+            f"&nbsp; <span style='font-weight:600;color:#1e293b;'>{r.get('ci_name','—')}</span>"
+            f"&nbsp; <span style='color:#64748b;'>{nice_label(str(r.get('mode','')))} · {str(r.get('result','—')).upper()}</span>"
+            f"</div>"
+            for r in audit_records[-5:][::-1]
+        )
+        st.markdown(
+            f'<div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;'
+            f'padding:10px 14px;margin-bottom:14px;">'
+            f'<div style="font-size:0.72rem;font-weight:700;color:#374151;'
+            f'text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Drift Audit Trail (last 5)</div>'
+            f'{trail_rows}</div>',
+            unsafe_allow_html=True,
+        )
+    elif n_snapshots == 0 and n_audit == 0:
+        st.markdown(
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;'
+            'padding:10px 14px;margin-bottom:14px;font-size:0.8rem;color:#64748b;">'
+            'No drift activity recorded yet. Capture a snapshot to begin the drift management cycle.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Status badge helpers
@@ -421,6 +610,8 @@ def render_drift_page() -> None:
         "Capture configuration snapshots, run remediation playbooks, verify state, "
         "and maintain a full audit trail across Lab, CMDB, and Dry-Run modes."
     )
+
+    render_drift_summary_banner()
 
     tab_cycle, tab_audit = st.tabs(["🔄 Snapshot Cycle", "📋 Audit Log"])
 

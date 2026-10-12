@@ -11,6 +11,7 @@ from page_modules.shared import (
     fetch_telemetry_events, fetch_telemetry_incidents, fetch_telemetry_incident_detail,
     fetch_telemetry_incident_rca, call_telemetry_evaluate, call_telemetry_promote,
     nice_label, system_label, format_confidence, metric_card, render_empty_state,
+    render_resolution_playbook,
 )
 
 
@@ -112,12 +113,22 @@ def _render_rca_table(rca: Dict[str, Any], incident: Dict[str, Any]) -> None:
     resolution_id = rca.get("resolution_id") or (rca.get("resolution") or {}).get("id")
     playbook_id = rca.get("playbook_id") or (rca.get("playbook") or {}).get("id")
     if resolution_id or playbook_id:
-        st.markdown("---")
         link_cols = st.columns(2)
         if resolution_id:
             link_cols[0].caption(f"📄 Resolution linked: `{resolution_id}`")
         if playbook_id:
             link_cols[1].caption(f"📋 Playbook linked: `{playbook_id}`")
+
+    # Structured resolution playbook — same steps as Incident Console
+    playbook_steps = rca.get("resolution_playbook") or []
+    if playbook_steps:
+        st.markdown("---")
+        render_resolution_playbook(
+            playbook_steps,
+            safety_note="Validate evidence and obtain approval before executing any state-changing remediation.",
+            expanded=False,
+            title="Step-by-Step Resolution Playbook",
+        )
 
 
 def _render_alert_details_table(selected: Dict[str, Any], current_status: str) -> None:

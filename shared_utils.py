@@ -208,6 +208,25 @@ def is_mainframe_batch_abend_signal(ticket: str) -> bool:
 
     return bool(scheduler_or_mainframe_signal or regex_signal)
 
+def is_sap_erp_signal(ticket: str) -> bool:
+    """True when the ticket describes a SAP/ERP application-layer event.
+    Must be checked before generic batch/scheduler classification to avoid
+    mislabelling SAP batch jobs as infrastructure compute."""
+    blob = normalize_phrase(ticket)
+    return any(term in blob for term in [
+        "sap", "s4hana", "s/4", "s4 ", "ecc", "abap", "hana", "bw",
+        "sm37", "sm66", "sm12", "sm13", "se38", "st22", "al08",
+        "fagl", "fi ", "co ", "mm ", "pp ", "sd ", "hr ", "basis",
+        "sap basis", "sap erp", "erp ", "r/3",
+        "batch job failure", "background job", "long running job",
+        "financial close", "period close", "currency valuation",
+        "foreign currency", "settlement run", "depreciation run",
+        "mrp run", "standard cost", "material ledger",
+        "ariba", "concur", "btp", "bobj", "business objects",
+        "power bi sap", "sap bw", "sap hana", "sap s4",
+    ])
+
+
 def is_batch_delay_signal(ticket: str) -> bool:
     blob = normalize_phrase(ticket)
     return any(term in blob for term in [

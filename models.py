@@ -54,6 +54,7 @@ class CreateResolutionRequest(BaseModel):
     automation_ready: Optional[bool] = False
     linked_playbook_id: Optional[str] = ""
     tenant_id: Optional[str] = Field(default=None, max_length=64)
+    incident_id: Optional[str] = ""
 
 
 class CreatePlaybookRequest(BaseModel):
@@ -114,6 +115,7 @@ class AutomationExecuteRequest(BaseModel):
     queue_id: str = Field(..., min_length=1)
     executed_by: Optional[str] = "automation_engine"
     execution_mode: Optional[str] = "simulation"
+    autonomous_requested: bool = False
 
 
 class AutomationPreExecutionCheckRequest(BaseModel):
@@ -160,12 +162,14 @@ class AutomationAutonomousEnableRequest(BaseModel):
     enabled: Optional[bool] = True
     requested_by: Optional[str] = "engineer"
     notes: Optional[str] = ""
+    tenant_id: Optional[str] = "default"
 
 
 class AutomationAutonomousEligibilityRequest(BaseModel):
     classification: str = Field(..., min_length=1)
     action: Optional[str] = ""
     playbook: Optional[str] = ""
+    tenant_id: Optional[str] = "default"
 
 class AutomationRefreshRequest(BaseModel):
     queue_id: str = Field(..., min_length=1)

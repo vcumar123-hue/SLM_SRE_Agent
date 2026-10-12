@@ -1,12 +1,13 @@
 """Shared helpers and fetch utilities for all page modules."""
 from __future__ import annotations
 import datetime
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import streamlit as st
 import requests
 
-BACKEND_URL = "http://127.0.0.1:8001"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8001")
 REQUEST_TIMEOUT_SHORT = 8
 REQUEST_TIMEOUT_MEDIUM = 15
 REQUEST_TIMEOUT_LONG = 120
@@ -539,6 +540,95 @@ def render_compact_bullet_list(items: List[Any], empty_message: str):
         st.caption(empty_message)
         return
     st.markdown("\n".join(f"- {item}" for item in cleaned))
+
+
+def render_resolution_playbook(
+    steps: List[Dict[str, Any]],
+    safety_note: str = "",
+    expanded: bool = True,
+    title: str = "Step-by-Step Resolution Playbook",
+) -> None:
+    """Shared renderer for structured resolution playbook steps.
+    Used by Incident Console, Automation Queue, and Telemetry Console."""
+    if not steps:
+        return
+
+    with st.expander(title, expanded=expanded):
+        st.caption(
+            "Follow these steps in order. Each step tells you exactly what to check, "
+            "what you expect to see, and which path to take based on what you find."
+        )
+        if safety_note:
+            st.warning(safety_note)
+
+        for step in steps:
+            step_num  = step.get("step", "")
+            title_s   = step.get("title", "")
+            context   = step.get("context", "")
+            action    = step.get("action", "")
+            commands  = step.get("commands") or []
+            decisions = step.get("decision") or []
+            caution   = step.get("caution", "")
+
+            cmd_pills = "".join(
+                f"<span style='display:inline-block;background:#dbeafe;color:#1e40af;"
+                f"font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:12px;"
+                f"margin:2px 4px 2px 0;font-family:monospace;'>{c}</span>"
+                for c in commands
+            )
+
+            decision_rows = "".join(
+                f"<tr>"
+                f"<td style='padding:4px 10px 4px 0;font-size:0.8rem;color:#475569;"
+                f"white-space:nowrap;vertical-align:top;'>If: <b>{cond}</b></td>"
+                f"<td style='padding:4px 0;font-size:0.8rem;color:#1e293b;"
+                f"vertical-align:top;'>{consequence}</td>"
+                f"</tr>"
+                for cond, consequence in (
+                    (d[0], d[1]) if isinstance(d, (list, tuple)) and len(d) >= 2
+                    else (str(d), "")
+                    for d in decisions
+                )
+            )
+
+            caution_block = (
+                f"<div style='margin-top:8px;padding:6px 10px;background:#fef9c3;"
+                f"border-left:3px solid #ca8a04;border-radius:4px;"
+                f"font-size:0.78rem;color:#713f12;'>⚠ {caution}</div>"
+            ) if caution else ""
+
+            st.markdown(
+                f"<div style='border:1px solid #e2e8f0;border-left:4px solid #3b82f6;"
+                f"border-radius:8px;padding:14px 18px;margin-bottom:12px;background:#f8fafc;'>"
+
+                f"<div style='display:flex;align-items:baseline;gap:10px;margin-bottom:6px;'>"
+                f"<span style='background:#3b82f6;color:#fff;font-size:0.72rem;"
+                f"font-weight:700;padding:2px 9px;border-radius:12px;'>STEP {step_num}</span>"
+                f"<span style='font-size:0.95rem;font-weight:700;color:#1e293b;'>{title_s}</span>"
+                f"</div>"
+
+                f"<div style='font-size:0.8rem;color:#64748b;margin-bottom:8px;"
+                f"font-style:italic;'>{context}</div>"
+
+                f"<div style='font-size:0.83rem;color:#1e293b;margin-bottom:8px;'>"
+                f"<b>Action:</b> {action}</div>"
+
+                + (f"<div style='margin-bottom:8px;'>"
+                   f"<b style='font-size:0.72rem;color:#64748b;text-transform:uppercase;"
+                   f"letter-spacing:.05em;'>Tools / Commands</b><br>{cmd_pills}</div>"
+                   if commands else "")
+
+                + (f"<div style='margin-top:8px;'>"
+                   f"<b style='font-size:0.72rem;color:#64748b;text-transform:uppercase;"
+                   f"letter-spacing:.05em;'>Decision</b>"
+                   f"<table style='margin-top:4px;border-collapse:collapse;width:100%;'>"
+                   f"{decision_rows}</table></div>"
+                   if decision_rows else "")
+
+                + caution_block
+                + "</div>",
+                unsafe_allow_html=True,
+            )
 
 
 def routing_display_label(method: str) -> str:

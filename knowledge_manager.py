@@ -1,16 +1,104 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
 import settings_portable as settings
 from file_manager import read_json, write_json, utc_now_iso
 
+logger = logging.getLogger(__name__)
 
-KNOWLEDGE_CANDIDATES_FILE = settings.DATA_DIR / "knowledge_candidates.json"
-RESOLUTIONS_FILE = settings.DATA_DIR / "resolutions.json"
-PLAYBOOKS_FILE = settings.DATA_DIR / "playbooks.json"
-GLOBAL_LEARNED_PATTERNS_FILE = settings.DATA_DIR / "global_learned_patterns.json"
+# PostgreSQL dual-write (graceful no-op if DB unreachable)
+try:
+    from postgres_store import (
+        upsert_resolution,
+        upsert_playbook,
+        upsert_knowledge_candidate,
+        append_resolution_version,
+        append_playbook_version,
+    )
+    _PG_ENABLED = True
+except Exception:
+    upsert_resolution = None  # type: ignore[assignment]
+    upsert_playbook = None  # type: ignore[assignment]
+    upsert_knowledge_candidate = None  # type: ignore[assignment]
+    append_resolution_version = None  # type: ignore[assignment]
+    append_playbook_version = None  # type: ignore[assignment]
+    _PG_ENABLED = False
+
+
+def _pg_write(fn, *args, **kwargs) -> None:
+    if fn is None:
+        return
+    try:
+        fn(*args, **kwargs)
+    except Exception as exc:
+        logger.warning("PostgreSQL dual-write failed: %s", exc)
+
+
+def _best_effort_vector_upsert(record: Dict[str, Any], collection_name: str, quiet: bool = False) -> bool:
+    """Index learned knowledge into Qdrant without blocking promotion.
+    Returns True on success, False on any failure.
+    quiet=True downgrades internal failure logs to DEBUG (use at promotion call sites)."""
+    _log = logger.debug if quiet else logger.warning
+    try:
+        from embedding_store import embed_text
+        from vector_store import ensure_collection, upsert_point
+
+        point_id = _clean_str(record.get("id") or record.get("incident_id") or record.get("point_id"))
+        title = _clean_str(record.get("title"))
+        content = _clean_str(record.get("content") or record.get("summary"))
+        classification = _clean_str(record.get("classification"), "unknown")
+        domain = _clean_str(record.get("domain"), "general")
+        if not point_id or not content:
+            _log("Qdrant upsert skipped — missing point_id or content for record: %s", record.get("id"))
+            return False
+
+        embedding_text = ". ".join([x for x in [title, content, classification, domain] if x]).strip()
+        vector = embed_text(embedding_text)
+        ensure_collection(collection_name=collection_name)
+        source_type = _clean_str(record.get("source_type") or record.get("knowledge_type"), "incident")
+        upsert_point(
+            point_id=point_id,
+            vector=vector,
+            source_type=source_type,
+            title=title,
+            content=content,
+            classification=classification,
+            domain=domain,
+            service_scope=_clean_str(record.get("service_scope")),
+            environment=_clean_str(record.get("environment")),
+            severity=_clean_str(record.get("severity")),
+            extra_payload={
+                "tenant_id": _clean_str(record.get("tenant_id")),
+                "knowledge_scope": _clean_str(record.get("knowledge_scope")),
+                "knowledge_type": _clean_str(record.get("knowledge_type"), "incident"),
+                "source_layer": _clean_str(record.get("source_layer")),
+                "source": _clean_str(record.get("source")),
+                "linked_candidate_id": _clean_str(record.get("linked_candidate_id")),
+                "collection_name": collection_name,
+            },
+            collection_name=collection_name,
+        )
+        return True
+    except Exception as exc:
+        _log("Qdrant learned-knowledge upsert failed: %s", exc)
+        return False
+
+
+try:
+    from tenant_context import tenant_data_file as _tdf
+    def _data_file(name: str):
+        return _tdf(name)
+except Exception:
+    def _data_file(name: str):  # type: ignore[misc]
+        return settings.DATA_DIR / name
+
+KNOWLEDGE_CANDIDATES_FILE = _data_file("knowledge_candidates.json")
+RESOLUTIONS_FILE = _data_file("resolutions.json")
+PLAYBOOKS_FILE = _data_file("playbooks.json")
+GLOBAL_LEARNED_PATTERNS_FILE = _data_file("global_learned_patterns.json")
 
 
 def _load_list(path) -> List[Dict[str, Any]]:
@@ -210,6 +298,7 @@ def create_knowledge_candidate(
 
     records.append(candidate)
     _save_list(KNOWLEDGE_CANDIDATES_FILE, records)
+    _pg_write(upsert_knowledge_candidate, candidate)
     return candidate
 
 
@@ -248,6 +337,7 @@ def review_knowledge_candidate(
             rec["updated_at"] = _now()
 
             _save_list(KNOWLEDGE_CANDIDATES_FILE, records)
+            _pg_write(upsert_knowledge_candidate, rec)
             return rec
 
     raise ValueError(f"Candidate not found: {candidate_id}")
@@ -306,6 +396,8 @@ def promote_candidate_to_incident(
             None,
         )
         if existing:
+            if not _best_effort_vector_upsert(existing, "global_learned_patterns_index", quiet=True):
+                logger.debug("promote: re-index of existing global pattern %s failed (non-blocking)", existing.get("id"))
             return existing
 
         pattern_parts = []
@@ -339,6 +431,8 @@ def promote_candidate_to_incident(
         }
         global_patterns.append(pattern)
         _save_list(GLOBAL_LEARNED_PATTERNS_FILE, global_patterns)
+        if not _best_effort_vector_upsert(pattern, "global_learned_patterns_index", quiet=True):
+            logger.debug("promote: new global pattern %s failed to index in Qdrant (non-blocking)", pattern.get("id"))
 
         candidate["status"] = "promoted_global"
         candidate["promotion_target"] = "global_learned"
@@ -354,6 +448,18 @@ def promote_candidate_to_incident(
         None,
     )
     if existing:
+        try:
+            from vector_store import build_collection_name as _bcn
+            _coll = _bcn(
+                _normalize_tenant(existing.get("tenant_id"), tenant_clean),
+                _normalize_scope(existing.get("knowledge_scope"), scope_clean),
+            )
+        except Exception:
+            _t = _normalize_tenant(existing.get("tenant_id"), tenant_clean)
+            _s = _normalize_scope(existing.get("knowledge_scope"), scope_clean)
+            _coll = f"{_t}_index" if _s == "client_private" else "aiops_knowledge"
+        if not _best_effort_vector_upsert(existing, _coll, quiet=True):
+            logger.debug("promote: re-index of existing incident %s failed (non-blocking)", existing.get("id"))
         return existing
 
     title = _clean_str(candidate.get("classification"), "unknown").replace("_", " ").title()
@@ -390,6 +496,13 @@ def promote_candidate_to_incident(
 
     incidents.append(incident)
     write_json(settings.INCIDENTS_FILE, incidents, indent=2)
+    try:
+        from vector_store import build_collection_name
+        collection_name = build_collection_name(tenant_clean, scope_clean)
+    except Exception:
+        collection_name = f"{tenant_clean}_index" if scope_clean == "client_private" else "aiops_knowledge"
+    if not _best_effort_vector_upsert(incident, collection_name, quiet=True):
+        logger.debug("promote: new incident %s failed to index in Qdrant (non-blocking)", incident.get("id"))
 
     candidate["status"] = "promoted"
     candidate["promotion_target"] = "client_private"
@@ -414,10 +527,12 @@ def create_resolution(
     linked_candidate_id: str = "",
     automation_ready: bool = False,
     linked_playbook_id: str = "",
+    incident_id: str = "",
 ) -> Dict[str, Any]:
     records = _load_list(RESOLUTIONS_FILE)
     classification_clean = _clean_str(classification, "unknown")
     classification_key = classification_clean.lower()
+    _inc_id = _clean_str(incident_id)
 
     existing = next((r for r in records if _classification_key(r.get("classification")) == classification_key), None)
     if existing:
@@ -431,12 +546,32 @@ def create_resolution(
         existing["automation_ready"] = bool(automation_ready)
         existing["linked_candidate_id"] = _clean_str(linked_candidate_id)
         existing["linked_playbook_id"] = _clean_str(linked_playbook_id)
+        if _inc_id:
+            existing["incident_id"] = _inc_id
         existing["updated_at"] = _now()
         _save_list(RESOLUTIONS_FILE, records)
+        _pg_write(upsert_resolution, existing)
+        _pg_write(append_resolution_version, existing, _clean_str(confirmed_by), "updated")
+        try:
+            import resolution_outcome as _ro
+            _ro.record_outcome(
+                incident_id=_inc_id,
+                classification=classification_clean,
+                resolution_id=existing.get("resolution_id", ""),
+                playbook_id=_clean_str(linked_playbook_id),
+                execution_mode="manual",
+                ai_recommendation_used="partial",
+                outcome_status="resolved",
+                confirmed_by=_clean_str(confirmed_by),
+                notes=_clean_str(success_notes),
+            )
+        except Exception:
+            pass
         return existing
 
     resolution = {
         "resolution_id": f"res_{uuid.uuid4().hex[:12]}",
+        "incident_id": _inc_id,
         "created_at": _now(),
         "updated_at": _now(),
         "classification": classification_clean,
@@ -452,6 +587,39 @@ def create_resolution(
     }
     records.append(resolution)
     _save_list(RESOLUTIONS_FILE, records)
+    _pg_write(upsert_resolution, resolution)
+    _pg_write(append_resolution_version, resolution, _clean_str(confirmed_by), "created")
+    # Reinforce long-term memory
+    try:
+        from long_term_memory import record_outcome
+        record_outcome(classification_clean, success=bool(automation_ready), resolved_by=_clean_str(confirmed_by))
+    except Exception:
+        pass
+    try:
+        from episodic_memory import record_episode
+        record_episode(
+            classification=classification_clean,
+            incident_id=_inc_id,
+            resolved_by=_clean_str(confirmed_by),
+            outcome="resolved" if bool(automation_ready) else "manual",
+        )
+    except Exception:
+        pass
+    try:
+        import resolution_outcome as _ro
+        _ro.record_outcome(
+            incident_id=_inc_id,
+            classification=classification_clean,
+            resolution_id=resolution["resolution_id"],
+            playbook_id=_clean_str(linked_playbook_id),
+            execution_mode="manual",
+            ai_recommendation_used="partial",
+            outcome_status="resolved",
+            confirmed_by=_clean_str(confirmed_by),
+            notes=_clean_str(success_notes),
+        )
+    except Exception:
+        pass
     return resolution
 
 
@@ -519,6 +687,8 @@ def create_playbook(
         if review_notes:
             existing["review"]["review_notes"] = _clean_str(review_notes)
         _save_list(PLAYBOOKS_FILE, records)
+        _pg_write(upsert_playbook, existing)
+        _pg_write(append_playbook_version, existing, _clean_str(created_by), "updated")
         return existing
 
     playbook = {
@@ -548,6 +718,8 @@ def create_playbook(
     }
     records.append(playbook)
     _save_list(PLAYBOOKS_FILE, records)
+    _pg_write(upsert_playbook, playbook)
+    _pg_write(append_playbook_version, playbook, _clean_str(created_by), "created")
     return playbook
 
 
@@ -568,6 +740,56 @@ def get_playbook_by_id(playbook_id: str) -> Optional[Dict[str, Any]]:
     if not playbook_id:
         return None
     return next((r for r in _load_list(PLAYBOOKS_FILE) if _clean_str(r.get("playbook_id")) == playbook_id), None)
+
+
+def backfill_promoted_vectors() -> Dict[str, Any]:
+    """
+    Index all previously promoted records that may be missing Qdrant vectors.
+    Reads incidents.json (source=promoted_from_fallback) and
+    global_learned_patterns.json (source=promoted_global_learned) and upserts
+    vectors for each. Safe to re-run: Qdrant upsert is idempotent.
+
+    Returns counts: scanned, indexed, skipped, failed.
+    """
+    counts: Dict[str, int] = {"scanned": 0, "indexed": 0, "skipped": 0, "failed": 0}
+
+    incidents = _load_list(settings.INCIDENTS_FILE)
+    for inc in incidents:
+        counts["scanned"] += 1
+        source = _clean_str(inc.get("source")).lower()
+        if source != "promoted_from_fallback":
+            counts["skipped"] += 1
+            continue
+        try:
+            from vector_store import build_collection_name as _bcn
+            t = _normalize_tenant(inc.get("tenant_id"), "client_a")
+            s = _normalize_scope(inc.get("knowledge_scope"), "client_private")
+            coll = _bcn(t, s)
+        except Exception:
+            t = _normalize_tenant(inc.get("tenant_id"), "client_a")
+            s = _normalize_scope(inc.get("knowledge_scope"), "client_private")
+            coll = f"{t}_index" if s == "client_private" else "aiops_knowledge"
+        if _best_effort_vector_upsert(inc, coll):
+            counts["indexed"] += 1
+        else:
+            logger.warning("backfill_promoted_vectors: incident %s failed to index", inc.get("id"))
+            counts["failed"] += 1
+
+    global_patterns = _load_list(GLOBAL_LEARNED_PATTERNS_FILE)
+    for pat in global_patterns:
+        counts["scanned"] += 1
+        source = _clean_str(pat.get("source")).lower()
+        if source != "promoted_global_learned":
+            counts["skipped"] += 1
+            continue
+        if _best_effort_vector_upsert(pat, "global_learned_patterns_index"):
+            counts["indexed"] += 1
+        else:
+            logger.warning("backfill_promoted_vectors: pattern %s failed to index", pat.get("id"))
+            counts["failed"] += 1
+
+    logger.info("backfill_promoted_vectors complete: %s", counts)
+    return counts
 
 
 def review_playbook(
@@ -620,5 +842,130 @@ def review_playbook(
             }
             rec["updated_at"] = _now()
             _save_list(PLAYBOOKS_FILE, records)
+            _pg_write(upsert_playbook, rec)
             return rec
     raise ValueError(f"Playbook not found: {playbook_id}")
+
+
+def get_pattern_intelligence(classification: str, tenant_id: str = "default") -> Optional[Dict[str, Any]]:
+    """Aggregate pattern intelligence for a classification from resolutions and candidates.
+
+    Returns a dict with dominant root causes, dominant actions, recurrence trend,
+    pattern confidence, and a one-line insight. Returns None when no history exists.
+    Read-only. No LLM call. No writes.
+    """
+    from collections import Counter
+    cls_key = _classification_key(classification)
+    if not cls_key:
+        return None
+
+    tid_key = _normalize_tenant(tenant_id) if tenant_id else None
+
+    # ── Resolutions ───────────────────────────────────────────────────────────
+    all_resolutions = _load_list(RESOLUTIONS_FILE)
+    resolutions = [
+        r for r in all_resolutions
+        if _classification_key(r.get("classification")) == cls_key
+        and (tid_key is None or not r.get("tenant_id") or _normalize_tenant(r.get("tenant_id")) == tid_key)
+    ]
+
+    # ── Candidates ────────────────────────────────────────────────────────────
+    all_candidates = _load_list(KNOWLEDGE_CANDIDATES_FILE)
+    candidates = [
+        c for c in all_candidates
+        if _classification_key(c.get("classification")) == cls_key
+        and (tid_key is None or not c.get("tenant_id") or _normalize_tenant(c.get("tenant_id")) == tid_key)
+    ]
+
+    total_resolutions = len(resolutions)
+    candidate_count = len(candidates)
+
+    if total_resolutions == 0 and candidate_count == 0:
+        return None
+
+    # ── Root causes — tolerant of field variation ─────────────────────────────
+    root_cause_tokens: List[str] = []
+    for r in resolutions:
+        rc = r.get("root_cause") or ""
+        if isinstance(rc, str) and rc.strip():
+            root_cause_tokens.append(rc.strip())
+    for c in candidates:
+        for field in ("probable_causes", "root_cause"):
+            val = c.get(field)
+            if isinstance(val, list):
+                root_cause_tokens.extend([v for v in val if isinstance(v, str) and v.strip()])
+            elif isinstance(val, str) and val.strip():
+                root_cause_tokens.append(val.strip())
+
+    # ── Actions — tolerant of field variation ─────────────────────────────────
+    action_tokens: List[str] = []
+    for r in resolutions:
+        for field in ("validated_actions", "recommended_actions"):
+            val = r.get(field)
+            if isinstance(val, list):
+                action_tokens.extend([v for v in val if isinstance(v, str) and v.strip()])
+    for c in candidates:
+        for field in ("validated_actions", "recommended_actions", "suggested_action"):
+            val = c.get(field)
+            if isinstance(val, list):
+                action_tokens.extend([v for v in val if isinstance(v, str) and v.strip()])
+            elif isinstance(val, str) and val.strip():
+                action_tokens.append(val.strip())
+
+    dominant_root_causes = [cause for cause, _ in Counter(root_cause_tokens).most_common(3)]
+    dominant_actions = [action for action, _ in Counter(action_tokens).most_common(3)]
+
+    # ── Pattern confidence ────────────────────────────────────────────────────
+    if total_resolutions >= 5:
+        pattern_confidence = "high"
+    elif total_resolutions >= 2:
+        pattern_confidence = "moderate"
+    else:
+        pattern_confidence = "low"
+
+    # ── Recurrence trend — from outcome ledger timestamps ────────────────────
+    recurrence_trend = "new"
+    try:
+        import resolution_outcome as _ro
+        outcomes = _ro.get_outcomes(cls_key, tenant_id=tenant_id, limit=20)
+        resolved = sorted(
+            [o for o in outcomes if o.get("outcome_status") == "resolved" and o.get("resolved_at")],
+            key=lambda o: o["resolved_at"],
+        )
+        if len(resolved) >= 3:
+            gaps = []
+            for i in range(1, len(resolved)):
+                try:
+                    from datetime import datetime, timezone
+                    t1 = datetime.fromisoformat(resolved[i - 1]["resolved_at"].replace("Z", "+00:00"))
+                    t2 = datetime.fromisoformat(resolved[i]["resolved_at"].replace("Z", "+00:00"))
+                    gaps.append((t2 - t1).total_seconds())
+                except Exception:
+                    pass
+            if gaps:
+                first_half = sum(gaps[: len(gaps) // 2]) / max(len(gaps) // 2, 1)
+                second_half = sum(gaps[len(gaps) // 2 :]) / max(len(gaps) - len(gaps) // 2, 1)
+                recurrence_trend = "increasing" if second_half < first_half * 0.75 else "stable"
+        # fewer than 3 resolved outcomes — not enough data to infer a trend
+    except Exception:
+        pass
+
+    # ── Insight line ──────────────────────────────────────────────────────────
+    parts = []
+    if total_resolutions:
+        parts.append(f"{total_resolutions} validated resolution(s)")
+    if candidate_count:
+        parts.append(f"{candidate_count} automation candidate(s)")
+    if dominant_root_causes:
+        parts.append(f"dominant cause: {dominant_root_causes[0]}")
+    insight = "; ".join(parts) if parts else "No actionable pattern data yet."
+
+    return {
+        "total_resolutions":    total_resolutions,
+        "candidate_count":      candidate_count,
+        "dominant_root_causes": dominant_root_causes,
+        "dominant_actions":     dominant_actions,
+        "recurrence_trend":     recurrence_trend,
+        "pattern_confidence":   pattern_confidence,
+        "insight":              insight,
+    }

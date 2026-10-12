@@ -1,75 +1,115 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
-from functools import lru_cache
 from typing import Iterable, List
-
-from sentence_transformers import SentenceTransformer
 
 LOGGER = logging.getLogger("embedding_store")
 if not LOGGER.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-MODEL_NAME = os.getenv("AIOPS_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+# LM Studio serves an OpenAI-compatible API.
+# Override via env vars if your LM Studio runs on a different port or host.
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", os.getenv("OLLAMA_BASE_URL", "http://localhost:1234/v1"))
+MODEL_NAME = os.getenv(
+    "EMBEDDING_MODEL",
+    os.getenv("AIOPS_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5"),
+)
+
+# Fallback: sentence_transformers when LM Studio is unavailable and
+# EMBEDDING_BACKEND=sentence_transformers is set.
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "lm_studio").strip().lower()
 
 
-@lru_cache(maxsize=1)
-def get_model() -> SentenceTransformer:
-    """
-    Load and cache the local embedding model.
-    """
-    LOGGER.info("Loading embedding model: %s", MODEL_NAME)
-    return SentenceTransformer(MODEL_NAME)
+# ── LM Studio / OpenAI-compatible backend ─────────────────────────────────────
+
+def _lm_studio_embed(texts: List[str]) -> List[List[float]]:
+    import requests
+    url = f"{LM_STUDIO_BASE_URL.rstrip('/')}/embeddings"
+    resp = requests.post(
+        url,
+        json={"model": MODEL_NAME, "input": texts},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    # OpenAI format: {"data": [{"embedding": [...], "index": 0}, ...]}
+    items = sorted(data["data"], key=lambda x: x["index"])
+    return [[float(v) for v in item["embedding"]] for item in items]
+
+
+def _normalize(vec: List[float]) -> List[float]:
+    norm = math.sqrt(sum(x * x for x in vec))
+    if norm == 0:
+        return vec
+    return [x / norm for x in vec]
+
+
+# ── sentence_transformers fallback ─────────────────────────────────────────────
+
+def _st_embed(texts: List[str], normalize: bool) -> List[List[float]]:
+    from sentence_transformers import SentenceTransformer  # type: ignore[import]
+    from functools import lru_cache
+
+    @lru_cache(maxsize=1)
+    def _model():
+        LOGGER.info("Loading sentence-transformers model: %s", MODEL_NAME)
+        return SentenceTransformer(MODEL_NAME)
+
+    vectors = _model().encode(texts, normalize_embeddings=normalize)
+    return [[float(x) for x in row.tolist()] for row in vectors]
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def embed_texts(texts: Iterable[str], normalize: bool = True) -> List[List[float]]:
+    cleaned = [str(t or "").strip() for t in texts]
+    if not cleaned:
+        return []
+
+    if EMBEDDING_BACKEND == "sentence_transformers":
+        return _st_embed(cleaned, normalize)
+
+    vecs = _lm_studio_embed(cleaned)
+    if normalize:
+        vecs = [_normalize(v) for v in vecs]
+    return vecs
+
+
+def embed_text(text: str, normalize: bool = True) -> List[float]:
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("text cannot be empty")
+    return embed_texts([text], normalize=normalize)[0]
 
 
 def ping_model() -> bool:
     try:
-        model = get_model()
-        _ = model.encode(["health check"], normalize_embeddings=True)
-        return True
+        result = embed_texts(["health check"])
+        return bool(result and len(result[0]) > 0)
     except Exception:
         LOGGER.exception("Embedding model health check failed")
         return False
 
 
 def get_embedding_dimension() -> int:
-    """
-    Return embedding dimension for the configured model.
-    """
-    model = get_model()
-    dim = model.get_embedding_dimension()
-    return int(dim)
+    return len(embed_text("dimension probe"))
 
 
-def embed_text(text: str, normalize: bool = True) -> List[float]:
-    """
-    Embed a single text string.
-    """
-    text = (text or "").strip()
-    if not text:
-        raise ValueError("text cannot be empty")
-
-    model = get_model()
-    vector = model.encode(text, normalize_embeddings=normalize)
-    return [float(x) for x in vector.tolist()]
-
-
-def embed_texts(texts: Iterable[str], normalize: bool = True) -> List[List[float]]:
-    """
-    Embed multiple texts in batch.
-    """
-    cleaned = [str(t or "").strip() for t in texts]
-    if not cleaned:
-        return []
-
-    model = get_model()
-    vectors = model.encode(cleaned, normalize_embeddings=normalize)
-    return [[float(x) for x in row.tolist()] for row in vectors]
+# Legacy compat: some callers do `from embedding_store import get_model`
+def get_model():
+    raise RuntimeError(
+        "get_model() is not available with the LM Studio backend. "
+        "Use embed_text() / embed_texts() instead."
+    )
 
 
 if __name__ == "__main__":
-    print("Model healthy:", ping_model())
+    print(f"Backend : {EMBEDDING_BACKEND}")
+    print(f"Model   : {MODEL_NAME}")
+    print(f"Base URL: {LM_STUDIO_BASE_URL}")
+    print("Healthy :", ping_model())
     if ping_model():
-        print("Embedding dimension:", get_embedding_dimension())
-        print("Single embedding length:", len(embed_text("Users cannot access VPN after password reset")))
+        print("Dim     :", get_embedding_dimension())
+        print("Vec len :", len(embed_text("Users cannot access VPN after password reset")))

@@ -10,6 +10,7 @@ from page_modules.shared import (
     BACKEND_URL, SESSION, REQUEST_TIMEOUT_MEDIUM,
     nice_label, format_confidence, metric_card,
     render_automation_pipeline_steps, render_compact_bullet_list,
+    render_resolution_playbook,
     refresh_automation_queue_request, fetch_all_queue_entries,
 )
 
@@ -214,15 +215,20 @@ def render_automation_queue_page():
             return
         rows = []
         for e in entries[:50]:
+            drift_type = str(e.get("drift_type") or "").strip()
+            drift_eligible = bool(drift_type and drift_type not in ("unknown_or_not_detected", "none", ""))
+            drift_icon = "🛡️ Active" if drift_eligible else "—"
             rows.append({
                 "Queue ID": e.get("queue_id", ""),
                 "Incident ID": e.get("incident_id", ""),
                 "Classification": nice_label(e.get("classification", "")),
                 "Status": nice_label(e.get("status", "")),
+                "Safety Gate": drift_icon,
                 "Requested By": e.get("requested_by", ""),
                 "Queued At": (e.get("queued_at") or "")[:16],
             })
-        st.dataframe(rows, use_container_width=True, hide_index=True)
+        st.dataframe(rows, use_container_width=True, hide_index=True,
+                     column_config={"Safety Gate": st.column_config.TextColumn(width="small")})
 
     with queue_tabs[0]:
         _render_queue_table(all_entries)
@@ -243,21 +249,24 @@ def render_automation_queue_page():
     st.write(f"**Autonomous Status:** {_auto_status}")
     st.write(f"**Playbook Source:** {linked_playbook.get('source', 'linked_playbook')}")
 
-    with st.expander("Review runbook before queueing", expanded=True):
-        st.write(f"**Objective:** {runbook['objective']}")
-        st.warning(f"Safety / Approval Guardrail: {runbook['safety']}")
-        left, mid, right = st.columns(3)
-        with left:
-            st.markdown("**Triage / Causes**")
-            render_compact_bullet_list(runbook["probable_causes"], "No triage items available.")
-        with mid:
-            st.markdown("**Validation Checks**")
-            render_compact_bullet_list(runbook["validation_checks"], "No validation checks available.")
-        with right:
-            st.markdown("**Remediation Steps**")
-            render_compact_bullet_list(runbook["remediation_steps"], "No remediation steps available.")
-        st.markdown("**Automation Candidate Steps**")
-        render_compact_bullet_list(runbook["automation_steps"], "No automation steps available.")
+    playbook_steps = latest.get("resolution_playbook") or []
+    safety = runbook.get("safety", "Validate evidence and obtain approval before executing any state-changing remediation.")
+    if playbook_steps:
+        render_resolution_playbook(
+            playbook_steps,
+            safety_note=safety,
+            title="Review Resolution Playbook Before Queueing",
+        )
+    else:
+        with st.expander("Review runbook before queueing", expanded=True):
+            st.write(f"**Objective:** {runbook['objective']}")
+            st.warning(f"Safety / Approval Guardrail: {safety}")
+            st.info(
+                "No structured playbook available yet for this classification. "
+                "Generate one via **Candidate Registry → Generate Playbook**, or trigger "
+                "an LLM-assisted playbook via the fallback path before queueing.",
+                icon="ℹ️",
+            )
 
     # ── Error Tolerance: CI criticality check before execution ──────────────
     try:
@@ -621,6 +630,17 @@ def render_automation_queue_page():
                 runtime["safety_gate_result"] = resp
                 st.session_state.automation_runtime[runtime_key] = runtime
                 gate_status_msg = str(resp.get("gate_status") or "completed").upper()
+                # Show live refresh summary
+                refresh = resp.get("live_refresh") or {}
+                snap_step = next((s for s in (refresh.get("steps") or []) if s.get("step") == "snapshot"), None)
+                snap_id = (snap_step or {}).get("snapshot_id") or ""
+                if snap_id:
+                    st.toast(f"📸 Live snapshot captured: {snap_id}", icon="📸")
+                sim_step = next((s for s in (refresh.get("steps") or []) if s.get("step") == "simulation"), None)
+                if sim_step and sim_step.get("status") == "ok":
+                    st.toast("✅ Dry-run simulation completed", icon="✅")
+                elif sim_step and sim_step.get("status") == "warn":
+                    st.toast("⚠️ Dry-run simulation advisory warning", icon="⚠️")
                 if resp.get("safe_to_approve"):
                     st.success(f"Pre-execution safety gate completed: {gate_status_msg}.")
                 else:

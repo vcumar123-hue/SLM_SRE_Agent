@@ -45,7 +45,7 @@ from shared_utils import (
     feedback_debug, fallback_debug, knowledge_debug,
     clean_text, dedupe_preserve_order, normalize_phrase,
     normalize_classification_token, source_priority_value,
-    is_mainframe_batch_abend_signal, is_batch_delay_signal, is_batch_failure_signal,
+    is_mainframe_batch_abend_signal, is_batch_delay_signal, is_batch_failure_signal, is_sap_erp_signal,
     tokenize_signature, similarity_ratio,
     text_has_any, has_dns_negative_evidence, has_dns_positive_failure_evidence,
     has_vpn_negative_evidence, has_container_connectivity_signal,
@@ -239,6 +239,14 @@ except Exception:
 
 app = FastAPI(title=settings.APP_NAME)
 
+# Mount MCP router (Item #21)
+try:
+    from mcp_server import mcp_router as _mcp_router
+    app.include_router(_mcp_router, prefix="/mcp")
+except Exception as _mcp_err:
+    import logging as _lg
+    _lg.getLogger(__name__).warning("MCP router not loaded: %s", _mcp_err)
+
 from fastapi import Request as _Request
 from fastapi.responses import JSONResponse as _JSONResponse
 
@@ -283,6 +291,36 @@ if _AIOPS_API_KEY:
             return await call_next(request)
 
     app.add_middleware(_ApiKeyMiddleware)
+
+# IS-03: Role-based route enforcement (Item #16)
+# X-User-Role header carries the role; enforced when AIOPS_API_KEY is set.
+# Routes in _ADMIN_PATHS require admin, _L3_PATHS require l3+.
+_ADMIN_PATHS = {"/users", "/connectors/fetch"}
+_L3_PATHS    = {"/knowledge_candidates", "/playbooks", "/resolutions",
+                "/automation/approve", "/automation/reject"}
+_ROLE_RANK   = {"l1": 1, "l2": 2, "l3": 3, "admin": 4}
+
+if _AIOPS_API_KEY:
+    class _RbacMiddleware(BaseHTTPMiddleware):  # type: ignore[name-defined]
+        async def dispatch(self, request: StarletteRequest, call_next):  # type: ignore[override]
+            path = request.url.path
+            if request.url.path in _AUTH_EXEMPT_PATHS:
+                return await call_next(request)
+            role = request.headers.get("X-User-Role", "l2").lower()
+            rank = _ROLE_RANK.get(role, 1)
+            if any(path.startswith(p) for p in _ADMIN_PATHS) and rank < 4:
+                return StarletteJSONResponse(
+                    {"error": "forbidden", "message": "Admin role required."},
+                    status_code=403,
+                )
+            if any(path.startswith(p) for p in _L3_PATHS) and rank < 3:
+                return StarletteJSONResponse(
+                    {"error": "forbidden", "message": "L3 role or above required."},
+                    status_code=403,
+                )
+            return await call_next(request)
+
+    app.add_middleware(_RbacMiddleware)
 
 # CQ-01: Modular domain routers
 try:
@@ -332,6 +370,57 @@ async def _warm_embedding_model() -> None:
     except Exception as _exc:
         _logger.warning("Embedding model pre-warm skipped: %s", _exc)
 
+    # Register agents with the A2A dispatcher (Item #15 + Phase 3 agentic conversion)
+    try:
+        from agents.a2a_protocol import register_agent as _reg_agent
+        from agents.playbook_agent import generate_playbook as _gen_pb
+
+        def _playbook_handler(msg):
+            cls = msg.payload.get("classification", "")
+            ticket = msg.payload.get("ticket", "")
+            rag = msg.payload.get("rag_context", "")
+            return {"steps": _gen_pb(cls, ticket=ticket, rag_context=rag), "classification": cls}
+
+        _reg_agent("playbook", _playbook_handler)
+        _logger.info("A2A dispatcher: playbook agent registered")
+    except Exception as _a2a_exc:
+        _logger.warning("A2A dispatcher registration failed: %s", _a2a_exc)
+
+    # Register specialist agents (Phase 3 — agentic orchestration)
+    try:
+        from agents.triage_agent     import triage_handler
+        from agents.retrieval_agent  import retrieval_handler
+        from agents.safety_agent     import safety_handler
+        from agents.rca_agent        import rca_handler
+        from agents.resolution_agent import resolution_handler
+        from agents.learning_agent   import learning_handler
+        from agents.a2a_protocol     import register_agent as _reg
+
+        _reg("triage",     triage_handler)
+        _reg("retrieval",  retrieval_handler)
+        _reg("safety",     safety_handler)
+        _reg("rca",        rca_handler)
+        _reg("resolution", resolution_handler)
+        _reg("learning",   learning_handler)
+        _logger.info("A2A dispatcher: specialist agents registered (triage, retrieval, safety, rca, resolution, learning)")
+    except Exception as _phase3_exc:
+        _logger.warning("A2A specialist agent registration failed: %s", _phase3_exc)
+
+    # Ensure all PostgreSQL schemas and tenant isolation are in place at startup
+    try:
+        from postgres_store import (
+            ping, ensure_version_history_schema, ensure_tenant_isolation,
+            ensure_agent_traces_schema, ensure_resolution_outcomes_schema,
+        )
+        if ping():
+            ensure_version_history_schema()
+            ensure_agent_traces_schema()
+            ensure_resolution_outcomes_schema()
+            ensure_tenant_isolation()
+            _logger.info("PostgreSQL schema bootstrap: OK")
+    except Exception as _db_exc:
+        _logger.warning("PostgreSQL schema bootstrap failed (non-fatal): %s", _db_exc)
+
 
 if Instrumentator is not None:
     try:
@@ -359,7 +448,7 @@ SOURCE_PRIORITY = {
 }
 
 
-DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_a")
+DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_c")
 TENANT_CONFIG_DIR = Path(os.getenv("AIOPS_TENANT_CONFIG_DIR", "tenant_config"))
 
 
@@ -582,6 +671,9 @@ def canonical_domain_from_classification(classification: str, taxonomy: Any, fal
         return "network"
     if any(x in cls for x in ["browser sso", "sso", "reauthentication", "redirect loop", "mfa", "authentication", "identity", "login"]):
         return "iam"
+    if any(x in cls for x in ["sap_batch", "sap batch", "sap_erp", "sap erp", "financial close", "background job",
+                               "fagl", "currency valuation", "period close", "abap job", "erp batch"]):
+        return "application_erp"
     if any(x in cls for x in ["batch job", "batch_job", "scheduler", "tws", "abended", "abend", "dataset"]):
         return "compute"
     if any(x in cls for x in ["cpu", "server performance", "compute", "memory", "host", "vm"]):
@@ -601,6 +693,10 @@ def classify_by_keywords(ticket: str, taxonomy: Any) -> Tuple[str, str, float]:
 
     if has_container_connectivity_signal(ticket):
         return "network", "container_connection_issue", 0.86
+
+    if is_sap_erp_signal(ticket):
+        if is_batch_delay_signal(ticket) or is_batch_failure_signal(ticket):
+            return "application_erp", "sap_batch_job_failure", 0.84
 
     if is_batch_delay_signal(ticket):
         return "compute", "batch_job_delay", 0.80
@@ -631,6 +727,10 @@ def classify_by_keywords(ticket: str, taxonomy: Any) -> Tuple[str, str, float]:
             return best_match[0], best_match[1], round(certainty, 4)
 
     keyword_map = [
+        ("application_erp", "sap_batch_job_failure", ["sm37", "sm66", "sm12", "fagl", "background job", "long running job", "sap batch", "financial close", "period close", "currency valuation", "foreign currency valuation", "settlement run", "depreciation run", "mrp run"]),
+        ("application_erp", "sap_connectivity_failure", ["connection reset by peer", "wsaeconnreset", "sap gateway", "sap rfc", "rfcio", "partner unreachable", "r/3"]),
+        ("application_erp", "sap_host_unavailable", ["sap basis", "hana node", "sapap", "sapaq", "saphp", "sapbp", "sapoq", "hdb instance"]),
+        ("application_erp", "sap_filesystem_full", ["hana log", "hana data", "hana shared", "usr sap", "sap filesystem"]),
         ("compute", "batch_job_failure", ["tws_job_failed", "tws job failed", "job failed", "failed/abended", "abended", "abend"]),
         ("compute", "batch_job_delay", ["tws_job_late", "tws job late", "job late", "not started", "oppwait", "waiting on dataset", "waiting on datasets"]),
         ("compute", "cpu_utilization_high", ["cpu", "processor", "high cpu", "cpu utilization"]),
@@ -677,6 +777,9 @@ def apply_intent_router(ticket: str, domain: str, classification: str, classific
     blob = normalize_phrase(ticket)
 
     if intents.get("batch_scheduler"):
+        # SAP/ERP batch jobs must not be classified as infrastructure compute
+        if is_sap_erp_signal(ticket):
+            return "application_erp", "sap_batch_job_failure", max(classification_certainty, 0.84), intents
         if is_batch_delay_signal(ticket):
             return "compute", "batch_job_delay", max(classification_certainty, 0.80), intents
         return "compute", "batch_job_failure", max(classification_certainty, 0.84), intents
@@ -697,6 +800,11 @@ def apply_intent_router(ticket: str, domain: str, classification: str, classific
         return "general", "browser_sso_loop", max(classification_certainty, 0.66), intents
 
     if intents["database"]:
+        # Don't override a strong vector-match classification with a generic database intent.
+        # Only apply when the incoming classification is weak or already generic.
+        _generic_db_cls = classification in {"", "unclassified_issue", "unknown", "general_issue", "database_performance_issue"}
+        if classification_certainty >= 0.75 and not _generic_db_cls:
+            return domain, classification, classification_certainty, intents
         return "database", "database_performance_issue", max(classification_certainty, 0.66), intents
 
     return domain, classification, classification_certainty, intents
@@ -721,7 +829,7 @@ def normalize_symptom_vs_cause_classification(
         return any(w in blob for w in words)
 
     batch_symptom = is_batch_failure_signal(ticket) or is_batch_delay_signal(ticket) or has_any(["tws", "tws job", "job failed", "job late", "abended", "abend", "oppwait", "waiting on dataset", "waiting on datasets", "batch scheduler"])
-    if batch_symptom:
+    if batch_symptom and not is_sap_erp_signal(ticket):
         locked_cls = "batch_job_delay" if is_batch_delay_signal(ticket) else "batch_job_failure"
         meta.update({
             "applied": True,
@@ -974,6 +1082,106 @@ CLASSIFICATION_RCA_GUIDANCE: Dict[str, Dict[str, List[str]]] = {
 # These mappings do not change classification or scenario routing; they only add
 # more operationally precise causes/checks/actions when the class is already locked.
 CLASSIFICATION_RCA_GUIDANCE.update({
+    "sap_batch_job_failure": {
+        "root_cause": [
+            "SAP background job failed or is hung due to lock contention, work process exhaustion, ABAP runtime error, or database resource constraint",
+        ],
+        "probable_causes": [
+            "Table lock contention (SM12) — another update task or job holding exclusive lock on the same FAGL/FI table rows",
+            "Work process exhaustion (SM66/SM50) — all dialog or background work processes consumed, job queued but cannot start",
+            "ABAP runtime error or short dump (ST22) — program exception during execution, job status shows 'cancelled'",
+            "Database tablespace or redo log full (DB02) — write operations blocked at DB layer causing job to hang silently",
+            "Data volume spike — unusually large number of open items or FI documents increasing processing time beyond job window",
+        ],
+        "next_checks": [
+            "SM37 — open job log for this job; check status (Running/Cancelled/Ready) and last log message",
+            "SM66 — check active background work processes; identify if job is actually running or waiting for a slot",
+            "SM12 — check lock entries on FAGL, BSEG, BKPF tables; note the lock owner and transaction",
+            "ST22 — check for recent ABAP short dumps from this job's program or user",
+            "SM50 — review active work processes for any long-running processes holding resources",
+            "DB02 — verify tablespace usage and redo log space; confirm no storage constraint",
+        ],
+        "recommended_actions": [
+            "If SM12 shows blocking lock: identify the blocking process owner, contact them, and if safe, cancel the blocking transaction via SM04/SM66",
+            "If SM37 shows status 'Ready' with no free work process: wait for current background jobs to complete, or increase background work process count in RZ10 (requires basis approval)",
+            "If ST22 shows a short dump: review the ABAP exception, fix the root cause (data issue or program bug), then resubmit the job",
+            "If DB02 shows tablespace full: extend the tablespace immediately (basis action), then restart the job",
+            "If job is hanging with no error in SM37: cancel the job in SM37, run SM12 to release any locks, verify prerequisites are clear, then resubmit",
+            "After resolution, validate job completion in SM37 and confirm Finance team can proceed with period close",
+        ],
+    },
+    "sap_connectivity_failure": {
+        "root_cause": [
+            "SAP RFC or gateway connection dropped — network interruption, partner system restart, or gateway buffer overflow",
+        ],
+        "probable_causes": [
+            "SAP gateway or message server restarted, clearing registered RFC connections",
+            "Network path between systems disrupted — firewall rule change, VIP failover, or route flap",
+            "RFC destination partner host rebooted or SAP instance restarted on the target system",
+            "Gateway buffer overflow due to high RFC call volume — connections queued and timed out",
+        ],
+        "next_checks": [
+            "SMGW — check gateway connection table; verify partner system RFC connections are registered",
+            "SM59 — test RFC destination connectivity; note exact error code (WSAECONNRESET, TIMEOUT, HOST_UNKNOWN)",
+            "SMMS — check message server status and registered application servers",
+            "Network team — confirm no firewall rule changes or route flaps in the affected time window",
+            "OS level — verify partner host is reachable via ping/traceroute from the SAP application server",
+        ],
+        "recommended_actions": [
+            "From SM59: test connection to the failing RFC destination; if it fails with HOST_UNKNOWN check DNS resolution",
+            "Restart the RFC gateway on the affected application server (basis action) if SMGW shows no active connections",
+            "If partner system was restarted: trigger re-registration of RFC connections by restarting the ICM or gateway on both sides",
+            "Re-queue any failed IDocs or RFC calls that were dropped during the connectivity window via BD87 or SM58",
+        ],
+    },
+    "sap_host_unavailable": {
+        "root_cause": [
+            "SAP application server or HANA node is unreachable — host OS failure, VM crash, or network isolation",
+        ],
+        "probable_causes": [
+            "VM or physical host crashed or was rebooted by the infrastructure team",
+            "HANA node lost network connectivity due to NIC failure or vSwitch issue",
+            "OS kernel panic or memory OOM causing unplanned reboot",
+            "Hypervisor-level issue causing guest VM freeze or live migration failure",
+        ],
+        "next_checks": [
+            "SAP Solution Manager or CCMS — check host availability alert and last availability timestamp",
+            "OS / infrastructure layer — ping the host IP, check vSphere/GCP console for VM power state",
+            "System log (SM21) on the surviving application servers — look for partner-unavailable messages",
+            "Check if HANA service is running on the node: 'HDB info' from the sidadm user",
+            "Review hypervisor event logs for live migration, snapshot, or HA failover events",
+        ],
+        "recommended_actions": [
+            "If VM is powered off: start it via the cloud/hypervisor console, then start SAP instance with 'startsap' as sidadm",
+            "If HANA node is in error: run 'HDB stop' then 'HDB start' as sidadm; check hdbdaemon.trc for errors",
+            "After host recovery: verify all SAP work processes are green in SM50 and RFC connections re-establish in SMGW",
+            "Raise infrastructure incident to root-cause the VM/host failure and prevent recurrence",
+        ],
+    },
+    "sap_filesystem_full": {
+        "root_cause": [
+            "HANA data, log, or shared filesystem reached capacity — writes blocked, causing HANA service outage or SAP application errors",
+        ],
+        "probable_causes": [
+            "HANA redo log volume full — write operations blocked; most urgent as it prevents all DB transactions",
+            "HANA data volume full — new data pages cannot be allocated; INSERTs and UPDATEs fail",
+            "HANA shared or /usr/sap full — SAP traces, work files, or transports filling the mount",
+            "Uncontrolled trace file growth — developer or runtime traces left enabled filling /usr/sap/SID/work",
+        ],
+        "next_checks": [
+            "OS level: 'df -h' on all SAP mount points — /hana/data, /hana/log, /hana/shared, /usr/sap",
+            "HANA Studio or cockpit — check disk usage per volume in the 'Volumes' view",
+            "Identify large files: 'du -sh /usr/sap/SID/DVEBMGS*/work/*' to find trace file accumulation",
+            "DB02 in SAP — check tablespace usage and file extension status",
+        ],
+        "recommended_actions": [
+            "Immediate: if HANA log volume full, clear old log backups (basis action with DBA sign-off) to free space",
+            "Delete accumulated trace files from /usr/sap/SID/work — use SM21 to verify which traces are active, then clear via AL11",
+            "Extend the full filesystem volume via infrastructure team (increase disk size or add mount point)",
+            "After space is freed, verify HANA services restart cleanly and check for any data consistency issues via HANA cockpit",
+            "Set up file system monitoring alert to trigger at 80% usage to prevent recurrence",
+        ],
+    },
     "citrix_session_launch_failure": {
         "root_cause": ["Citrix session launch failed due to broker, STA, storefront, or VDA registration dependency"],
         "probable_causes": [
@@ -1122,6 +1330,424 @@ CLASSIFICATION_RCA_GUIDANCE.update({
         ],
     },
 })
+
+
+# ── Structured resolution playbooks ─────────────────────────────────────────
+# Each entry is a list of ordered steps. Every step has:
+#   step    - sequence number
+#   title   - short label shown as step heading
+#   context - one-sentence explanation of what this step determines
+#   action  - exactly what the engineer does (tool + filter + what to look for)
+#   decision - list of (condition, consequence) tuples for branching logic
+#   commands - SAP transactions or OS commands relevant to this step
+#   caution  - optional guardrail / safety note
+RESOLUTION_PLAYBOOKS: Dict[str, List[Dict[str, Any]]] = {
+    "sap_batch_job_failure": [
+        {
+            "step": 1,
+            "title": "Confirm Job State",
+            "context": "Determine whether the job is actively running, waiting for a work process, or has already failed silently.",
+            "action": "Open SM37 → set Job Name = FAGL_FCV (or wildcard FAGL*), Date = today, Status = All → Execute. Review the Status column and the last log entry timestamp.",
+            "commands": ["SM37"],
+            "decision": [
+                ("Status = Active and start time > 2 hours ago", "→ Job is hung. Proceed to Step 2 to check for locks."),
+                ("Status = Released and no work process assigned", "→ No free background WP. Skip to Step 4."),
+                ("Status = Cancelled with error in log", "→ Job terminated with an error. Skip to Step 5 (ABAP dump analysis)."),
+                ("No job found matching the name", "→ Job was never triggered. Confirm scheduling in SM36 and escalate to SAP Basis."),
+            ],
+        },
+        {
+            "step": 2,
+            "title": "Check for Table Lock Contention",
+            "context": "A hung FAGL_FCV job most commonly stalls because another process holds an exclusive lock on FI/GL tables it needs to update.",
+            "action": "Open SM12 → leave Table Name blank, set Client = * → Execute. Look for locks on tables FAGL_SPLINFO, FAGL_SPLINFO_VAL, BSEG, BKPF, FAGLFLEXA. Note the Lock Owner (user) and the transaction holding the lock.",
+            "commands": ["SM12"],
+            "decision": [
+                ("Locks found on FAGL or FI tables", "→ Note the lock owner. Proceed to Step 3 to assess and release the blocking process."),
+                ("No locks found", "→ Lock contention is not the cause. Proceed to Step 4 to check work process availability."),
+            ],
+            "caution": "Do not delete locks without first identifying the owning process. Deleting an active update task lock can cause data inconsistency.",
+        },
+        {
+            "step": 3,
+            "title": "Assess and Release the Blocking Lock",
+            "context": "Release the lock only after confirming the owning process is safe to cancel — an active update task must be cancelled, not just the lock entry.",
+            "action": "From the SM12 lock owner details, open SM04 (User Overview) or SM66 → locate the session or work process owned by the lock holder → verify the process is idle or stuck (not actively writing) → cancel the process using the 'Cancel with Core' option only if confirmed stuck.",
+            "commands": ["SM04", "SM66", "SM12"],
+            "decision": [
+                ("Lock owner process is idle / no active DB call", "→ Safe to cancel. Delete the lock in SM12, then cancel the user session in SM04."),
+                ("Lock owner is an active update task (V1/V2)", "→ Do NOT delete lock directly. Cancel the update task via SM13 → Updates → select the entry → Cancel."),
+                ("Lock owner cannot be found in SM04/SM66", "→ The process terminated abnormally. Delete the orphaned lock entry in SM12. Then proceed to Step 5 to check for a related short dump."),
+            ],
+            "caution": "Get Finance team or change manager verbal confirmation before cancelling any active financial close process. Document the action in the incident ticket.",
+        },
+        {
+            "step": 4,
+            "title": "Check Background Work Process Availability",
+            "context": "If no locks are present, the job may be queued but unable to start because all background work processes are occupied.",
+            "action": "Open SM66 (Global Work Process Overview) → filter by Type = BGD (background) → review Status column. Count WPs in 'Running' vs 'Waiting' states. Open SM50 on each application server to see individual WP load.",
+            "commands": ["SM66", "SM50", "RZ10"],
+            "decision": [
+                ("All BGD WPs show Status = Running and none are completing", "→ WP exhaustion. Identify the longest-running background job in SM66. If it has been running abnormally long, escalate to Basis to assess cancelling it or increasing BGD WP count in RZ10."),
+                ("BGD WPs are available but job is still in Released state", "→ Job class mismatch or scheduling issue. Check job class in SM37 → SM36. Verify the target server group has available WPs in SM61."),
+                ("WPs are available and job transitions to Active after a few minutes", "→ Temporary queue backlog resolved. Monitor SM37 for progress."),
+            ],
+        },
+        {
+            "step": 5,
+            "title": "Analyse ABAP Short Dump",
+            "context": "If the job cancelled with an error, the ABAP runtime will have written a short dump that contains the exact program, line, and exception.",
+            "action": "Open ST22 → set Date = today and yesterday → Execute. Filter by User = batch user (e.g. BATCH or the scheduled user) or Program = FAGL_FCV or REVAL*. Open the most recent dump → review Exception, Source Code section, and Active Calls stack.",
+            "commands": ["ST22"],
+            "decision": [
+                ("Exception = DBIF_RSQL_NO_MEMORY or DBIF_REPO_SQL_ERROR", "→ Database resource issue. Proceed to Step 6 to check tablespace."),
+                ("Exception = MESSAGE_TYPE_X with message about lock or number range", "→ Configuration issue. Escalate to SAP Functional (Finance) team with the dump details."),
+                ("Exception = TIMEOUT or TIME_OUT", "→ Job exceeded the maximum allowed runtime. Basis must increase the job timeout parameter or split the job by company code / fiscal period."),
+                ("No short dump found", "→ Job was externally cancelled or terminated at OS level. Check OS syslog and SAP system log in SM21."),
+            ],
+        },
+        {
+            "step": 6,
+            "title": "Verify Database Tablespace and Redo Log",
+            "context": "Database storage constraints can cause jobs to hang silently with no visible SAP-level error.",
+            "action": "Open DB02 → Tablespace Overview. Check usage % for PSAPSR3 (data), PSAPSR3USR, and PSAPTEMP. For HANA: log into HANA Studio or cockpit → Volumes view → check Data Volume and Log Volume used %.",
+            "commands": ["DB02", "HANA Studio / Cockpit", "OS: df -h /hana/log /hana/data /hana/shared"],
+            "decision": [
+                ("Tablespace usage > 90% or HANA log volume > 85%", "→ Critical: escalate immediately to DBA/Basis for emergency tablespace extension before retrying the job."),
+                ("HANA log volume full (100%)", "→ Most urgent: HANA will halt all write operations. DBA must delete old log backups immediately to free space."),
+                ("Tablespace usage is healthy (< 80%)", "→ Storage is not the cause. Escalate to SAP Functional team with full SM37 log and ST22 dump for further analysis."),
+            ],
+        },
+        {
+            "step": 7,
+            "title": "Restart Job and Validate Completion",
+            "context": "After root cause is resolved, restart the job and confirm it completes before releasing Finance to proceed with period close.",
+            "action": "In SM37, select the FAGL_FCV job → Job → Restart in Background. Monitor status every 5 minutes. Once Status = Finished, confirm with Finance team that the period close can proceed.",
+            "commands": ["SM37", "SM36"],
+            "decision": [
+                ("Job completes with Status = Finished", "→ Resolved. Document root cause, actions taken, and resolution time in the incident ticket. Update incident state to Resolved."),
+                ("Job cancels again immediately after restart", "→ Root cause not fully resolved. Recheck SM12 for residual locks, ST22 for new dumps. Escalate to SAP Functional if second failure is different from the first."),
+                ("Job runs but Finance reports incorrect valuation results", "→ Data integrity concern. Do NOT close the incident. Escalate to SAP Finance Functional team for result validation before period close."),
+            ],
+            "caution": "Do not mark the incident Resolved until Finance team explicitly confirms the period close completed successfully.",
+        },
+    ],
+    "sap_connectivity_failure": [
+        {
+            "step": 1,
+            "title": "Identify the Failing RFC Destination",
+            "context": "Determine exactly which RFC connection is failing and the error code — different errors have different root causes.",
+            "action": "Open SM59 → find the RFC destination reported in the error (or check recent error logs in SLG1/SM21 for RFCIO or partner messages) → click Connection Test → note the exact error message.",
+            "commands": ["SM59", "SLG1", "SM21"],
+            "decision": [
+                ("Error = Partner not reached / HOST_UNKNOWN", "→ DNS or network routing issue. Proceed to Step 2."),
+                ("Error = WSAECONNRESET / Connection reset by peer", "→ Partner SAP instance restarted or gateway issue. Proceed to Step 3."),
+                ("Error = Logon failed / No logon data", "→ RFC user credentials expired or locked. Check SU01 on the target system for the RFC service user."),
+            ],
+        },
+        {
+            "step": 2,
+            "title": "Verify Network Connectivity to Partner Host",
+            "context": "Confirm the partner host is reachable at the network layer before investigating SAP layer.",
+            "action": "From the SAP application server OS: ping the partner host IP → traceroute to the partner host → nslookup the hostname. Confirm with network team if any firewall rules or routes changed in the last 4 hours.",
+            "commands": ["OS: ping, traceroute, nslookup", "Network team change log"],
+            "decision": [
+                ("Ping fails / host unreachable", "→ Infrastructure issue. Raise P1 with network/infra team. SAP layer cannot be fixed until network is restored."),
+                ("Ping succeeds but RFC still fails", "→ SAP gateway or application server issue. Proceed to Step 3."),
+            ],
+        },
+        {
+            "step": 3,
+            "title": "Check SAP Gateway and Re-register Connections",
+            "context": "If network is healthy, the SAP gateway may have dropped the RFC registration after a restart.",
+            "action": "Open SMGW → Logged On Clients → verify that the partner system's RFC program is registered. If not listed, trigger re-registration by restarting the communication program on the partner side or using SMGW → Goto → Expert Functions → Re-register.",
+            "commands": ["SMGW", "SMMS"],
+            "decision": [
+                ("Partner program not in SMGW registered clients", "→ Restart the partner RFC program or SAP instance startup will re-register. Coordinate with the partner system team."),
+                ("Partner is registered but test still fails", "→ Check ICM (SMICM) for any HTTP/RFC kernel issues. Restart ICM if SMICM shows error state."),
+            ],
+            "caution": "Restarting SMGW affects all active RFC connections to this system. Schedule during low-traffic window if possible.",
+        },
+    ],
+    "sap_host_unavailable": [
+        {
+            "step": 1,
+            "title": "Confirm Host and VM Power State",
+            "context": "Determine whether the host is powered off, network-isolated, or crashed — each has a different recovery path.",
+            "action": "Check the cloud or hypervisor console (GCP Console / vSphere) for the VM power state. Attempt ping to the host IP from a network adjacent system. Check SAP CCMS or Solution Manager alert for the last availability timestamp.",
+            "commands": ["GCP Console / vSphere vCenter", "OS: ping", "SAP CCMS / Solution Manager"],
+            "decision": [
+                ("VM is powered off in console", "→ Start the VM. Once booted, proceed to Step 2 to start SAP services."),
+                ("VM is running but unreachable via ping", "→ Network isolation. Escalate to network/infra team for investigation."),
+                ("VM is running and pingable but SAP is down", "→ SAP instance stopped. Proceed to Step 2."),
+            ],
+        },
+        {
+            "step": 2,
+            "title": "Start SAP Instance and Validate Services",
+            "context": "After host recovery, SAP services must be explicitly started and validated.",
+            "action": "SSH to the host as sidadm → run 'startsap ALL' or 'startsap <instance>' → wait 3-5 minutes → run 'sapcontrol -nr <instance> -function GetProcessList' to confirm all processes are Green. In SAP, open SM50 to verify work processes are running.",
+            "commands": ["OS (sidadm): startsap ALL", "sapcontrol -nr <nr> -function GetProcessList", "SM50", "SM21"],
+            "decision": [
+                ("All processes Green in sapcontrol output", "→ Services up. Proceed to Step 3 to validate RFC connections and end-to-end functionality."),
+                ("HANA or DB process fails to start", "→ Check HANA trace: /usr/sap/<SID>/HDB<nr>/work/hdbdaemon.trc. May indicate disk full or licence issue."),
+                ("SAP dispatcher or ICM fails to start", "→ Check dev_disp and dev_icm trace files in /usr/sap/<SID>/D<nr>/work/ for the error."),
+            ],
+        },
+        {
+            "step": 3,
+            "title": "Restore Connections and Confirm Business Function",
+            "context": "After SAP restart, RFC connections and batch jobs need to be re-established and any queued work validated.",
+            "action": "Open SMGW → verify RFC registrations restored. Check SM37 for any background jobs that were running when the host went down — reschedule if needed. Confirm with application owners that business functions are accessible.",
+            "commands": ["SMGW", "SM37", "SM21"],
+            "decision": [
+                ("RFC connections restored and jobs rescheduled", "→ Resolved. Document outage duration and root cause in the incident."),
+                ("Jobs show Failed/Cancelled status", "→ Restart affected jobs in SM37 after confirming no data inconsistency."),
+            ],
+        },
+    ],
+    "sap_login_failure": [
+        {
+            "step": 1,
+            "title": "Confirm Scope of Login Failure",
+            "context": "Determine whether this is a single user, a group, or an organisation-wide lockout — each has a different resolution path.",
+            "action": "In SAP: open SU01 → enter the affected user ID → check Logon tab for account Lock status and password expiry date. In SM04, check whether any active sessions exist for the user. Collect a sample of affected user IDs from the incident ticket.",
+            "commands": ["SU01", "SM04", "SLG1"],
+            "decision": [
+                ("Single user account is locked (red lock icon in SU01)", "→ Unlock the account in SU01 → Password tab → Unlock. Proceed to Step 2 to verify password policy compliance."),
+                ("Multiple users locked simultaneously after policy change", "→ Mass lockout. Proceed to Step 3 to investigate the policy propagation."),
+                ("No lock visible in SU01 but user cannot log in", "→ SSO/LDAP sync issue. Proceed to Step 4."),
+            ],
+        },
+        {
+            "step": 2,
+            "title": "Validate Password Complexity Against New Policy",
+            "context": "A policy change often raises minimum complexity requirements. Existing passwords that met old rules may now fail validation on next login.",
+            "action": "In SAP: open profile parameter rdisp/gui_auto_logout and the password profile parameters (transaction RZ11 → search 'login/') — check login/min_password_lng, login/password_compliance_to_current_policy, login/fails_to_user_lock. Compare the active parameter values against the change request for the policy update.",
+            "commands": ["RZ11", "RZ10", "SU01"],
+            "decision": [
+                ("login/password_compliance_to_current_policy = 1 and policy is stricter", "→ Affected users must reset passwords. Use SU10 for mass password reset with 'Initial' flag set."),
+                ("Parameters match old policy (change not propagated)", "→ Restart the SAP instance or re-apply the profile with RZ10 → Activate Profile. Coordinate with Basis."),
+            ],
+            "caution": "Do not bulk-reset passwords without notifying users. Coordinate with the Service Desk to handle the reset flow and avoid a second wave of locked accounts.",
+        },
+        {
+            "step": 3,
+            "title": "Check LDAP / Active Directory Sync Status",
+            "context": "SAP can synchronise user attributes and password hashes from an external LDAP/AD. A failed sync after a policy change leaves SAP with stale credentials.",
+            "action": "Open SU01 → LDAP tab to confirm the user is LDAP-managed. Then check LDAP connector status: transaction LDAP → Connection Test. Review the sync job log in SM37 (search for jobs with name LDAP*). Confirm with the Identity team whether a scheduled sync ran after the policy change was applied in AD.",
+            "commands": ["LDAP", "SU01", "SM37"],
+            "decision": [
+                ("LDAP connection test fails", "→ LDAP server or network issue. Escalate to Identity/Directory Services team with the exact error from the LDAP transaction."),
+                ("LDAP connection OK but last sync job failed or was not triggered", "→ Manually re-trigger the LDAP sync job in SM37 or run the sync program RSLDAPSYNC_USER via SE38/SA38 after change-window approval."),
+                ("LDAP sync completed but users still locked", "→ Password hash not propagated. Check whether the connector is configured to sync password hashes (some configurations sync only attributes, not passwords)."),
+            ],
+        },
+        {
+            "step": 4,
+            "title": "Verify SSO Token Validity and Logon Tickets",
+            "context": "If SSO is in use, expired or invalidated tokens will block all users simultaneously — the failure looks like a password issue but is an authentication ticket problem.",
+            "action": "Check STRUSTSSO2 for active SSO/X.509 certificates — verify the certificate expiry date. In SMICM → Goto → Security → check ICM SSL/TLS configuration. Review the system log (SM21) for errors around the time of first reported failure.",
+            "commands": ["STRUSTSSO2", "SMICM", "SM21", "RZ20"],
+            "decision": [
+                ("Certificate expired in STRUSTSSO2", "→ Import a renewed certificate. Coordinate with the PKI/Security team. Users can log in with direct SAP passwords while SSO is being restored."),
+                ("ICM shows TLS handshake errors", "→ TLS configuration mismatch after policy change. Compare old and new TLS cipher profiles in SMICM → Parameters."),
+                ("SM21 shows no errors; SSO certs valid", "→ Escalate to SAP Basis and the Identity provider team with SM21 log export and user-specific SU53 authorisation dump."),
+            ],
+        },
+        {
+            "step": 5,
+            "title": "Restore Access and Document Resolution",
+            "context": "After root cause is resolved, verify a representative set of users can log in before closing the incident.",
+            "action": "Confirm 3-5 affected users can log in successfully. Verify SM04 shows active sessions. Capture the resolution action in the incident ticket. If a mass password reset was performed, confirm the Service Desk has communicated the reset procedure to end users.",
+            "commands": ["SU01", "SM04", "SU10"],
+            "decision": [
+                ("All test users can log in", "→ Resolved. Document root cause, policy mismatch details, and corrective actions in the incident. Notify the change manager."),
+                ("Some users still locked after corrective action", "→ Re-run SU10 for remaining users or check for a secondary lockout policy not yet updated (e.g., CUA central user admin)."),
+            ],
+            "caution": "If Central User Administration (CUA) is in use, password and lock changes must be applied at the CUA parent system, not on child systems.",
+        },
+    ],
+    "vpn_connectivity": [
+        {
+            "step": 1,
+            "title": "Confirm VPN Client Connection State",
+            "context": "Determine whether the VPN tunnel is fully down, intermittently dropping, or connected but with no traffic — each has a different cause.",
+            "action": "On the affected endpoint: check VPN client status (connected / disconnected / error). Collect the VPN client log from the current session. If possible, attempt a test ping to an internal resource (e.g., internal DNS server IP) while the VPN shows 'connected'.",
+            "commands": ["VPN client UI / tray icon", "ping <internal-DNS-IP>", "VPN client log file"],
+            "decision": [
+                ("VPN shows Disconnected or fails to connect", "→ Authentication or gateway reachability issue. Proceed to Step 2."),
+                ("VPN shows Connected but no internal resources reachable", "→ Split-tunnel routing or DNS issue. Proceed to Step 3."),
+                ("VPN connects then drops repeatedly (< 5 min sessions)", "→ DPD timeout or MTU issue. Proceed to Step 4."),
+            ],
+        },
+        {
+            "step": 2,
+            "title": "Test VPN Gateway Reachability and Authentication",
+            "context": "The gateway may be unreachable from the user's current network, or credentials/certificates may have expired.",
+            "action": "From the client machine (without VPN): ping and traceroute to the VPN gateway FQDN/IP. Check if the gateway is reachable on port 443 or UDP 500 (IKE). Verify the user's VPN credentials have not expired — check against the IdP (AD/LDAP) account status. Check whether MFA token is correctly timed (clock skew > 30s causes TOTP failures).",
+            "commands": ["ping <VPN-gateway>", "traceroute <VPN-gateway>", "Test-NetConnection <VPN-gateway> -Port 443", "AD/LDAP account check"],
+            "decision": [
+                ("Gateway not reachable (ping/traceroute fails)", "→ Network path issue between client and gateway. Escalate to network team. Confirm whether the client's ISP or corporate firewall egress changed."),
+                ("Gateway reachable but authentication fails", "→ Check user account in IdP. Reset credentials if expired. Verify MFA is synced. Check VPN server auth logs for specific error code."),
+                ("Authentication succeeds but tunnel not established", "→ IKE/TLS negotiation failure. Collect VPN gateway logs and escalate to network security team."),
+            ],
+        },
+        {
+            "step": 3,
+            "title": "Diagnose Routing and DNS After Tunnel Establishment",
+            "context": "A 'connected but no access' state usually means the VPN pushed routes or DNS are not being applied on the client.",
+            "action": "Run 'route print' (Windows) or 'ip route' (Linux) to check if VPN tunnel routes are present. Run 'nslookup <internal-hostname>' to check whether internal DNS is resolving. Confirm the DNS server IP pushed by VPN matches the internal DNS server IP in the VPN config.",
+            "commands": ["route print / ip route", "nslookup <internal-host>", "ipconfig /all (Windows)"],
+            "decision": [
+                ("VPN routes missing from routing table", "→ VPN client failed to apply pushed routes. Disconnect and reconnect. If persistent, check VPN client version against the gateway-required version."),
+                ("Routes present but internal DNS not resolving", "→ DNS leak or split-DNS misconfiguration. Verify VPN DNS settings in the client profile. Set DNS to the internal DNS server IP manually as a workaround."),
+                ("Routes and DNS correct but specific resource unreachable", "→ Internal firewall or ACL blocking the traffic from the VPN IP pool. Escalate to network/firewall team with source IP pool and destination."),
+            ],
+        },
+        {
+            "step": 4,
+            "title": "Investigate Tunnel Stability Issues",
+            "context": "Frequent drops indicate keepalive, MTU, or NAT traversal problems — not an authentication issue.",
+            "action": "Check VPN gateway logs for DPD (Dead Peer Detection) timeout events at the session drop time. Test with a reduced MTU on the client (e.g., set VPN adapter MTU to 1300 bytes). Check whether the client is behind a NAT device that drops UDP sessions (common with home routers that have aggressive NAT timeouts).",
+            "commands": ["VPN gateway session logs", "netsh interface ipv4 set subinterface <VPN-adapter> mtu=1300 (Windows)", "ping -f -l 1400 <internal-IP>"],
+            "decision": [
+                ("DPD timeout events in gateway log", "→ Adjust DPD interval in VPN gateway config or update client keepalive interval."),
+                ("MTU reduction resolves the drop", "→ MTU mismatch confirmed. Set permanent MTU fix in VPN client config or gateway profile."),
+                ("Drops correlate with NAT router idle timeout (typically 2-5 min inactivity)", "→ Enable NAT keepalives in the VPN client config. Advise user to keep a small background connection active."),
+            ],
+        },
+        {
+            "step": 5,
+            "title": "Confirm Resolution and Document Workarounds",
+            "context": "Verify the fix is stable and capture any temporary workarounds so they can be tracked for permanent remediation.",
+            "action": "Verify the user can reach at least three distinct internal resources (file share, internal web app, internal DNS lookup) for at least 10 minutes without drops. Document any temporary MTU/DNS workarounds applied.",
+            "commands": ["ping -t <internal-resource> (continuous ping to monitor stability)"],
+            "decision": [
+                ("Stable connection for 10+ minutes with internal resources reachable", "→ Resolved. Document root cause and close the incident. If a workaround was applied, raise a follow-up change for permanent fix."),
+                ("Intermittent drops persist", "→ Escalate to VPN/network team with full gateway session logs and client-side packet capture (Wireshark) collected during a drop event."),
+            ],
+        },
+    ],
+    "disk_space_exhaustion": [
+        {
+            "step": 1,
+            "title": "Identify the Affected Filesystem and Usage Level",
+            "context": "Confirm which filesystem is full, its current usage, and which process or file type is consuming the space.",
+            "action": "Run 'df -h' (Linux) or 'Get-PSDrive' (Windows) to see all filesystem usage. Identify the volume at or near 100%. Run 'du -sh /path/*' on the top-level directories of the full volume to identify the largest consumers.",
+            "commands": ["df -h", "du -sh /*", "Get-PSDrive (Windows)", "ls -lhS (sort by size)"],
+            "decision": [
+                ("Log directory is the largest consumer (e.g., /var/log)", "→ Log rotation or retention issue. Proceed to Step 2."),
+                ("Application data directory is full (e.g., DB data files, upload storage)", "→ Data growth issue. Proceed to Step 3."),
+                ("Temp or core dump files consuming space", "→ Clean up temp/core files after confirming no active investigation needs them. Then proceed to Step 2 to prevent recurrence."),
+            ],
+        },
+        {
+            "step": 2,
+            "title": "Immediately Free Critical Space to Restore Service",
+            "context": "If the filesystem is at 100%, services may be crashing or refusing writes. Free enough space to stabilise the system before investigating root cause.",
+            "action": "Identify and safely remove old or rotated log files older than the retention policy. Use 'find /var/log -name \"*.gz\" -mtime +7 -delete' to remove compressed logs older than 7 days. Truncate active log files only if safe: 'truncate -s 0 <logfile>' (do not delete active log files — truncate them). On Linux, check for deleted-but-open files with 'lsof | grep deleted' and restart the owning process to release the space.",
+            "commands": ["find /var/log -name '*.gz' -mtime +7 -delete", "truncate -s 0 <logfile>", "lsof | grep deleted", "journalctl --vacuum-size=500M"],
+            "decision": [
+                ("Freeing logs restores > 20% headroom", "→ Immediate crisis resolved. Proceed to Step 4 to implement permanent fix."),
+                ("Freeing logs gives < 5% headroom (data growth is the cause)", "→ Escalate to storage team for emergency volume expansion. Proceed to Step 3 in parallel."),
+            ],
+            "caution": "Never truncate or delete active database write-ahead logs, replication logs, or audit logs without DBA/security approval — data loss or compliance breach risk.",
+        },
+        {
+            "step": 3,
+            "title": "Analyse Application Data Growth",
+            "context": "If application data (database, uploads, binaries) is growing unexpectedly, a process may be malfunctioning or retention policies are not enforced.",
+            "action": "Check database growth: query information_schema.tables (MySQL/PG) or DB02 (SAP) for table sizes and recent growth. For file storage, list recently modified large files: 'find /data -type f -newer <timestamp> -size +100M'. Check whether a batch job or ETL process created unusually large temp tables or result sets.",
+            "commands": ["du -sh /data/*", "find /data -type f -newer <ref-file> -size +100M", "DB02 (SAP)", "SELECT table_name, pg_size_pretty(total_bytes) FROM ... (PG)"],
+            "decision": [
+                ("A single table or file grew abnormally (e.g., 10× in 24h)", "→ Identify the process writing to it. Stop the runaway write if safe. Notify the application team."),
+                ("Steady legitimate growth exceeding planned capacity", "→ Normal growth hitting a capacity limit sooner than forecast. Raise a storage expansion request via the standard change process."),
+            ],
+        },
+        {
+            "step": 4,
+            "title": "Implement and Verify Log Rotation / Retention Policy",
+            "context": "Log rotation or retention gaps are the most common cause of disk exhaustion. Validate and fix the configuration.",
+            "action": "Check logrotate config: 'cat /etc/logrotate.conf' and '/etc/logrotate.d/<app>'. Verify 'rotate', 'compress', 'maxsize', and 'dateext' settings match the retention policy. Manually run 'logrotate -f /etc/logrotate.conf' to force rotation and verify it completes without errors. Set up a monitoring alert threshold at 80% disk usage.",
+            "commands": ["logrotate -f /etc/logrotate.conf", "cat /etc/logrotate.d/<app>", "crontab -l (check scheduled rotation job)"],
+            "decision": [
+                ("logrotate runs successfully and old files are compressed/removed", "→ Retention policy is now enforced. Monitor df -h over the next 24 hours to confirm stabilisation."),
+                ("logrotate fails with errors", "→ Fix the logrotate config (permissions issue, incorrect path). Restart the service generating the logs after fixing."),
+            ],
+        },
+        {
+            "step": 5,
+            "title": "Set Up Monitoring Alert and Close Incident",
+            "context": "Disk exhaustion should be caught at 80% before it becomes a service-impacting event. Confirm alerting is in place before closing.",
+            "action": "Verify a disk-usage alert exists in the monitoring tool (Prometheus, Nagios, CloudWatch, or SCOM) for the affected volume at >= 80% threshold. If missing, raise a follow-up change to add the alert. Document root cause (log rotation gap / data growth / temp files) and corrective actions in the incident.",
+            "commands": ["Monitoring console check", "df -h (final verification)"],
+            "decision": [
+                ("Alert in place and disk usage now < 75%", "→ Resolved. Close the incident and document the permanent fix applied."),
+                ("No alert exists for this volume", "→ Close incident but raise a follow-up task to add the monitoring alert. Tag as 'preventable — monitoring gap'."),
+            ],
+        },
+    ],
+}
+
+
+_PLAYBOOK_FAMILY_MAP: Dict[str, str] = {
+    # VPN family → vpn_connectivity playbook
+    "vpn_client_failure": "vpn_connectivity",
+    "vpn_access_failure": "vpn_connectivity",
+    "vpn_gateway_failure": "vpn_connectivity",
+    "vpn_tunnel_failure": "vpn_connectivity",
+    "vpn_connection_failure": "vpn_connectivity",
+    "remote_access_vpn_failure": "vpn_connectivity",
+    "zscaler_connectivity_issue": "vpn_connectivity",
+    # Disk / storage family → disk_space_exhaustion playbook
+    "disk_space_critical": "disk_space_exhaustion",
+    "storage_exhaustion": "disk_space_exhaustion",
+    "disk_full": "disk_space_exhaustion",
+    "filesystem_full": "disk_space_exhaustion",
+    "log_disk_full": "disk_space_exhaustion",
+    "storage_capacity_exhausted": "disk_space_exhaustion",
+    "sap_filesystem_full": "disk_space_exhaustion",
+    # SAP login / auth family → sap_login_failure playbook
+    "sap_authentication_failure": "sap_login_failure",
+    "sap_logon_failure": "sap_login_failure",
+    "sap_user_locked": "sap_login_failure",
+    "sap_password_failure": "sap_login_failure",
+    "sap_sso_failure": "sap_login_failure",
+}
+
+
+def get_resolution_playbook(
+    classification: str,
+    ticket: str = "",
+    rag_context: str = "",
+) -> List[Dict[str, Any]]:
+    token = normalize_classification_token(classification)
+
+    # Priority 1: hardcoded dict (instant, no LLM)
+    entry = RESOLUTION_PLAYBOOKS.get(token)
+    if entry is not None:
+        return entry
+
+    # Priority 2: family alias map
+    mapped = _PLAYBOOK_FAMILY_MAP.get(token)
+    if mapped:
+        hardcoded = RESOLUTION_PLAYBOOKS.get(mapped)
+        if hardcoded:
+            return hardcoded
+
+    # Priority 3: fuzzy family substring match
+    if any(x in token for x in ("vpn", "zscaler", "remote_access")):
+        return RESOLUTION_PLAYBOOKS.get("vpn_connectivity", [])
+    if any(x in token for x in ("disk", "filesystem", "storage_exhaus", "log_full", "space_full", "capacity_exhaust")):
+        return RESOLUTION_PLAYBOOKS.get("disk_space_exhaustion", [])
+
+    # Priority 4: PlaybookAgent — cache check then LLM generation
+    try:
+        from agents.playbook_agent import generate_playbook
+        return generate_playbook(token, ticket=ticket, rag_context=rag_context)
+    except Exception:
+        return []
 
 
 # Generic guarded RCA/playbook enrichment fallback.
@@ -2636,6 +3262,112 @@ def parse_incident_summary(summary: str) -> Dict[str, List[str]]:
     }
 
 
+def fetch_rag_context(tenant_id: str, ticket: str, top_k: int = 6) -> Dict[str, Any]:
+    """Query client_knowledge_chunks for the most relevant RAG context for this ticket.
+    Returns structured sections: app_profile, incident_patterns, resolution_hints."""
+    empty = {"app_profile": [], "incident_patterns": [], "resolution_hints": [], "sources": []}
+    if not postgres_read_enabled():
+        return empty
+    try:
+        conn = postgres_connect_readonly()
+        if not conn:
+            return empty
+
+        ticket_lower = ticket.lower()
+
+        # Fetch app mapping chunks — always useful for context
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT chunk_id, source_file, knowledge_type, title, content, domain
+                FROM client_knowledge_chunks
+                WHERE tenant_id = %s AND knowledge_type = 'app_mapping'
+                ORDER BY source_row ASC
+                LIMIT 20
+            """, (tenant_id,))
+            app_rows = cur.fetchall()
+
+        # Score app mapping rows by keyword overlap with the ticket
+        scored_app = []
+        ticket_tokens = set(re.sub(r"[^a-z0-9 ]", " ", ticket_lower).split())
+        for row in app_rows:
+            content_lower = (row[4] or "").lower()
+            overlap = sum(1 for tok in ticket_tokens if len(tok) > 3 and tok in content_lower)
+            if overlap >= 2:  # require at least 2 matching tokens — avoids spurious partial matches
+                scored_app.append((overlap, row))
+        scored_app.sort(key=lambda x: -x[0])
+        app_chunks = [r for _, r in scored_app[:1]]  # best match only
+
+        # Fetch incident_context chunks — sorted by relevance via keyword overlap
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT chunk_id, source_file, knowledge_type, title, content, domain
+                FROM client_knowledge_chunks
+                WHERE tenant_id = %s AND knowledge_type = 'incident_context'
+                ORDER BY source_row ASC
+                LIMIT 50
+            """, (tenant_id,))
+            inc_rows = cur.fetchall()
+
+        scored_inc = []
+        for row in inc_rows:
+            content_lower = (row[4] or "").lower()
+            overlap = sum(1 for tok in ticket_tokens if len(tok) > 3 and tok in content_lower)
+            scored_inc.append((overlap, row))
+        scored_inc.sort(key=lambda x: -x[0])
+        inc_chunks = [r for _, r in scored_inc[:top_k]]
+
+        conn.close()
+
+        def parse_chunk_content(content: str) -> Dict[str, str]:
+            """Parse 'Key: Value | Key: Value' style content into a dict."""
+            result = {}
+            for part in re.split(r"\s*\|\s*", content or ""):
+                if ":" in part:
+                    k, _, v = part.partition(":")
+                    k, v = k.strip(), v.strip()
+                    if k and v and v.lower() not in ("none", "n/a", ""):
+                        result[k] = v
+            return result
+
+        app_profile = []
+        for row in app_chunks:
+            parsed = parse_chunk_content(row[4])
+            if parsed:
+                app_profile.append({
+                    "source_file": row[1],
+                    "title": row[3],
+                    "fields": parsed,
+                })
+
+        incident_patterns = []
+        resolution_hints = []
+        for row in inc_chunks:
+            parsed = parse_chunk_content(row[4])
+            entry = {
+                "source_file": row[1],
+                "title": row[3],
+                "fields": parsed,
+                "raw": (row[4] or "")[:600],
+            }
+            incident_patterns.append(entry)
+            # Extract resolution-like fields as hints — skip timestamps and short values
+            _ts_re = re.compile(r"^\d{4}-\d{2}-\d{2}")
+            for key in ("Root Cause", "Details", "Executive Summary", "Work Notes", "Resolution", "Close Notes"):
+                val = parsed.get(key, "").strip()
+                if len(val) >= 40 and not _ts_re.match(val) and not val.lower().startswith(("work notes", "system administrator", "inc")):
+                    resolution_hints.append(f"[{row[1]}] {val[:300]}")
+
+        sources = list({r[1] for r in app_chunks + inc_chunks})
+        return {
+            "app_profile": app_profile,
+            "incident_patterns": incident_patterns,
+            "resolution_hints": resolution_hints[:8],
+            "sources": sources,
+        }
+    except Exception as _e:
+        return empty
+
+
 def build_enriched_analysis(
     *,
     ticket: str,
@@ -2647,15 +3379,20 @@ def build_enriched_analysis(
     linked_playbook: Optional[Dict[str, Any]],
     analysis_source: str = "local_primary",
     analysis_source_label: str = "Local SLM",
+    rag_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     probable_causes_resolution: List[str] = []
+    probable_causes_client: List[str] = []
     probable_causes_incident: List[str] = []
     checks_resolution: List[str] = []
+    checks_client: List[str] = []
     checks_playbook: List[str] = []
     checks_incident: List[str] = []
     actions_resolution: List[str] = []
+    actions_client: List[str] = []
     actions_playbook: List[str] = []
     actions_incident: List[str] = []
+    client_rag_incident_count = 0
 
     if linked_resolution:
         root_cause = str(linked_resolution.get("root_cause", "") or "").strip()
@@ -2671,6 +3408,37 @@ def build_enriched_analysis(
         actions_playbook.extend(playbook_steps)
         actions_playbook.extend(dedupe_preserve_order(linked_playbook.get("scripts", [])))
 
+    # ── Client RAG: real past incidents from this tenant (higher priority than universal base) ──
+    if rag_context:
+        rca_keys = ["Root Cause (Work Notes)", "Root Cause", "Work Notes"]
+        res_keys = ["Resolution", "Resolved", "Close Notes"]
+        chk_keys = ["Short Description", "Summary", "Details/Description", "Description"]
+        for pattern in (rag_context.get("incident_patterns") or [])[:5]:
+            fields = pattern.get("fields") or {}
+            if not fields:
+                continue
+            client_rag_incident_count += 1
+            for k in rca_keys:
+                val = (fields.get(k) or "").strip()
+                if len(val) > 15:
+                    probable_causes_client.append(val[:250])
+                    break
+            for k in res_keys:
+                val = (fields.get(k) or "").strip()
+                if len(val) > 15:
+                    actions_client.append(val[:250])
+                    break
+            for k in chk_keys:
+                val = (fields.get(k) or "").strip()
+                if len(val) > 15:
+                    checks_client.append(val[:200])
+                    break
+        # resolution_hints are pre-extracted concise strings — inject directly as actions
+        for hint in (rag_context.get("resolution_hints") or [])[:4]:
+            h = str(hint).strip()
+            if len(h) > 15:
+                actions_client.append(h[:250])
+
     if retrieved_incidents:
         top = sorted(retrieved_incidents, key=lambda x: float(x.get("score", 0.0) or 0.0), reverse=True)[0]
         extracted = parse_incident_summary(str(top.get("summary", "") or ""))
@@ -2678,14 +3446,20 @@ def build_enriched_analysis(
         checks_incident.extend(extracted.get("next_checks", []))
         actions_incident.extend(extracted.get("recommended_actions", []))
 
-    probable_causes = prioritize_and_dedupe_sections(probable_causes_resolution, probable_causes_incident, [], max_items=3)
+    # Priority order: exact linked knowledge > client RAG history > universal base
+    probable_causes = prioritize_and_dedupe_sections(
+        probable_causes_resolution, probable_causes_client, probable_causes_incident, max_items=4
+    )
     next_checks = bucket_dedupe(
-        (checks_resolution or []) + (checks_playbook or []) + (checks_incident or []),
+        (checks_resolution or []) + (checks_client or []) + (checks_playbook or []) + (checks_incident or []),
         classify_check_bucket,
         max_items=5,
     )
     action_candidates = [
-        x for x in ((actions_resolution or []) + (actions_playbook or []) + (actions_incident or []))
+        x for x in (
+            (actions_resolution or []) + (actions_client or []) +
+            (actions_playbook or []) + (actions_incident or [])
+        )
         if not is_diagnostic_phrase(x)
     ]
     recommended_actions = bucket_dedupe(
@@ -2752,6 +3526,7 @@ def build_enriched_analysis(
         "analysis_source_label": analysis_source_label,
         "knowledge_sources_used": {
             "retrieved_incident_count": len(retrieved_incidents),
+            "client_rag_incident_count": client_rag_incident_count,
             "resolution_linked": linked_resolution is not None,
             "playbook_linked": linked_playbook is not None,
             "retrieval_methods": retrieval_methods,
@@ -3354,6 +4129,134 @@ def playbook_by_classification(classification: str) -> Dict[str, Any]:
 
 
 
+# ── Inbound connector webhook endpoints (Item #20) ───────────────────────────
+
+async def _route_ticket_to_pipeline(ticket) -> Dict[str, Any]:
+    """
+    Run a normalised TicketPayload through the classification + analysis pipeline
+    and return the analysis result. Mirrors the /analyze endpoint logic.
+    """
+    from tenant_context import TenantContext
+    with TenantContext(ticket.tenant_id):
+        result = await _run_analysis_pipeline(
+            ticket_text=ticket.full_text,
+            ticket_id=ticket.ticket_id,
+            source=ticket.source,
+        )
+    return result
+
+
+async def _run_analysis_pipeline(
+    ticket_text: str,
+    ticket_id: str = "",
+    source: str = "connector",
+) -> Dict[str, Any]:
+    """Call the /analyze endpoint internally via httpx to run the full pipeline."""
+    try:
+        import httpx
+        port = int(os.getenv("PORT", "8000"))
+        async with httpx.AsyncClient(base_url=f"http://localhost:{port}", timeout=30) as client:
+            resp = await client.post("/analyze", json={
+                "ticket": ticket_text,
+                "ticket_id": ticket_id,
+            })
+            if resp.status_code == 200:
+                result = resp.json()
+                result["source"] = source
+                return result
+    except Exception as exc:
+        logger.warning("_run_analysis_pipeline internal call failed: %s", exc)
+    return {"status": "queued", "ticket_id": ticket_id, "source": source,
+            "message": "Ticket received — analysis pending (pipeline unavailable)"}
+
+
+@app.post("/webhooks/servicenow")
+async def webhook_servicenow(request: Request) -> Dict[str, Any]:
+    """Receive ServiceNow outbound REST message, classify, and write result to knowledge base."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    try:
+        from connectors.servicenow import ServiceNowConnector
+        ticket = ServiceNowConnector().webhook_payload_to_ticket(payload)
+        if ticket is None:
+            return {"status": "ignored", "reason": "could not normalise payload"}
+        analysis = await _route_ticket_to_pipeline(ticket)
+        return {
+            "status": "analysed",
+            "ticket_id": ticket.ticket_id,
+            "source": ticket.source,
+            "classification": analysis.get("classification"),
+            "confidence": analysis.get("confidence"),
+            "analysis": analysis,
+        }
+    except Exception as exc:
+        logger.warning("ServiceNow webhook error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/webhooks/jira")
+async def webhook_jira(request: Request) -> Dict[str, Any]:
+    """Receive Jira webhook event, classify, and write result to knowledge base."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    event = payload.get("webhookEvent", "")
+    if event and event not in ("jira:issue_created", "jira:issue_updated", "jira:issue_deleted"):
+        return {"status": "ignored", "event": event}
+    try:
+        from connectors.jira import JiraConnector
+        ticket = JiraConnector().webhook_payload_to_ticket(payload)
+        if ticket is None:
+            return {"status": "ignored", "reason": "could not normalise payload"}
+        analysis = await _route_ticket_to_pipeline(ticket)
+        return {
+            "status": "analysed",
+            "ticket_id": ticket.ticket_id,
+            "source": ticket.source,
+            "classification": analysis.get("classification"),
+            "confidence": analysis.get("confidence"),
+            "analysis": analysis,
+        }
+    except Exception as exc:
+        logger.warning("Jira webhook error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/traces/{trace_id}")
+async def get_trace(trace_id: str) -> Dict[str, Any]:
+    """Return all agent trace spans for a given trace_id (Item #12)."""
+    try:
+        from postgres_store import get_agent_traces
+        spans = get_agent_traces(trace_id)
+        return {"trace_id": trace_id, "spans": spans, "count": len(spans)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/connectors/fetch")
+async def connectors_fetch(source: str = "all", limit: int = 20) -> Dict[str, Any]:
+    """Manual trigger to poll connectors and return normalised tickets."""
+    results: Dict[str, Any] = {}
+    if source in ("all", "servicenow"):
+        try:
+            from connectors.servicenow import ServiceNowConnector
+            tickets = ServiceNowConnector().fetch(limit=limit)
+            results["servicenow"] = [t.to_dict() for t in tickets]
+        except Exception as exc:
+            results["servicenow"] = {"error": str(exc)}
+    if source in ("all", "jira"):
+        try:
+            from connectors.jira import JiraConnector
+            tickets = JiraConnector().fetch(limit=limit)
+            results["jira"] = [t.to_dict() for t in tickets]
+        except Exception as exc:
+            results["jira"] = {"error": str(exc)}
+    return {"status": "ok", "results": results}
+
+
 def _titleize_label(text: str) -> str:
     return str(text or "").replace("_", " ").strip().title()
 
@@ -3463,6 +4366,8 @@ LEARNED_DOMAIN_KEYWORDS = {
 
 def infer_ticket_domain(ticket: str) -> str:
     blob = normalize_phrase(ticket)
+    if is_sap_erp_signal(ticket):
+        return "application_erp"
     if is_batch_failure_signal(ticket) or is_batch_delay_signal(ticket) or any(x in blob for x in ["tws", "job failed", "job late", "abended", "abend", "oppwait", "dataset", "scheduler", "batch"]):
         return "compute"
     if any(x in blob for x in ["cpu", "memory", "host", "server", "vm", "compute"]):
@@ -3491,6 +4396,11 @@ def infer_ticket_domain(ticket: str) -> str:
 
 def canonical_domain_for_classification(classification: str, fallback_domain: str = "general") -> str:
     cls = normalize_phrase(classification)
+    # SAP/ERP classifications must win before generic batch→compute rule
+    if any(x in cls for x in ["sap", "erp", "fagl", "abap", "bseg", "bkpf", "sm37", "sm66", "sm12", "ecc", "hana", "r3"]):
+        return fallback_domain if fallback_domain not in ("general", "") else "application_erp"
+    if fallback_domain == "application_erp":
+        return "application_erp"
     if any(x in cls for x in ["batch job", "batch_job", "scheduler", "tws", "abended", "dataset"]):
         return "compute"
     if any(x in cls for x in ["cpu", "server performance", "compute", "memory", "host", "vm"]):
@@ -3568,12 +4478,139 @@ def count_matching_integration_terms(ticket: str, item: Dict[str, Any]) -> int:
     return sum(1 for term in ticket_terms if term in blob)
 
 
+import logging as _analyze_logging
+_logger = _analyze_logging.getLogger("aiops.analyze")
+
+
+def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
+    """
+    Agentic path — active when AIOPS_AGENTIC_ORCHESTRATOR_ENABLED=true.
+    Runs OrchestratorAgent which drives specialist agents via A2A dispatcher.
+    Falls back to legacy pipeline on any error.
+    """
+    from agents.orchestrator import OrchestratorAgent
+    orch = OrchestratorAgent()
+    state = orch.run(request)
+
+    if not state.completed or state.error or not state.rca:
+        _logger.warning("Orchestrator did not complete cleanly (%s), falling back to legacy pipeline", state.error)
+        return _analyze_core_legacy(request)
+
+    # Unpack OrchestratorState into the response dict that analyze_core() returns.
+    # Shape must match what the /analyze route and ui.py expect.
+    rca        = state.rca
+    resolution = state.resolution
+    triage     = state.triage
+    retrieval  = state.retrieval
+    safety     = state.safety
+    learning   = state.learning
+
+    linked_resolution = resolution.linked_resolution if resolution else None
+    linked_playbook   = resolution.linked_playbook   if resolution else None
+
+    _ci       = rca.confidence_info or {}
+    _primary  = float(_ci.get("primary_confidence") or rca.analysis.get("confidence") or 0.0)
+    _fallback = float(_ci.get("fallback_confidence") or 0.0)
+    _overall  = round(max(_primary, _fallback), 4) if rca.fallback_used and _fallback else round(_primary, 4)
+    _rq       = retrieval.retrieval_quality if retrieval else 0.0
+    _cert     = triage.classification_certainty if triage else 0.0
+    _decision = resolution.decision if resolution else rca.decision
+
+    # Canonical display domain, mirroring the final step of _analyze_core_legacy.
+    _inferred = infer_ticket_domain(state.ticket)
+    _domain = canonical_domain_from_classification(
+        rca.final_classification,
+        load_taxonomy(),
+        fallback_domain=(_inferred if _inferred != "general" else rca.domain),
+    )
+    if str(_domain or "").strip().lower() == "general":
+        for _item in (retrieval.incidents if retrieval else []):
+            _cand = str(_item.get("domain", "") or "").strip().lower()
+            if _cand and _cand != "general":
+                _domain = _cand
+                break
+
+    # Ensure analysis dict carries the resolved classification and domain
+    _analysis = dict(rca.analysis or {})
+    _analysis["classification"] = rca.final_classification
+    _analysis["domain"]         = _domain
+
+    return {
+        "request_id":        state.request_id,
+        "ticket":            state.ticket,
+        "domain":            _domain,
+        "routing": {
+            "method":   "agentic_orchestrator",
+            "decision": _decision,
+        },
+        "analysis":          _analysis,
+        "confidence": {
+            "overall_confidence":       _overall,
+            "primary_confidence":       _primary,
+            "fallback_confidence":      _fallback,
+            "embedding_score":          float(_ci.get("embedding_score") or 0.0),
+            "llm_score":                float(_ci.get("llm_score") or _cert),
+            "retrieval_quality":        _rq,
+            "learned_feedback_score":   float(_ci.get("learned_feedback_score") or 0.0),
+            "classification_certainty": _cert,
+        },
+        "fallback_used":         rca.fallback_used,
+        "fallback_provider":     rca.fallback_provider,
+        "fallback_model":        rca.fallback_model,
+        "response_source":       rca.response_source,
+        "analysis_source_label": rca.analysis_source_label,
+        "linked_resolution":     linked_resolution,
+        "linked_playbook":       linked_playbook,
+        "retrieved_incidents":   retrieval.incidents if retrieval else [],
+        "similar_incidents":     retrieval.incidents if retrieval else [],
+        "knowledge_sources_used": {
+            "retrieved_incident_count": len(retrieval.incidents) if retrieval else 0,
+            "resolution_linked":        linked_resolution is not None,
+            "playbook_linked":          linked_playbook is not None,
+        },
+        "tenant_id":    state.tenant_id,
+        "trace_spans":  state.trace_spans,
+        "routed_intents": rca.routed_intents,
+        "resolution_playbook": get_resolution_playbook(
+            rca.final_classification,
+            ticket=state.ticket,
+            rag_context=retrieval.rag_context[:1500] if retrieval and retrieval.rag_context else "",
+        ),
+    }
+
+
 def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
+    import os
+    if os.environ.get("AIOPS_AGENTIC_ORCHESTRATOR_ENABLED", "false").strip().lower() in {"1", "true", "yes"}:
+        try:
+            return _analyze_core_agentic(request)
+        except Exception as _orch_exc:
+            _logger.warning("Agentic orchestrator raised, falling back to legacy: %s", _orch_exc)
+    return _analyze_core_legacy(request)
+
+
+def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
     request_id = str(uuid.uuid4())
     ticket = clean_text(request.ticket)
     if not ticket:
         raise HTTPException(status_code=400, detail="Ticket text is empty.")
     top_k = request.top_k or settings.TOP_K_RETRIEVAL
+
+    from trace_context import get_trace_id
+    _trace_id = get_trace_id() or request_id
+    _t0 = __import__("time").monotonic()
+    try:
+        from postgres_store import insert_agent_trace as _ins_trace
+        _ins_trace(
+            trace_id=_trace_id,
+            agent_name="analyze_core",
+            operation="start",
+            status="started",
+            input_summary=ticket[:200],
+        )
+    except Exception:
+        pass
+
     try:
         taxonomy = load_taxonomy()
     except Exception as _tax_exc:
@@ -3584,13 +4621,19 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
             top_k=top_k,
             request_id=request_id,
             taxonomy=taxonomy,
-            tenant_id=request.tenant_id or "client_a",
+            tenant_id=request.tenant_id or DEFAULT_TENANT_ID,
             knowledge_scope=request.knowledge_scope or "client_private",
         )
         retrieval_quality = summarize_retrieval_quality(retrieved_incidents)
+        rag_context = fetch_rag_context(
+            tenant_id=request.tenant_id or DEFAULT_TENANT_ID,
+            ticket=ticket,
+        )
         domain, classification, llm_score = classify_by_keywords(ticket, taxonomy)
         inferred_ticket_domain = infer_ticket_domain(ticket)
         classification_certainty = llm_score
+        _retrieval_locked_classification: str = ""
+        _retrieval_locked_score: float = 0.0
 
         if inferred_ticket_domain in {"compute", "storage", "database", "network", "iam", "integration"}:
             domain = inferred_ticket_domain
@@ -3618,6 +4661,10 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
                         classification = normalize_classification_token(retrieved_classification)
                         classification_certainty = max(classification_certainty, _top_score)
                         domain = choose_better_domain(infer_domain_from_taxonomy(classification, taxonomy), domain)
+                        # Preserve retrieval classification before intent router may override it.
+                        # Used to protect high-confidence vector matches from SLM reclassification.
+                        _retrieval_locked_classification = classification
+                        _retrieval_locked_score = _top_score
 
         domain, classification, classification_certainty, routed_intents = apply_intent_router(
             ticket=ticket,
@@ -3690,6 +4737,7 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
             linked_playbook=linked_playbook,
             analysis_source=response_source,
             analysis_source_label=analysis_source_label,
+            rag_context=rag_context,
         )
 
         fallback_used = False
@@ -3756,8 +4804,18 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
                     fallback_provider=fallback_provider,
                     fallback_model=fallback_model,
                 )
+                # When the top vector match scored ≥ 0.75, its classification is more
+                # reliable than the SLM's reclassification of symptom-heavy ticket text.
+                # Use the pre-intent-router retrieval classification to avoid the intent
+                # router re-locking on surface symptoms (e.g. "Database is unavailable").
+                _fallback_cls = fallback_analysis.get("classification", classification)
+                _resolved_cls = (
+                    _retrieval_locked_classification
+                    if _retrieval_locked_score >= 0.75 and _retrieval_locked_classification
+                    else _fallback_cls
+                )
                 final_analysis = {
-                    "classification": fallback_analysis.get("classification", classification),
+                    "classification": _resolved_cls,
                     "probable_causes": dedupe_semanticish(fallback_analysis.get("probable_causes", analysis.get("probable_causes", []))),
                     "next_checks": dedupe_semanticish(fallback_analysis.get("next_checks", analysis.get("next_checks", [])))[:5],
                     "recommended_actions": [x for x in dedupe_semanticish(fallback_analysis.get("recommended_actions", analysis.get("recommended_actions", []))) if not is_diagnostic_phrase(x)][:5],
@@ -4063,6 +5121,12 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
             },
             "knowledge_candidate": candidate_record,
             "knowledge_summary": knowledge_summary,
+            "rag_context": rag_context,
+            "resolution_playbook": get_resolution_playbook(
+                classification,
+                ticket=ticket,
+                rag_context=str(rag_context or "")[:1500],
+            ),
             "feedback_override": feedback_override,
             "linked_resolution": linked_resolution,
             "linked_playbook": linked_playbook,
@@ -4077,7 +5141,34 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
                 "notes": "Use the validation scenarios pack to regression-test confirmation, fallback, and learned local reuse.",
             },
         }
+        try:
+            from postgres_store import insert_agent_trace as _ins_trace2
+            _ins_trace2(
+                trace_id=_trace_id,
+                agent_name="analyze_core",
+                operation="complete",
+                status="completed",
+                input_summary=ticket[:200],
+                output_summary=f"classification={final_classification} confidence={display_confidence:.2f} fallback={fallback_used}",
+                latency_ms=int((__import__('time').monotonic() - _t0) * 1000),
+            )
+        except Exception:
+            pass
+        return result
     except Exception as e:
+        try:
+            from postgres_store import insert_agent_trace as _ins_trace3
+            _ins_trace3(
+                trace_id=_trace_id,
+                agent_name="analyze_core",
+                operation="complete",
+                status="error",
+                input_summary=ticket[:200],
+                error=str(e)[:500],
+                latency_ms=int((__import__('time').monotonic() - _t0) * 1000),
+            )
+        except Exception:
+            pass
         pipeline_debug("pipeline_error", {"error": str(e), "traceback": traceback.format_exc()}, request_id=request_id)
         print(f"\n[ANALYZE ERROR] {type(e).__name__}: {e}\n{traceback.format_exc()}", flush=True)
         raise HTTPException(status_code=500, detail=f"Analyze failed: {type(e).__name__}: {e}")

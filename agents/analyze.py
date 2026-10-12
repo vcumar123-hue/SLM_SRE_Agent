@@ -113,7 +113,14 @@ async def analyze(
     use_fallback: Optional[str] = Form(default=None),
     force_fallback: Optional[str] = Form(default=None),
     confirm_local_matches: Optional[str] = Form(default=None),
+    tenant_id: Optional[str] = Form(default=None),
+    knowledge_scope: Optional[str] = Form(default=None),
 ):
+    from trace_context import ensure_trace_id, set_trace_id
+    import uuid as _uuid
+    _trace_id = request.headers.get("X-Trace-ID") or _uuid.uuid4().hex
+    set_trace_id(_trace_id)
+
     content_type = request.headers.get("content-type", "")
 
     if "multipart/form-data" in content_type:
@@ -158,7 +165,8 @@ async def analyze(
             elif image_meta and not enriched_ticket:
                 enriched_ticket = "Image attached without readable incident text"
 
-        tenant_defaults = get_tenant_defaults(DEFAULT_TENANT_ID)
+        _effective_tenant = (tenant_id or "").strip() or DEFAULT_TENANT_ID
+        tenant_defaults = get_tenant_defaults(_effective_tenant)
         req = AnalyzeRequest(
             ticket=enriched_ticket or "Image attached without readable incident text",
             use_fallback=parse_bool_form(use_fallback, True),
@@ -167,7 +175,7 @@ async def analyze(
                 parse_bool_form(confirm_local_matches, False) if confirm_local_matches is not None else None
             ),
             tenant_id=tenant_defaults["tenant_id"],
-            knowledge_scope=tenant_defaults["knowledge_scope"],
+            knowledge_scope=(knowledge_scope or "").strip() or tenant_defaults["knowledge_scope"],
         )
         result = _analyze_core(req)
 
@@ -197,6 +205,7 @@ async def analyze(
             result["submitted_ticket"] = ocr_text if ocr_operational else enriched_ticket
             result["incident_description"] = ocr_text if ocr_operational else enriched_ticket
             result["display_ticket"] = ocr_text if ocr_operational else enriched_ticket
+        result["trace_id"] = _trace_id
         return JSONResponse(content=jsonable_encoder(result))
 
     try:
@@ -216,6 +225,7 @@ async def analyze(
         import traceback as _tb
         raise HTTPException(status_code=500, detail=f"Analyze failed: {exc}") from exc
     try:
+        result["trace_id"] = _trace_id
         return JSONResponse(content=jsonable_encoder(result))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Analyze serialization failed: {exc}") from exc
@@ -342,7 +352,7 @@ def create_resolution_route(request: CreateResolutionRequest) -> Dict[str, Any]:
     if create_resolution is None:
         raise HTTPException(status_code=500, detail="knowledge_manager not available")
     from agents.governance import check_export_governance
-    gate = check_export_governance(tenant_id=request.tenant_id, operation="data_export")
+    gate = check_export_governance(tenant_id=request.tenant_id, operation="local_write")
     if not gate.get("allowed"):
         raise HTTPException(status_code=403, detail=gate.get("reason", "Blocked by governance policy."))
     try:
@@ -356,10 +366,80 @@ def create_resolution_route(request: CreateResolutionRequest) -> Dict[str, Any]:
             linked_candidate_id=request.linked_candidate_id or "",
             automation_ready=bool(request.automation_ready),
             linked_playbook_id=request.linked_playbook_id or "",
+            incident_id=request.incident_id or "",
         )
         return {"status": "ok", "resolution": resolution}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/autonomous_gate")
+def autonomous_gate_route(
+    classification: str = "",
+    tenant_id: str = "default",
+) -> Dict[str, Any]:
+    """Return the ledger-based autonomous execution gate tier for a classification.
+
+    Always returns 200 with a gate dict. On any failure, returns hold_for_approval
+    so callers degrade safely.
+    """
+    try:
+        cls = _automation_classification_key(classification or "")
+        tid = (tenant_id or "default").strip() or "default"
+        if not cls:
+            return {"tier": "hold_for_approval", "reason": "No classification provided.", "total_outcomes": 0, "success_rate": None, "confidence_signal": None}
+        from resolution_outcome import autonomous_gate
+        return autonomous_gate(cls, tenant_id=tid)
+    except Exception:
+        return {"tier": "hold_for_approval", "reason": "Gate check failed — defaulting to hold for approval.", "total_outcomes": 0, "success_rate": None, "confidence_signal": None}
+
+
+@router.get("/pattern_intelligence")
+def pattern_intelligence_route(
+    classification: str = "",
+    tenant_id: str = "default",
+) -> Dict[str, Any]:
+    """Return classification pattern intelligence from resolutions and candidates.
+
+    Always returns 200. Use `status` field to distinguish ok / no_history.
+    Fail-safe: any internal error returns no_history so the UI degrades gracefully.
+    """
+    try:
+        cls = _automation_classification_key(classification or "")
+        tid = (tenant_id or "default").strip() or "default"
+        if not cls:
+            return {"status": "no_history"}
+        from knowledge_manager import get_pattern_intelligence
+        intel = get_pattern_intelligence(cls, tenant_id=tid)
+        if intel is None:
+            return {"status": "no_history"}
+        return {"status": "ok", "classification": cls, "tenant_id": tid, "intelligence": intel}
+    except Exception:
+        return {"status": "no_history"}
+
+
+@router.get("/resolution_intelligence")
+def resolution_intelligence_route(
+    classification: str = "",
+    tenant_id: str = "default",
+) -> Dict[str, Any]:
+    """Return historical outcome intelligence for a classification+tenant pair.
+
+    Always returns 200. Use `status` field to distinguish ok / no_history.
+    Fail-safe: any internal error returns no_history so the UI degrades gracefully.
+    """
+    try:
+        cls = _automation_classification_key(classification or "")
+        tid = (tenant_id or "default").strip() or "default"
+        if not cls:
+            return {"status": "no_history"}
+        from resolution_outcome import summarize_outcomes
+        summary = summarize_outcomes(cls, tenant_id=tid)
+        if summary is None:
+            return {"status": "no_history"}
+        return {"status": "ok", "classification": cls, "tenant_id": tid, "summary": summary}
+    except Exception:
+        return {"status": "no_history"}
 
 
 @router.post("/create_playbook")
@@ -367,7 +447,7 @@ def create_playbook_route(request: CreatePlaybookRequest) -> Dict[str, Any]:
     if create_playbook is None:
         raise HTTPException(status_code=500, detail="knowledge_manager not available")
     from agents.governance import check_export_governance
-    gate = check_export_governance(tenant_id=request.tenant_id, operation="data_export")
+    gate = check_export_governance(tenant_id=request.tenant_id, operation="local_write")
     if not gate.get("allowed"):
         raise HTTPException(status_code=403, detail=gate.get("reason", "Blocked by governance policy."))
     try:

@@ -17,6 +17,7 @@ httpx==0.28.1
 grpcio==1.78.0
 portalocker==3.2.0
 python-dotenv
+redis==5.2.1
 prometheus-fastapi-instrumentator
 pandas==3.0.2
 openpyxl==3.1.5

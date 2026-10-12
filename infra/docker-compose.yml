@@ -12,6 +12,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: aiops-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: aiops-qdrant
@@ -88,6 +98,10 @@ services:
       # Qdrant
       - QDRANT_URL=http://aiops-qdrant:6333
 
+      # Redis
+      - REDIS_HOST=aiops-redis
+      - REDIS_PORT=6379
+
       # Tenant
       - AIOPS_DEFAULT_TENANT_ID=client_a
       - AIOPS_TENANT_CONFIG_DIR=/app/tenant_config
@@ -103,6 +117,7 @@ services:
     depends_on:
       - postgres
       - qdrant
+      - redis
 
   backtesting-scheduler:
     build:
@@ -188,3 +203,4 @@ volumes:
   qdrant_data:
   prometheus_data:
   grafana_data:
+  redis_data:

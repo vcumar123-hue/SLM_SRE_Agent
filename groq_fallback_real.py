@@ -11,7 +11,7 @@ def _get_env_value(name: str, default: str = "") -> str:
 
 
 GROQ_API_KEY = _get_env_value("GROQ_API_KEY", "")
-GROQ_MODEL = _get_env_value("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = _get_env_value("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_BASE_URL = _get_env_value("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 
 FALLBACK_ENABLED = _get_env_value("FALLBACK_ENABLED", "").lower() in {"1", "true", "yes", "on"}
@@ -101,11 +101,23 @@ Now return the JSON only.
 
 def _clean_json_text(text: str) -> str:
     text = (text or "").strip()
+    # Strip reasoning/thinking blocks emitted by chain-of-thought models
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
     text = text.replace("```json", "").replace("```", "").strip()
 
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
-        text = match.group()
+    # Find the LAST top-level JSON object (after any preamble text)
+    # Walk backwards: find last '}' then scan left for its matching '{'
+    last_close = text.rfind("}")
+    if last_close != -1:
+        depth = 0
+        for i in range(last_close, -1, -1):
+            if text[i] == "}":
+                depth += 1
+            elif text[i] == "{":
+                depth -= 1
+                if depth == 0:
+                    text = text[i:last_close + 1]
+                    break
 
     text = re.sub(r",\s*([}\]])", r"\1", text)
     return text
@@ -204,6 +216,11 @@ def _normalize_response(parsed: dict[str, Any]) -> dict[str, Any]:
 
 
 def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
+    # Re-read at call time so a stale import never locks in a bad model name
+    _model = os.getenv("GROQ_MODEL", GROQ_MODEL) or GROQ_MODEL
+    _api_key = os.getenv("GROQ_API_KEY", GROQ_API_KEY) or GROQ_API_KEY
+    _base_url = os.getenv("GROQ_BASE_URL", GROQ_BASE_URL) or GROQ_BASE_URL
+
     if not FALLBACK_ACTIVE:
         return {
             "classification": "fallback_disabled",
@@ -213,11 +230,11 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "confidence": 0.2,
             "escalate": True,
             "fallback_source": "groq_chat_completions",
-            "fallback_model": GROQ_MODEL,
+            "fallback_model": _model,
             "fallback_provider": "groq",
         }
 
-    if not GROQ_API_KEY:
+    if not _api_key:
         return {
             "classification": "fallback_unavailable",
             "probable_causes": ["groq_api_key_not_configured"],
@@ -226,18 +243,18 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "confidence": 0.2,
             "escalate": True,
             "fallback_source": "groq_chat_completions",
-            "fallback_model": GROQ_MODEL,
+            "fallback_model": _model,
             "fallback_provider": "groq",
         }
 
-    url = f"{GROQ_BASE_URL.rstrip('/')}/chat/completions"
+    url = f"{_base_url.rstrip('/')}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Authorization": f"Bearer {_api_key}",
         "Content-Type": "application/json",
     }
 
     payload = {
-        "model": GROQ_MODEL,
+        "model": _model,
         "messages": [
             {
                 "role": "system",
@@ -253,7 +270,7 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             },
         ],
         "temperature": 0,
-        "max_tokens": 700,
+        "max_tokens": 1500,
     }
 
     try:
@@ -273,7 +290,7 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "confidence": 0.1,
             "escalate": True,
             "fallback_source": "groq_chat_completions",
-            "fallback_model": GROQ_MODEL,
+            "fallback_model": _model,
             "fallback_provider": "groq",
         }
     except requests.exceptions.Timeout:
@@ -285,7 +302,7 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "confidence": 0.1,
             "escalate": True,
             "fallback_source": "groq_chat_completions",
-            "fallback_model": GROQ_MODEL,
+            "fallback_model": _model,
             "fallback_provider": "groq",
         }
     except requests.exceptions.HTTPError as _he:
@@ -297,18 +314,23 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "confidence": 0.1,
             "escalate": True,
             "fallback_source": "groq_chat_completions",
-            "fallback_model": GROQ_MODEL,
+            "fallback_model": _model,
             "fallback_provider": "groq",
         }
 
     body = r.json()
-    raw_text = body["choices"][0]["message"]["content"]
+    # Some reasoning models put content in reasoning_content; fall back gracefully
+    msg = body.get("choices", [{}])[0].get("message", {})
+    raw_text = msg.get("content") or msg.get("reasoning_content") or ""
+    if not raw_text:
+        print(f"[groq_fallback] WARNING: empty content in response body: {body}", flush=True)
     cleaned = _clean_json_text(raw_text)
 
     try:
         parsed = json.loads(cleaned)
         return _normalize_response(parsed)
-    except Exception:
+    except Exception as _e:
+        print(f"[groq_fallback] JSON parse failed: {_e}\nraw_text={raw_text[:500]!r}\ncleaned={cleaned[:500]!r}", flush=True)
         return {
             "classification": "ambiguous_post_change_service_issue",
             "probable_causes": ["fallback_non_json_response"],
@@ -317,7 +339,7 @@ def run_openai_fallback(ticket: str, context: str) -> dict[str, Any]:
             "confidence": 0.5,
             "escalate": True,
             "fallback_source": "groq_chat_completions",
-            "fallback_model": GROQ_MODEL,
+            "fallback_model": _model,
             "fallback_provider": "groq",
         }
 

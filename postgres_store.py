@@ -69,6 +69,13 @@ def db_cursor(commit: bool = False, dict_rows: bool = False):
         conn = get_connection()
         factory = RealDictCursor if dict_rows else None
         cur = conn.cursor(cursor_factory=factory)
+        # Inject tenant context into PostgreSQL session for RLS
+        try:
+            from tenant_context import get_tenant as _get_tenant
+            _tid = _get_tenant()
+            cur.execute("SET LOCAL app.current_tenant = %s", (_tid,))
+        except Exception:
+            pass
         yield conn, cur
         if commit:
             conn.commit()
@@ -784,6 +791,923 @@ def insert_automation_execution(
                 Json(steps),
             ),
         )
+
+
+# ---------------------------------------------------------
+# RESOLUTIONS  (Item #9 + #10)
+# ---------------------------------------------------------
+
+def ensure_resolutions_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS resolutions (
+                resolution_id TEXT PRIMARY KEY,
+                classification TEXT NOT NULL,
+                root_cause TEXT,
+                validated_checks JSONB DEFAULT '[]',
+                validated_actions JSONB DEFAULT '[]',
+                engineer_confirmed BOOLEAN DEFAULT FALSE,
+                confirmed_by TEXT,
+                success_notes TEXT,
+                automation_ready BOOLEAN DEFAULT FALSE,
+                linked_candidate_id TEXT,
+                linked_playbook_id TEXT,
+                version INT DEFAULT 1,
+                content_hash TEXT,
+                created_by TEXT,
+                approved_by TEXT,
+                approved_at TIMESTAMP,
+                signature TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_resolutions_classification ON resolutions (classification)")
+
+
+def _resolution_hash(rec: Dict[str, Any]) -> str:
+    import hashlib, json as _json
+    payload = _json.dumps({
+        "classification": rec.get("classification"),
+        "root_cause": rec.get("root_cause"),
+        "validated_checks": rec.get("validated_checks"),
+        "validated_actions": rec.get("validated_actions"),
+    }, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()[:32]
+
+
+def upsert_resolution(record: Dict[str, Any]) -> None:
+    ensure_resolutions_schema()
+    rec = dict(record)
+    rec.setdefault("resolution_id", f"res_{rec.get('classification','x')[:12]}")
+    rec["content_hash"] = _resolution_hash(rec)
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            INSERT INTO resolutions (
+                resolution_id, classification, root_cause,
+                validated_checks, validated_actions,
+                engineer_confirmed, confirmed_by, success_notes,
+                automation_ready, linked_candidate_id, linked_playbook_id,
+                version, content_hash, created_by, approved_by, approved_at, signature,
+                created_at, updated_at
+            )
+            VALUES (
+                %(resolution_id)s, %(classification)s, %(root_cause)s,
+                %(validated_checks)s, %(validated_actions)s,
+                %(engineer_confirmed)s, %(confirmed_by)s, %(success_notes)s,
+                %(automation_ready)s, %(linked_candidate_id)s, %(linked_playbook_id)s,
+                %(version)s, %(content_hash)s, %(created_by)s, %(approved_by)s, %(approved_at)s, %(signature)s,
+                %(created_at)s, NOW()
+            )
+            ON CONFLICT (resolution_id) DO UPDATE SET
+                classification = EXCLUDED.classification,
+                root_cause = EXCLUDED.root_cause,
+                validated_checks = EXCLUDED.validated_checks,
+                validated_actions = EXCLUDED.validated_actions,
+                engineer_confirmed = EXCLUDED.engineer_confirmed,
+                confirmed_by = EXCLUDED.confirmed_by,
+                success_notes = EXCLUDED.success_notes,
+                automation_ready = EXCLUDED.automation_ready,
+                linked_candidate_id = EXCLUDED.linked_candidate_id,
+                linked_playbook_id = EXCLUDED.linked_playbook_id,
+                version = resolutions.version + 1,
+                content_hash = EXCLUDED.content_hash,
+                approved_by = COALESCE(EXCLUDED.approved_by, resolutions.approved_by),
+                approved_at = COALESCE(EXCLUDED.approved_at, resolutions.approved_at),
+                signature = COALESCE(EXCLUDED.signature, resolutions.signature),
+                updated_at = NOW()
+            """,
+            {
+                "resolution_id": rec.get("resolution_id"),
+                "classification": rec.get("classification", "unknown"),
+                "root_cause": rec.get("root_cause", ""),
+                "validated_checks": Json(rec.get("validated_checks") or []),
+                "validated_actions": Json(rec.get("validated_actions") or []),
+                "engineer_confirmed": bool(rec.get("engineer_confirmed", False)),
+                "confirmed_by": rec.get("confirmed_by", ""),
+                "success_notes": rec.get("success_notes", ""),
+                "automation_ready": bool(rec.get("automation_ready", False)),
+                "linked_candidate_id": rec.get("linked_candidate_id", ""),
+                "linked_playbook_id": rec.get("linked_playbook_id", ""),
+                "version": rec.get("version", 1),
+                "content_hash": rec["content_hash"],
+                "created_by": rec.get("created_by") or rec.get("confirmed_by", ""),
+                "approved_by": rec.get("approved_by"),
+                "approved_at": rec.get("approved_at"),
+                "signature": rec.get("signature"),
+                "created_at": rec.get("created_at"),
+            },
+        )
+
+
+def get_resolutions(limit: int = 200) -> List[Dict[str, Any]]:
+    ensure_resolutions_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute(
+            "SELECT * FROM resolutions ORDER BY updated_at DESC NULLS LAST LIMIT %s",
+            (_coerce_limit(limit, 1000),),
+        )
+        return list(cur.fetchall())
+
+
+def find_resolution_by_classification_pg(classification: str) -> Optional[Dict[str, Any]]:
+    ensure_resolutions_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute(
+            "SELECT * FROM resolutions WHERE LOWER(classification) = LOWER(%s) ORDER BY updated_at DESC NULLS LAST LIMIT 1",
+            (classification,),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+# ---------------------------------------------------------
+# PLAYBOOKS  (Item #9 + #10)
+# ---------------------------------------------------------
+
+def ensure_playbooks_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS playbooks (
+                playbook_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                classification TEXT NOT NULL,
+                description TEXT,
+                steps JSONB DEFAULT '[]',
+                scripts JSONB DEFAULT '[]',
+                approval_mode TEXT DEFAULT 'manual_approval_required',
+                rollback_available BOOLEAN DEFAULT TRUE,
+                risk_tier TEXT DEFAULT 'medium',
+                enabled BOOLEAN DEFAULT TRUE,
+                status TEXT DEFAULT 'draft',
+                source TEXT DEFAULT 'manual',
+                linked_incident_id TEXT,
+                linked_rca_id TEXT,
+                review JSONB DEFAULT '{}',
+                version INT DEFAULT 1,
+                content_hash TEXT,
+                created_by TEXT,
+                approved_by TEXT,
+                approved_at TIMESTAMP,
+                signature TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_playbooks_classification ON playbooks (classification)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_playbooks_status ON playbooks (status)")
+
+
+def _playbook_hash(rec: Dict[str, Any]) -> str:
+    import hashlib, json as _json
+    payload = _json.dumps({
+        "classification": rec.get("classification"),
+        "steps": rec.get("steps"),
+        "scripts": rec.get("scripts"),
+        "risk_tier": rec.get("risk_tier"),
+    }, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()[:32]
+
+
+def upsert_playbook(record: Dict[str, Any]) -> None:
+    ensure_playbooks_schema()
+    rec = dict(record)
+    rec["content_hash"] = _playbook_hash(rec)
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            INSERT INTO playbooks (
+                playbook_id, name, classification, description,
+                steps, scripts, approval_mode, rollback_available, risk_tier,
+                enabled, status, source, linked_incident_id, linked_rca_id, review,
+                version, content_hash, created_by, approved_by, approved_at, signature,
+                created_at, updated_at
+            )
+            VALUES (
+                %(playbook_id)s, %(name)s, %(classification)s, %(description)s,
+                %(steps)s, %(scripts)s, %(approval_mode)s, %(rollback_available)s, %(risk_tier)s,
+                %(enabled)s, %(status)s, %(source)s, %(linked_incident_id)s, %(linked_rca_id)s, %(review)s,
+                %(version)s, %(content_hash)s, %(created_by)s, %(approved_by)s, %(approved_at)s, %(signature)s,
+                %(created_at)s, NOW()
+            )
+            ON CONFLICT (playbook_id) DO UPDATE SET
+                name = EXCLUDED.name,
+                classification = EXCLUDED.classification,
+                description = EXCLUDED.description,
+                steps = EXCLUDED.steps,
+                scripts = EXCLUDED.scripts,
+                approval_mode = EXCLUDED.approval_mode,
+                rollback_available = EXCLUDED.rollback_available,
+                risk_tier = EXCLUDED.risk_tier,
+                enabled = EXCLUDED.enabled,
+                status = EXCLUDED.status,
+                source = EXCLUDED.source,
+                review = EXCLUDED.review,
+                version = playbooks.version + 1,
+                content_hash = EXCLUDED.content_hash,
+                approved_by = COALESCE(EXCLUDED.approved_by, playbooks.approved_by),
+                approved_at = COALESCE(EXCLUDED.approved_at, playbooks.approved_at),
+                signature = COALESCE(EXCLUDED.signature, playbooks.signature),
+                updated_at = NOW()
+            """,
+            {
+                "playbook_id": rec.get("playbook_id"),
+                "name": rec.get("name", ""),
+                "classification": rec.get("classification", "unknown"),
+                "description": rec.get("description", ""),
+                "steps": Json(rec.get("steps") or []),
+                "scripts": Json(rec.get("scripts") or []),
+                "approval_mode": rec.get("approval_mode", "manual_approval_required"),
+                "rollback_available": bool(rec.get("rollback_available", True)),
+                "risk_tier": rec.get("risk_tier", "medium"),
+                "enabled": bool(rec.get("enabled", True)),
+                "status": rec.get("status", "draft"),
+                "source": rec.get("source", "manual"),
+                "linked_incident_id": rec.get("linked_incident_id", ""),
+                "linked_rca_id": rec.get("linked_rca_id", ""),
+                "review": Json(rec.get("review") or {}),
+                "version": rec.get("version", 1),
+                "content_hash": rec["content_hash"],
+                "created_by": rec.get("created_by", ""),
+                "approved_by": rec.get("approved_by"),
+                "approved_at": rec.get("approved_at"),
+                "signature": rec.get("signature"),
+                "created_at": rec.get("created_at"),
+            },
+        )
+
+
+def get_playbooks(limit: int = 200, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    ensure_playbooks_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        if status:
+            cur.execute(
+                "SELECT * FROM playbooks WHERE status = %s ORDER BY updated_at DESC NULLS LAST LIMIT %s",
+                (status, _coerce_limit(limit, 1000)),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM playbooks ORDER BY updated_at DESC NULLS LAST LIMIT %s",
+                (_coerce_limit(limit, 1000),),
+            )
+        return list(cur.fetchall())
+
+
+def find_playbook_by_classification_pg(classification: str) -> Optional[Dict[str, Any]]:
+    ensure_playbooks_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute(
+            "SELECT * FROM playbooks WHERE LOWER(classification) = LOWER(%s) ORDER BY updated_at DESC NULLS LAST LIMIT 1",
+            (classification,),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+# ---------------------------------------------------------
+# KNOWLEDGE CANDIDATES  (Item #9)
+# ---------------------------------------------------------
+
+def ensure_candidates_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS knowledge_candidates (
+                candidate_id TEXT PRIMARY KEY,
+                ticket TEXT,
+                domain TEXT,
+                classification TEXT NOT NULL,
+                probable_causes JSONB DEFAULT '[]',
+                next_checks JSONB DEFAULT '[]',
+                recommended_actions JSONB DEFAULT '[]',
+                confidence NUMERIC,
+                fallback_provider TEXT,
+                fallback_model TEXT,
+                retrieved_incidents JSONB DEFAULT '[]',
+                tenant_id TEXT DEFAULT 'client_a',
+                knowledge_scope TEXT DEFAULT 'client_private',
+                status TEXT DEFAULT 'candidate',
+                source TEXT,
+                source_layer TEXT,
+                promotion_target TEXT,
+                promoted_by TEXT,
+                promoted_at TIMESTAMP,
+                engineer_review JSONB DEFAULT '{}',
+                grounding_incident_count INT DEFAULT 0,
+                draft_runbook JSONB DEFAULT '{}',
+                draft_steps JSONB DEFAULT '[]',
+                risk_tier TEXT DEFAULT 'medium',
+                approval_required BOOLEAN DEFAULT TRUE,
+                linked_resolution JSONB DEFAULT '{}',
+                linked_playbook JSONB DEFAULT '{}',
+                drift_type TEXT,
+                created_by TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_kc_classification ON knowledge_candidates (classification)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_kc_status ON knowledge_candidates (status)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_kc_tenant ON knowledge_candidates (tenant_id)")
+
+
+def upsert_knowledge_candidate(record: Dict[str, Any]) -> None:
+    ensure_candidates_schema()
+    rec = dict(record)
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            INSERT INTO knowledge_candidates (
+                candidate_id, ticket, domain, classification,
+                probable_causes, next_checks, recommended_actions,
+                confidence, fallback_provider, fallback_model, retrieved_incidents,
+                tenant_id, knowledge_scope, status, source, source_layer,
+                promotion_target, promoted_by, promoted_at, engineer_review,
+                grounding_incident_count, draft_runbook, draft_steps, risk_tier,
+                approval_required, linked_resolution, linked_playbook, drift_type, created_by,
+                created_at, updated_at
+            )
+            VALUES (
+                %(candidate_id)s, %(ticket)s, %(domain)s, %(classification)s,
+                %(probable_causes)s, %(next_checks)s, %(recommended_actions)s,
+                %(confidence)s, %(fallback_provider)s, %(fallback_model)s, %(retrieved_incidents)s,
+                %(tenant_id)s, %(knowledge_scope)s, %(status)s, %(source)s, %(source_layer)s,
+                %(promotion_target)s, %(promoted_by)s, %(promoted_at)s, %(engineer_review)s,
+                %(grounding_incident_count)s, %(draft_runbook)s, %(draft_steps)s, %(risk_tier)s,
+                %(approval_required)s, %(linked_resolution)s, %(linked_playbook)s, %(drift_type)s, %(created_by)s,
+                %(created_at)s, NOW()
+            )
+            ON CONFLICT (candidate_id) DO UPDATE SET
+                status = EXCLUDED.status,
+                classification = EXCLUDED.classification,
+                probable_causes = EXCLUDED.probable_causes,
+                next_checks = EXCLUDED.next_checks,
+                recommended_actions = EXCLUDED.recommended_actions,
+                engineer_review = EXCLUDED.engineer_review,
+                promotion_target = EXCLUDED.promotion_target,
+                promoted_by = EXCLUDED.promoted_by,
+                promoted_at = EXCLUDED.promoted_at,
+                draft_runbook = EXCLUDED.draft_runbook,
+                draft_steps = EXCLUDED.draft_steps,
+                risk_tier = EXCLUDED.risk_tier,
+                linked_resolution = EXCLUDED.linked_resolution,
+                linked_playbook = EXCLUDED.linked_playbook,
+                drift_type = EXCLUDED.drift_type,
+                updated_at = NOW()
+            """,
+            {
+                "candidate_id": rec.get("candidate_id"),
+                "ticket": rec.get("ticket", ""),
+                "domain": rec.get("domain", "general"),
+                "classification": rec.get("classification", "unknown"),
+                "probable_causes": Json(rec.get("probable_causes") or []),
+                "next_checks": Json(rec.get("next_checks") or []),
+                "recommended_actions": Json(rec.get("recommended_actions") or []),
+                "confidence": rec.get("confidence"),
+                "fallback_provider": rec.get("fallback_provider", ""),
+                "fallback_model": rec.get("fallback_model", ""),
+                "retrieved_incidents": Json(rec.get("retrieved_incidents") or []),
+                "tenant_id": rec.get("tenant_id", "client_a"),
+                "knowledge_scope": rec.get("knowledge_scope", "client_private"),
+                "status": rec.get("status", "candidate"),
+                "source": rec.get("source", ""),
+                "source_layer": rec.get("source_layer", ""),
+                "promotion_target": rec.get("promotion_target", ""),
+                "promoted_by": rec.get("promoted_by", ""),
+                "promoted_at": rec.get("promoted_at") or None,
+                "engineer_review": Json(rec.get("engineer_review") or {}),
+                "grounding_incident_count": int(rec.get("grounding_incident_count") or 0),
+                "draft_runbook": Json(rec.get("draft_runbook") or {}),
+                "draft_steps": Json(rec.get("draft_steps") or []),
+                "risk_tier": rec.get("risk_tier", "medium"),
+                "approval_required": bool(rec.get("approval_required", True)),
+                "linked_resolution": Json(rec.get("linked_resolution") or {}),
+                "linked_playbook": Json(rec.get("linked_playbook") or {}),
+                "drift_type": rec.get("drift_type"),
+                "created_by": rec.get("created_by") or rec.get("created_by", ""),
+                "created_at": rec.get("created_at"),
+            },
+        )
+
+
+def get_knowledge_candidates(status: Optional[str] = None, tenant_id: Optional[str] = None, limit: int = 200) -> List[Dict[str, Any]]:
+    ensure_candidates_schema()
+    clauses, params = [], []
+    if status:
+        clauses.append("status = %s"); params.append(status)
+    if tenant_id:
+        clauses.append("tenant_id = %s"); params.append(tenant_id)
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    params.append(_coerce_limit(limit, 1000))
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute(f"SELECT * FROM knowledge_candidates {where} ORDER BY updated_at DESC NULLS LAST LIMIT %s", params)
+        return list(cur.fetchall())
+
+
+def get_knowledge_candidate_by_id_pg(candidate_id: str) -> Optional[Dict[str, Any]]:
+    ensure_candidates_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute("SELECT * FROM knowledge_candidates WHERE candidate_id = %s LIMIT 1", (candidate_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+# ---------------------------------------------------------
+# GENERATED PLAYBOOKS — PlaybookAgent cache  (Item #9 + #10)
+# ---------------------------------------------------------
+
+def ensure_generated_playbooks_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS generated_playbooks (
+                tenant_id TEXT NOT NULL DEFAULT 'default',
+                classification TEXT NOT NULL,
+                steps JSONB NOT NULL DEFAULT '[]',
+                version INT DEFAULT 1,
+                content_hash TEXT,
+                created_by TEXT DEFAULT 'playbook_agent',
+                model_used TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (tenant_id, classification)
+            )
+            """
+        )
+        # Migration guard: handles three upgrade cases on existing DBs:
+        # Case 1 — no tenant_id column at all: add it, rebuild PK
+        # Case 2 — tenant_id exists but PK is still classification-only: rebuild PK
+        # Case 3 — composite PK already correct: no-op
+        cur.execute("""
+            DO $$
+            DECLARE
+                _has_tenant   BOOLEAN;
+                _has_comp_pk  BOOLEAN;
+            BEGIN
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name='generated_playbooks' AND column_name='tenant_id'
+                ) INTO _has_tenant;
+
+                IF NOT _has_tenant THEN
+                    ALTER TABLE generated_playbooks ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default';
+                END IF;
+
+                -- Check whether the composite PK (tenant_id, classification) already exists
+                SELECT EXISTS (
+                    SELECT 1 FROM pg_constraint c
+                    JOIN pg_attribute a1 ON a1.attrelid = c.conrelid AND a1.attnum = ANY(c.conkey)
+                    JOIN pg_attribute a2 ON a2.attrelid = c.conrelid AND a2.attnum = ANY(c.conkey)
+                    WHERE c.contype = 'p'
+                      AND c.conrelid = 'generated_playbooks'::regclass
+                      AND a1.attname = 'tenant_id'
+                      AND a2.attname = 'classification'
+                ) INTO _has_comp_pk;
+
+                IF NOT _has_comp_pk THEN
+                    ALTER TABLE generated_playbooks DROP CONSTRAINT IF EXISTS generated_playbooks_pkey;
+                    ALTER TABLE generated_playbooks ADD PRIMARY KEY (tenant_id, classification);
+                END IF;
+            END $$;
+        """)
+
+
+def get_generated_playbook_pg(classification: str, tenant_id: str = "default") -> Optional[List[Dict[str, Any]]]:
+    ensure_generated_playbooks_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute(
+            "SELECT steps FROM generated_playbooks WHERE tenant_id = %s AND classification = %s LIMIT 1",
+            (tenant_id, classification),
+        )
+        row = cur.fetchone()
+        if row and row.get("steps"):
+            steps = row["steps"]
+            return steps if isinstance(steps, list) else []
+        return None
+
+
+def upsert_generated_playbook(classification: str, steps: List[Dict[str, Any]], model_used: str = "", tenant_id: str = "default") -> None:
+    import hashlib, json as _json
+    ensure_generated_playbooks_schema()
+    content_hash = hashlib.sha256(_json.dumps(steps, sort_keys=True, default=str).encode()).hexdigest()[:32]
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute(
+            """
+            INSERT INTO generated_playbooks (tenant_id, classification, steps, version, content_hash, model_used, created_at, updated_at)
+            VALUES (%s, %s, %s, 1, %s, %s, NOW(), NOW())
+            ON CONFLICT (tenant_id, classification) DO UPDATE SET
+                steps = EXCLUDED.steps,
+                version = generated_playbooks.version + 1,
+                content_hash = EXCLUDED.content_hash,
+                model_used = EXCLUDED.model_used,
+                updated_at = NOW()
+            """,
+            (tenant_id, classification, Json(steps), content_hash, model_used or ""),
+        )
+
+
+# RBAC  (Item #16)
+ROLES = ("l1", "l2", "l3", "admin")
+
+
+def ensure_rbac_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id TEXT PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                display_name TEXT,
+                email TEXT,
+                role TEXT NOT NULL DEFAULT 'l1',
+                tenant_id TEXT NOT NULL DEFAULT 'client_a',
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_tenant ON users (tenant_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_users_role ON users (role)")
+        # seed a default admin if none exists
+        cur.execute("""
+            INSERT INTO users (user_id, username, display_name, email, role, tenant_id)
+            VALUES ('admin_001', 'vijay', 'Vijay', 'vijayakumaar.r@hcltech.com', 'admin', 'client_c')
+            ON CONFLICT (user_id) DO NOTHING
+        """)
+
+
+def get_user_by_username(username: str) -> Optional[Dict[str, Any]]:
+    ensure_rbac_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute("SELECT * FROM users WHERE username = %s AND is_active = TRUE LIMIT 1", (username,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def upsert_user(user_id: str, username: str, display_name: str = "", email: str = "",
+                role: str = "l1", tenant_id: str = "client_a") -> Dict[str, Any]:
+    ensure_rbac_schema()
+    role = role if role in ROLES else "l1"
+    with db_cursor(commit=True, dict_rows=True) as (_, cur):
+        cur.execute("""
+            INSERT INTO users (user_id, username, display_name, email, role, tenant_id, updated_at)
+            VALUES (%s,%s,%s,%s,%s,%s,NOW())
+            ON CONFLICT (user_id) DO UPDATE SET
+                display_name=EXCLUDED.display_name, email=EXCLUDED.email,
+                role=EXCLUDED.role, tenant_id=EXCLUDED.tenant_id, updated_at=NOW()
+            RETURNING *
+        """, (user_id, username, display_name, email, role, tenant_id))
+        return dict(cur.fetchone())
+
+
+def list_users(tenant_id: str = None) -> List[Dict[str, Any]]:
+    ensure_rbac_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        if tenant_id:
+            cur.execute("SELECT * FROM users WHERE tenant_id=%s ORDER BY role,username", (tenant_id,))
+        else:
+            cur.execute("SELECT * FROM users ORDER BY tenant_id,role,username")
+        return list(cur.fetchall())
+
+
+# AGENT TRACES  (Item #12)
+def ensure_agent_traces_schema() -> None:
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS agent_traces (
+                id SERIAL PRIMARY KEY,
+                trace_id TEXT NOT NULL,
+                span_id TEXT NOT NULL,
+                parent_span_id TEXT,
+                agent_name TEXT NOT NULL,
+                operation TEXT,
+                status TEXT DEFAULT 'started',
+                input_summary TEXT,
+                output_summary TEXT,
+                latency_ms INT,
+                error TEXT,
+                metadata JSONB DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_agent_traces_trace_id ON agent_traces (trace_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_agent_traces_created ON agent_traces (created_at)")
+
+def insert_agent_trace(trace_id: str, agent_name: str, operation: str = "",
+                        span_id: str = "", parent_span_id: str = "",
+                        status: str = "started", input_summary: str = "",
+                        output_summary: str = "", latency_ms: int = None,
+                        error: str = "", metadata: dict = None) -> None:
+    ensure_agent_traces_schema()
+    import uuid as _uuid
+    sid = span_id or _uuid.uuid4().hex[:16]
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            INSERT INTO agent_traces (trace_id, span_id, parent_span_id, agent_name, operation,
+                status, input_summary, output_summary, latency_ms, error, metadata)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (trace_id, sid, parent_span_id or None, agent_name, operation,
+              status, input_summary[:500] if input_summary else "",
+              output_summary[:500] if output_summary else "",
+              latency_ms, error[:500] if error else "", Json(metadata or {})))
+
+def get_agent_traces(trace_id: str, limit: int = 50) -> list:
+    ensure_agent_traces_schema()
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute("""
+            SELECT * FROM agent_traces WHERE trace_id = %s ORDER BY created_at ASC LIMIT %s
+        """, (trace_id, limit))
+        return list(cur.fetchall())
+
+
+def ensure_version_history_schema() -> None:
+    """
+    Create immutable version-history tables for resolutions and playbooks (Item #10).
+    Every upsert appends a snapshot row — rows are never updated or deleted.
+    """
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS resolution_versions (
+                id SERIAL PRIMARY KEY,
+                resolution_id TEXT NOT NULL,
+                version INT NOT NULL,
+                tenant_id TEXT NOT NULL DEFAULT 'default',
+                classification TEXT,
+                root_cause TEXT,
+                validated_checks JSONB DEFAULT '[]',
+                validated_actions JSONB DEFAULT '[]',
+                automation_ready BOOLEAN,
+                content_hash TEXT,
+                changed_by TEXT,
+                change_reason TEXT,
+                snapshot JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rv_resolution_id ON resolution_versions (resolution_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_rv_tenant ON resolution_versions (tenant_id, resolution_id)"
+        )
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS playbook_versions (
+                id SERIAL PRIMARY KEY,
+                playbook_id TEXT NOT NULL,
+                version INT NOT NULL,
+                tenant_id TEXT NOT NULL DEFAULT 'default',
+                classification TEXT,
+                content_hash TEXT,
+                changed_by TEXT,
+                change_reason TEXT,
+                snapshot JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_pv_playbook_id ON playbook_versions (playbook_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_pv_tenant ON playbook_versions (tenant_id, playbook_id)"
+        )
+
+
+def append_resolution_version(resolution: dict, changed_by: str = "", change_reason: str = "") -> None:
+    """Append an immutable snapshot to resolution_versions. Call after every upsert."""
+    try:
+        with db_cursor(commit=True) as (_, cur):
+            cur.execute("""
+                INSERT INTO resolution_versions
+                    (resolution_id, version, tenant_id, classification, root_cause,
+                     validated_checks, validated_actions, automation_ready,
+                     content_hash, changed_by, change_reason, snapshot)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                resolution.get("resolution_id") or resolution.get("id", ""),
+                int(resolution.get("version") or 1),
+                resolution.get("tenant_id", "default"),
+                resolution.get("classification", ""),
+                resolution.get("root_cause", ""),
+                Json(resolution.get("validated_checks") or []),
+                Json(resolution.get("validated_actions") or []),
+                bool(resolution.get("automation_ready")),
+                resolution.get("content_hash", ""),
+                changed_by,
+                change_reason,
+                Json(resolution),
+            ))
+    except Exception as exc:
+        LOGGER.warning("append_resolution_version failed: %s", exc)
+
+
+def append_playbook_version(playbook: dict, changed_by: str = "", change_reason: str = "") -> None:
+    """Append an immutable snapshot to playbook_versions. Call after every upsert."""
+    try:
+        with db_cursor(commit=True) as (_, cur):
+            cur.execute("""
+                INSERT INTO playbook_versions
+                    (playbook_id, version, tenant_id, classification,
+                     content_hash, changed_by, change_reason, snapshot)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                playbook.get("playbook_id") or playbook.get("id", ""),
+                int(playbook.get("version") or 1),
+                playbook.get("tenant_id", "default"),
+                playbook.get("classification", ""),
+                playbook.get("content_hash", ""),
+                changed_by,
+                change_reason,
+                Json(playbook),
+            ))
+    except Exception as exc:
+        LOGGER.warning("append_playbook_version failed: %s", exc)
+
+
+def get_resolution_versions(resolution_id: str) -> list:
+    """Return full version history for a resolution, oldest first."""
+    try:
+        with db_cursor(dict_rows=True) as (_, cur):
+            cur.execute("""
+                SELECT id, version, changed_by, change_reason, content_hash, created_at
+                FROM resolution_versions WHERE resolution_id = %s ORDER BY version ASC
+            """, (resolution_id,))
+            return list(cur.fetchall())
+    except Exception:
+        return []
+
+
+def get_playbook_versions(playbook_id: str) -> list:
+    """Return full version history for a playbook, oldest first."""
+    try:
+        with db_cursor(dict_rows=True) as (_, cur):
+            cur.execute("""
+                SELECT id, version, changed_by, change_reason, content_hash, created_at
+                FROM playbook_versions WHERE playbook_id = %s ORDER BY version ASC
+            """, (playbook_id,))
+            return list(cur.fetchall())
+    except Exception:
+        return []
+
+
+def ensure_tenant_isolation() -> None:
+    """
+    Idempotent migration: add tenant_id column + PostgreSQL RLS policies to all core tables.
+    Safe to run on an existing database — uses ADD COLUMN IF NOT EXISTS and CREATE POLICY IF NOT EXISTS.
+    Call once at application startup after all ensure_*_schema() calls.
+
+    RLS policy: each session must SET app.current_tenant = '<tenant_id>' before querying.
+    The DB role aiops_user sees only rows matching that setting.
+    """
+    _TABLES = [
+        "resolutions",
+        "playbooks",
+        "knowledge_candidates",
+        "generated_playbooks",
+        "classification_outcomes",
+        "incident_episodes",
+        "agent_traces",
+        "users",
+    ]
+    with db_cursor(commit=True) as (_, cur):
+        for table in _TABLES:
+            # 1. Add tenant_id column
+            cur.execute(
+                f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS tenant_id TEXT NOT NULL DEFAULT 'default'"
+            )
+            # 2. Column index
+            cur.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{table}_tenant ON {table} (tenant_id)"
+            )
+            # 3. Enable RLS on the table
+            cur.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+            # 4. DROP and re-create the policy (CREATE POLICY has no IF NOT EXISTS before PG 17)
+            cur.execute(f"DROP POLICY IF EXISTS tenant_isolation ON {table}")
+            cur.execute(
+                f"""CREATE POLICY tenant_isolation ON {table}
+                    USING (
+                        tenant_id = current_setting('app.current_tenant', true)
+                        OR current_setting('app.current_tenant', true) IS NULL
+                        OR current_setting('app.current_tenant', true) = 'default'
+                    )"""
+            )
+            # 5. Allow the app user to bypass RLS for admin operations
+            cur.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
+
+        # Composite indexes for the most common lookup pattern: tenant + classification
+        for table in ("resolutions", "playbooks", "knowledge_candidates",
+                      "classification_outcomes", "incident_episodes"):
+            cur.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{table}_tenant_cls "
+                f"ON {table} (tenant_id, classification)"
+            )
+
+
+# ---------------------------------------------------------
+# RESOLUTION OUTCOMES  (append-only outcome capture ledger)
+# ---------------------------------------------------------
+
+def ensure_resolution_outcomes_schema() -> None:
+    """Idempotent: creates the append-only resolution_outcomes table."""
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS resolution_outcomes (
+                outcome_id            TEXT PRIMARY KEY,
+                incident_id           TEXT NOT NULL,
+                classification        TEXT NOT NULL DEFAULT '',
+                resolution_id         TEXT NOT NULL DEFAULT '',
+                playbook_id           TEXT NOT NULL DEFAULT '',
+                tenant_id             TEXT NOT NULL DEFAULT 'default',
+                execution_mode        TEXT NOT NULL DEFAULT 'manual',
+                ai_recommendation_used TEXT NOT NULL DEFAULT 'no',
+                outcome_status        TEXT NOT NULL DEFAULT 'resolved',
+                opened_at             TIMESTAMPTZ,
+                resolved_at           TIMESTAMPTZ,
+                resolution_minutes    DOUBLE PRECISION,
+                recurrence_window_hours INTEGER NOT NULL DEFAULT 72,
+                recurrence_detected   BOOLEAN NOT NULL DEFAULT FALSE,
+                confirmed_by          TEXT NOT NULL DEFAULT '',
+                confirmed_at          TIMESTAMPTZ,
+                notes                 TEXT NOT NULL DEFAULT '',
+                created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ro_incident   ON resolution_outcomes (incident_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ro_cls_tenant ON resolution_outcomes (classification, tenant_id)"
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ro_created    ON resolution_outcomes (created_at DESC)"
+        )
+
+
+def insert_resolution_outcome(outcome: Dict[str, Any]) -> None:
+    """Append one resolution outcome record. outcome must contain outcome_id and incident_id."""
+    required = {"outcome_id", "incident_id"}
+    missing = required - outcome.keys()
+    if missing:
+        raise ValueError(f"insert_resolution_outcome: missing required fields {missing}")
+
+    with db_cursor(commit=True) as (_, cur):
+        cur.execute("""
+            INSERT INTO resolution_outcomes (
+                outcome_id, incident_id, classification, resolution_id, playbook_id,
+                tenant_id, execution_mode, ai_recommendation_used, outcome_status,
+                opened_at, resolved_at, resolution_minutes,
+                recurrence_window_hours, recurrence_detected,
+                confirmed_by, confirmed_at, notes
+            ) VALUES (
+                %(outcome_id)s, %(incident_id)s, %(classification)s, %(resolution_id)s,
+                %(playbook_id)s, %(tenant_id)s, %(execution_mode)s,
+                %(ai_recommendation_used)s, %(outcome_status)s,
+                %(opened_at)s, %(resolved_at)s, %(resolution_minutes)s,
+                %(recurrence_window_hours)s, %(recurrence_detected)s,
+                %(confirmed_by)s, %(confirmed_at)s, %(notes)s
+            )
+            ON CONFLICT (outcome_id) DO NOTHING
+        """, {
+            "outcome_id":              outcome["outcome_id"],
+            "incident_id":             outcome["incident_id"],
+            "classification":          outcome.get("classification", ""),
+            "resolution_id":           outcome.get("resolution_id", ""),
+            "playbook_id":             outcome.get("playbook_id", ""),
+            "tenant_id":               outcome.get("tenant_id", "default"),
+            "execution_mode":          outcome.get("execution_mode", "manual"),
+            "ai_recommendation_used":  outcome.get("ai_recommendation_used", "no"),
+            "outcome_status":          outcome.get("outcome_status", "resolved"),
+            "opened_at":               outcome.get("opened_at"),
+            "resolved_at":             outcome.get("resolved_at"),
+            "resolution_minutes":      outcome.get("resolution_minutes"),
+            "recurrence_window_hours": outcome.get("recurrence_window_hours", 72),
+            "recurrence_detected":     outcome.get("recurrence_detected", False),
+            "confirmed_by":            outcome.get("confirmed_by", ""),
+            "confirmed_at":            outcome.get("confirmed_at"),
+            "notes":                   outcome.get("notes", ""),
+        })
+
+
+def get_outcomes_by_classification(
+    classification: str,
+    tenant_id: str = "default",
+    limit: int = 50,
+) -> List[Dict[str, Any]]:
+    """Return recent outcomes for a classification, newest first."""
+    with db_cursor(dict_rows=True) as (_, cur):
+        cur.execute("""
+            SELECT * FROM resolution_outcomes
+            WHERE classification = %s
+              AND (tenant_id = %s OR tenant_id = 'default')
+            ORDER BY created_at DESC
+            LIMIT %s
+        """, (classification, tenant_id, limit))
+        return [dict(r) for r in cur.fetchall()]
 
 
 if __name__ == "__main__":
