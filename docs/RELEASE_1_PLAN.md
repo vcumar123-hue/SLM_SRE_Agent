@@ -46,6 +46,10 @@ Environment and dependency changes are recorded here as they happen.
 | 2026-10-11 | Branch `release-1-hardening` created from `main` @ `1bc02f2` | Decision 9 |
 | 2026-10-11 | Wave 1 applied to `C:\Projects\AI\SLM` (19 files copied; each matched `main` before overwrite): `security.py`, `execution_authorization.py`, `egress_policy.py`, `automation_engine.py`, `app.py`, `ui.py`, models, agents, page modules, tests, `.env.vastai.example`, tenant template. `.env`, `data/` and `API_Key/` untouched | Two-tree rule |
 | 2026-10-11 | No new Python dependencies in Wave 1. `psycopg2` is still absent from `.venv`; install is deferred to Wave 5 | Decision 8 |
+| 2026-10-11 | Wave 1b: no new dependencies. `portalocker==3.2.0` was already pinned in `requirements.txt` and installed in `.venv`. `requirements.txt` unchanged | Queue lock |
+| 2026-10-11 | Environment fact recorded: the project `.venv` has no Streamlit (declared in `requirements.txt`, but installing it would conflict with the pinned `pandas==3.0.2`). The system Python 3.14 has Streamlit 1.55.0 and was used for the UI-layer tests. No package was installed or changed in either interpreter | Wave 1b UI tests |
+| 2026-10-11 | Wave 1b applied to `C:\Projects\AI\SLM` (26 files, each matching a known-good version before overwrite; `.gitignore` skipped; `.env`, `data/`, `API_Key/` untouched) | Two-tree rule |
+| 2026-10-11 | `tests/__init__.py` disables debug logging for the test process so tests never append to `data/debug/*.jsonl` | Test hermeticity |
 
 ## Two-tree rule (owner request, 2026-10-11)
 All Release 1 changes are made on this branch **and** applied to `C:\Projects\AI\SLM` (the working folder with `.env`, runtime data and venv).
