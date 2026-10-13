@@ -210,8 +210,10 @@ class GateBase(unittest.TestCase):
 
         fake = types.ModuleType("tools.snapshot_engine")
         fake.SnapshotEngine = FakeEngine
+        self.tenant_settings = {}
         self._patches = [
             patch.object(aa, "_load_safety_gate_config", lambda: copy.deepcopy(self.cfg)),
+            patch.object(aa, "_tenant_evidence_settings", lambda tenant: dict(self.tenant_settings)),
             patch.object(aa, "ROLLBACK_BACKUP_DIR", self.tmp / "bak"),
             patch.dict(sys.modules, {"tools.snapshot_engine": fake}),
             patch.dict(os.environ, {"CMDB_ENABLED": "", "LAB_SNAPSHOT_ENABLED": ""}),
@@ -369,12 +371,26 @@ class VerifiedEvidenceTests(GateBase):
             self.assertEqual(d["status"], "fail", mode)
         self.assertIn("infrastructure_drift", self.gate("simulation")["blocking_checks"])
 
-    def test_disabled_check_is_not_applicable_not_a_pass_of_evidence(self):
+    def test_disabled_check_is_not_applicable_in_simulation_and_live(self):
+        self.cfg["checks"]["change_window"]["enabled"] = False
+        for mode in ("simulation", "live"):
+            r = self.gate(mode)
+            d = r["checks"]["change_window"]
+            self.assertEqual((d["status"], d["provenance"], d.get("disabled")), ("pass", "not_applicable", True), mode)
+            self.assertNotIn("change_window", r["unverified_checks"])
+
+    def test_autonomous_execution_refuses_any_disabled_check(self):
         self.cfg["checks"]["change_window"]["enabled"] = False
         r = self.gate("autonomous")
         d = r["checks"]["change_window"]
-        self.assertEqual((d["status"], d["provenance"], d.get("disabled")), ("pass", "not_applicable", True))
-        self.assertNotIn("change_window", r["unverified_checks"])
+        self.assertEqual((d["status"], d["evidence_issue"], d.get("disabled")), ("fail", "check_disabled", True))
+        self.assertIn("autonomous_requires_all_checks_enabled", d["policy_reasons"])
+        self.assertIn("change_window", r["blocking_checks"])
+
+    def test_the_disabled_check_rule_can_be_relaxed_by_policy(self):
+        self.cfg["checks"]["change_window"]["enabled"] = False
+        self.cfg["evidence_policy"] = {"autonomous_requires_all_checks_enabled": False}
+        self.assertEqual(self.gate("autonomous")["checks"]["change_window"]["status"], "pass")
 
 
 class GeneratedEvidenceTests(GateBase):
@@ -535,6 +551,7 @@ class EvidenceSubmitTests(AuthzBase):
 
         fake.SnapshotEngine = Engine
         with patch.object(aa, "_load_safety_gate_config", lambda: cfg), \
+             patch.object(aa, "_tenant_evidence_settings", lambda tenant: {}), \
              patch.object(aa, "ROLLBACK_BACKUP_DIR", self.tmp / "bak"), \
              patch.dict(sys.modules, {"tools.snapshot_engine": fake}):
             r = REAL_GATE(AutomationPreExecutionCheckRequest(
@@ -581,6 +598,7 @@ class ApprovalFlowWithTheRealGateTests(AuthzBase):
         fake = types.ModuleType("tools.snapshot_engine")
         fake.SnapshotEngine = Engine
         for p in (patch.object(aa, "_build_pre_execution_safety_gate", REAL_GATE),
+                  patch.object(aa, "_tenant_evidence_settings", lambda tenant: {}),
                   patch.object(aa, "_load_safety_gate_config", lambda: copy.deepcopy(self.cfg)),
                   patch.object(aa, "ROLLBACK_BACKUP_DIR", self.tmp / "bak"),
                   patch.dict(sys.modules, {"tools.snapshot_engine": fake})):

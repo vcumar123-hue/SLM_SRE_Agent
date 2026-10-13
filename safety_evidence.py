@@ -53,9 +53,13 @@ DEFAULT_EVIDENCE_POLICY: Dict[str, Any] = {
     "degraded_status": {"simulation": "unknown", "live": "warn", "autonomous": "fail"},
     # Applied when passing evidence is older than its TTL.
     "stale_status": {"simulation": "warn", "live": "warn", "autonomous": "fail"},
-    # Evidence uploaded as a file (UI upload, manual entry, seed data) cannot be authenticated. Set true
-    # only if the client accepts file uploads as authoritative.
+    # Evidence uploaded as a file (UI upload, manual entry, seed data) cannot be authenticated. It is trusted
+    # as `verified` only when the client accepts file uploads as authoritative: set true here for every
+    # tenant, set `safety_gate.treat_uploaded_files_as_verified` in one tenant's config, or mark a tenant
+    # `"deployment_stage": "pilot"` (pilot clients trust uploads by default; production clients do not).
     "treat_uploaded_files_as_verified": False,
+    # Autonomous execution does not inherit a client's decision to disable a check.
+    "autonomous_requires_all_checks_enabled": True,
 }
 
 
@@ -97,12 +101,16 @@ def gate_mode_class(execution_mode: Any) -> str:
     return "simulation"
 
 
-def resolve_policy(config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Merge the configured evidence policy over the defaults, ignoring invalid entries."""
+def resolve_policy(config: Optional[Dict[str, Any]], tenant_settings: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Merge the configured evidence policy over the defaults, ignoring invalid entries.
+
+    `tenant_settings` (or `config["_tenant_evidence_settings"]`, set by the gate for the entry's tenant) may carry
+    `deployment_stage` and `treat_uploaded_files_as_verified`. Upload trust is resolved in this order:
+    tenant setting, then the global config value when true, then the pilot stage, otherwise off.
+    """
     policy = copy.deepcopy(DEFAULT_EVIDENCE_POLICY)
     raw = (config or {}).get("evidence_policy")
-    if not isinstance(raw, dict):
-        return policy
+    raw = raw if isinstance(raw, dict) else {}
     for key in ("degraded_status", "stale_status"):
         override = raw.get(key)
         if isinstance(override, dict):
@@ -110,28 +118,54 @@ def resolve_policy(config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                 value = _token(override.get(mode))
                 if value in {"unknown", "warn", "fail"}:
                     policy[key][mode] = value
-    if isinstance(raw.get("treat_uploaded_files_as_verified"), bool):
-        policy["treat_uploaded_files_as_verified"] = raw["treat_uploaded_files_as_verified"]
+    if isinstance(raw.get("autonomous_requires_all_checks_enabled"), bool):
+        policy["autonomous_requires_all_checks_enabled"] = raw["autonomous_requires_all_checks_enabled"]
+
+    tenant = tenant_settings if tenant_settings is not None else (config or {}).get("_tenant_evidence_settings")
+    tenant = tenant if isinstance(tenant, dict) else {}
+    stage = _token(tenant.get("deployment_stage"))
+    explicit = tenant.get("treat_uploaded_files_as_verified")
+    global_trust = raw.get("treat_uploaded_files_as_verified")
+    if isinstance(explicit, bool):
+        trust, source = explicit, "tenant_setting"
+    elif global_trust is True:
+        trust, source = True, "global_config"
+    elif stage == "pilot":
+        trust, source = True, "pilot_stage"
+    else:
+        trust, source = False, "default"
+    policy["treat_uploaded_files_as_verified"] = trust
+    policy["treat_uploaded_files_source"] = source
+    policy["deployment_stage"] = stage or "unset"
     return policy
 
 
 # -- provenance -------------------------------------------------------------------------------------
 
-def client_provenance(evidence: Dict[str, Any], source: str, policy: Dict[str, Any]) -> str:
-    """Provenance of evidence supplied by or on behalf of the client (API, push, or a file in the evidence folder)."""
+def client_provenance_basis(evidence: Dict[str, Any], source: str, policy: Dict[str, Any]) -> Tuple[str, str]:
+    """(provenance, basis) of evidence supplied by or on behalf of the client (API, push, or a file in the folder).
+
+    The basis says WHY it has that provenance, so an audit can tell evidence from an authenticated source apart
+    from an uploaded file that a policy chose to trust.
+    """
     if source == "api":
-        return "verified"  # pulled live from a configured source system
+        return "verified", "authenticated_source"  # pulled live from a configured source system
     via = _token(evidence.get("_submitted_via"))
     if via == "api_pull":
-        return "verified"
+        return "verified", "authenticated_source"
     if via == "api_push" and str(evidence.get("submitted_by") or "").strip():
-        return "verified"  # accepted from an authenticated principal
+        return "verified", "authenticated_source"  # accepted from an authenticated principal
     legacy = _LEGACY_GENERATED_SOURCES.get(_token(evidence.get("source_system")))
     if legacy:
-        return legacy  # written by an older version of the gate into the client folder
+        return legacy, "platform_generated_legacy"  # written by an older version of the gate into the client folder
     if policy.get("treat_uploaded_files_as_verified"):
-        return "verified"
-    return "unknown"
+        return "verified", "uploaded_file_trusted_by_policy"
+    return "unknown", "not_established"
+
+
+def client_provenance(evidence: Dict[str, Any], source: str, policy: Dict[str, Any]) -> str:
+    """Provenance of evidence supplied by or on behalf of the client."""
+    return client_provenance_basis(evidence, source, policy)[0]
 
 
 def generated_provenance(evidence: Dict[str, Any]) -> str:

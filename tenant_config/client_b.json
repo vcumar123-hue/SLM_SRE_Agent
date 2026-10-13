@@ -1,5 +1,6 @@
 {
   "tenant_id": "client_b",
+  "deployment_stage": "pilot",
   "display_name": "Demo Corp",
   "knowledge_scope_default": "client_private",
   "collections": {

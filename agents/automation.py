@@ -13,6 +13,7 @@ import settings_portable as settings
 import automation_engine as _engine
 import execution_authorization as exec_auth
 import safety_evidence as _ev
+import autonomy_decision as _autonomy
 from security import Principal, principal_from_request
 from agents.helpers import _automation_classification_key
 from file_manager import append_debug_event, append_jsonl, read_json, utc_now_iso
@@ -136,14 +137,50 @@ def _ledger_gate_for(classification: str, tenant_id: str) -> Dict[str, Any]:
     return autonomous_gate(classification, tenant_id=tenant_id or "default")
 
 
-def _autonomous_mapping_allowed(classification: str) -> bool:
+def _autonomy_registry_check(classification: str, action: str = "", playbook: str = "") -> Dict[str, Any]:
     if is_autonomous_registry_mapping_allowed is None:
-        return False
-    try:
-        result = is_autonomous_registry_mapping_allowed(classification=classification, action="", playbook="")
-        return bool((result or {}).get("allowed"))
-    except Exception:
-        return False
+        return {"allowed": False, "status": "unavailable", "reason": "automation registry controls are not available"}
+    return is_autonomous_registry_mapping_allowed(classification=classification, action=action or "", playbook=playbook or "")
+
+
+def _autonomy_confidence_check(classification: str, action: str = "", playbook: str = "") -> Dict[str, Any]:
+    return _calculate_automation_confidence(
+        _read_automation_feedback_records(), _automation_learning_key(classification, playbook, action))
+
+
+def _disabled_checks(config: Dict[str, Any]) -> List[str]:
+    """Safety Gate checks the client has disabled, when autonomous execution requires them all."""
+    if not _ev.resolve_policy(config).get("autonomous_requires_all_checks_enabled", True):
+        return []
+    checks = config.get("checks") if isinstance(config.get("checks"), dict) else {}
+    return sorted(name for name, cfg in checks.items() if isinstance(cfg, dict) and cfg.get("enabled") is False)
+
+
+def evaluate_autonomy(
+    classification: str,
+    tenant_id: str,
+    purpose: str,
+    action: str = "",
+    playbook: str = "",
+    confidence_summary: Optional[Dict[str, Any]] = None,
+) -> "_autonomy.AutonomyDecision":
+    """The single autonomy decision: registry, outcome ledger (with recurrence cap), confidence and safety config.
+
+    Every call site that grants or reports autonomous capability uses this; any deny wins.
+    """
+    return _autonomy.decide(
+        classification, tenant_id, purpose,
+        registry_check=_autonomy_registry_check,
+        ledger_check=_ledger_gate_for,
+        confidence_check=(lambda c, a, p: confidence_summary) if confidence_summary is not None else _autonomy_confidence_check,
+        config_check=lambda: _disabled_checks(_load_safety_gate_config()),
+        action=action,
+        playbook=playbook,
+    )
+
+
+def _autonomy_decision_for_entry(entry: Dict[str, Any]) -> "_autonomy.AutonomyDecision":
+    return evaluate_autonomy(entry.get("classification", ""), entry.get("tenant_id") or "default", "execute")
 
 
 def _first_playbook(entry: Dict[str, Any]) -> str:
@@ -210,11 +247,13 @@ def _blast_radius_check(config: Dict[str, Any], request: AutomationPreExecutionC
     candidates: List[Dict[str, Any]] = []
     lookup = _lookup_client_evidence("blast_radius", br_cfg, config, request)
     if lookup.evidence:
+        _prov, _basis = _ev.client_provenance_basis(lookup.evidence, lookup.source, policy)
         candidates.append(_evidence_to_check_detail(
             "blast_radius", lookup.evidence, br_cfg, config,
-            provenance=_ev.client_provenance(lookup.evidence, lookup.source, policy),
+            provenance=_prov,
             evidence_source="api" if lookup.source == "api" else "client_file",
             mode_class=mode_class,
+            provenance_basis=_basis,
         ))
     elif lookup.issue in _UNUSABLE_CLIENT_EVIDENCE:
         candidates.append(_missing_evidence_detail("blast_radius", br_cfg, config, lookup.issue, mode_class))
@@ -582,6 +621,7 @@ def _evidence_to_check_detail(
     provenance: str,
     evidence_source: str,
     mode_class: str = "simulation",
+    provenance_basis: str = "",
 ) -> Dict[str, Any]:
     policy = _ev.resolve_policy(config)
     raw_value = evidence.get("status", evidence.get("gate_status"))
@@ -599,6 +639,7 @@ def _evidence_to_check_detail(
         "status": status,
         "raw_status": raw_status,
         "provenance": provenance,
+        "provenance_basis": provenance_basis,
         "evidence_issue": issue,
         "evidence_source": evidence_source,
         "policy_reasons": reasons,
@@ -628,6 +669,21 @@ def _configured_safety_check(check_name: str, config: Dict[str, Any], request: A
     check_cfg = checks_cfg.get(check_name, {}) if isinstance(checks_cfg.get(check_name), dict) else {}
     mode_class = _ev.gate_mode_class(request.execution_mode)
     if check_cfg and check_cfg.get("enabled") is False:
+        if mode_class == "autonomous" and _ev.resolve_policy(config).get("autonomous_requires_all_checks_enabled", True):
+            # Disabling a check is an explicit client decision; autonomous execution does not inherit it.
+            return {
+                "status": "fail",
+                "raw_status": "pass",
+                "provenance": "not_applicable",
+                "evidence_issue": "check_disabled",
+                "policy_reasons": ["check_disabled", "autonomous_requires_all_checks_enabled"],
+                "mode_class": mode_class,
+                "severity": "high",
+                "summary": f"{check_name.replace('_', ' ').title()} is disabled: autonomous execution requires every Safety Gate check to be enabled.",
+                "evidence": "Check disabled in safety_gate_config.json.",
+                "source_system": "client_onboarding_config",
+                "disabled": True,
+            }
         return {
             "status": "pass",
             "raw_status": "pass",
@@ -647,11 +703,13 @@ def _configured_safety_check(check_name: str, config: Dict[str, Any], request: A
 
     lookup = _lookup_client_evidence(check_name, check_cfg, config, request)
     if lookup.evidence:
+        _prov, _basis = _ev.client_provenance_basis(lookup.evidence, lookup.source, policy)
         candidates.append(_evidence_to_check_detail(
             check_name, lookup.evidence, check_cfg, config,
-            provenance=_ev.client_provenance(lookup.evidence, lookup.source, policy),
+            provenance=_prov,
             evidence_source="api" if lookup.source == "api" else "client_file",
             mode_class=mode_class,
+            provenance_basis=_basis,
         ))
     elif lookup.issue in _UNUSABLE_CLIENT_EVIDENCE:
         candidates.append(_missing_evidence_detail(check_name, check_cfg, config, lookup.issue, mode_class))
@@ -663,6 +721,7 @@ def _configured_safety_check(check_name: str, config: Dict[str, Any], request: A
             provenance=_ev.generated_provenance(generated_doc),
             evidence_source="generated",
             mode_class=mode_class,
+            provenance_basis="platform_generated",
         ))
 
     if not candidates:
@@ -872,8 +931,32 @@ def _refresh_live_evidence(request: AutomationPreExecutionCheckRequest, config: 
     return refresh_summary
 
 
+def _tenant_evidence_settings(tenant_id: str) -> Dict[str, Any]:
+    """Tenant-level evidence trust: `deployment_stage` and an optional `safety_gate.treat_uploaded_files_as_verified`."""
+    try:
+        from agents.governance import load_tenant_config
+        cfg = load_tenant_config(tenant_id) or {}
+    except Exception:
+        return {}
+    settings: Dict[str, Any] = {"deployment_stage": cfg.get("deployment_stage")}
+    sg = cfg.get("safety_gate") if isinstance(cfg.get("safety_gate"), dict) else {}
+    if isinstance(sg.get("treat_uploaded_files_as_verified"), bool):
+        settings["treat_uploaded_files_as_verified"] = sg["treat_uploaded_files_as_verified"]
+    return settings
+
+
+def _gate_tenant_id(request: AutomationPreExecutionCheckRequest) -> str:
+    try:
+        entry = _engine.get_queue_entry(request.queue_id) if request.queue_id else None
+    except Exception:
+        entry = None
+    return str((entry or {}).get("tenant_id") or _engine.DEFAULT_TENANT_ID or "default")
+
+
 def _build_pre_execution_safety_gate(request: AutomationPreExecutionCheckRequest) -> Dict[str, Any]:
     config = _load_safety_gate_config()
+    tenant_id = _gate_tenant_id(request)
+    config["_tenant_evidence_settings"] = _tenant_evidence_settings(tenant_id)
     mode_class = _ev.gate_mode_class(request.execution_mode)
 
     # Trigger a snapshot and a dry-run simulation. Their results are GENERATED evidence (never written over
@@ -917,6 +1000,7 @@ def _build_pre_execution_safety_gate(request: AutomationPreExecutionCheckRequest
         "risk_tier": _automation_safety_level(request.risk_tier),
         "execution_mode": clean_text(request.execution_mode or "simulation").lower(),
         "execution_mode_class": mode_class,
+        "tenant_id": tenant_id,
         "requested_by": clean_text(request.requested_by or "engineer"),
         "checked_at": now,
         "gate_status": gate_status,
@@ -1277,8 +1361,8 @@ def automation_confidence_summary_route(request: AutomationConfidenceSummaryRequ
 def automation_autonomous_enable_route(request: AutomationAutonomousEnableRequest) -> Dict[str, Any]:
     """Persist Ready-for-Autonomous state on the approved registry mapping.
 
-    Enabling is allowed only when the same backend confidence rules mark the
-    automation as autonomous-eligible. Disabling is always allowed.
+    Enabling is allowed only when the composed autonomy decision allows it (outcome ledger tier after the
+    recurrence cap, confidence eligibility, safety configuration). Disabling is always allowed.
     """
     if set_autonomous_registry_status is None:
         raise HTTPException(status_code=500, detail="automation candidate registry autonomous controls not available")
@@ -1288,31 +1372,19 @@ def automation_autonomous_enable_route(request: AutomationAutonomousEnableReques
             _read_automation_feedback_records(),
             _automation_learning_key(classification_key, request.playbook, request.action),
         )
-        if bool(request.enabled) and not bool(summary.get("autonomous_eligible")):
-            return {
-                "status": "blocked",
-                "message": "Automation is not ready for autonomous enablement.",
-                "confidence_summary": summary,
-                "eligibility_reasons": summary.get("eligibility_reasons", []),
-            }
-        # Ledger gate: require sufficient real outcome history before enabling autonomous mode.
-        # Fail CLOSED on exception — a safety gate must not fail open.
         if bool(request.enabled):
-            _ledger_blocked = True
-            _gate = {"tier": "hold_for_approval", "reason": "Ledger gate check failed — defaulting to hold for approval."}
-            try:
-                from resolution_outcome import autonomous_gate as _ledger_gate
-                _gate = _ledger_gate(classification_key, tenant_id=request.tenant_id or "default")
-                _ledger_blocked = _gate["tier"] == "hold_for_approval"
-            except Exception:
-                pass  # _ledger_blocked stays True, _gate has the safe default
-            if _ledger_blocked:
+            decision = evaluate_autonomy(
+                classification_key, request.tenant_id or "default", "enable",
+                request.action or "", request.playbook or "", confidence_summary=summary,
+            )
+            if not decision.allowed:
                 return {
                     "status": "blocked",
-                    "message": "Autonomous enablement blocked by outcome ledger gate.",
-                    "ledger_gate": _gate,
+                    "message": "Autonomous enablement blocked by the autonomy decision.",
+                    "autonomy_decision": decision.to_dict(),
+                    "ledger_gate": decision.components.get("ledger"),
                     "confidence_summary": summary,
-                    "eligibility_reasons": [_gate["reason"]],
+                    "eligibility_reasons": decision.reasons,
                 }
         result = set_autonomous_registry_status(
             classification=classification_key,
@@ -1342,32 +1414,25 @@ def automation_autonomous_enable_route(request: AutomationAutonomousEnableReques
 def automation_autonomous_eligible_mapping_route(request: AutomationAutonomousEligibilityRequest) -> Dict[str, Any]:
     """Guardrail endpoint for telemetry/autonomous orchestration.
 
-    A telemetry trigger should call this before any autonomous execution. Human-in-loop
-    mappings return allowed=false even if they are approved for manual execution.
+    `allowed` is the composed autonomy decision (any deny wins): the registry mapping must be enabled for
+    autonomous use, the outcome ledger tier after the recurrence cap must be auto_execute (the watch tier needs a
+    human), the confidence eligibility must hold, and every Safety Gate check must be enabled.
     """
-    if is_autonomous_registry_mapping_allowed is None:
-        raise HTTPException(status_code=500, detail="automation candidate registry autonomous controls not available")
     try:
-        result = is_autonomous_registry_mapping_allowed(
-            classification=_automation_classification_key(request.classification),
-            action=request.action or "",
-            playbook=request.playbook or "",
+        classification_key = _automation_classification_key(request.classification)
+        decision = evaluate_autonomy(
+            classification_key, request.tenant_id or "default", "eligibility",
+            request.action or "", request.playbook or "",
         )
-        # Enforce ledger gate: if outcome history says hold, override allowed to False.
-        # This ensures callers checking only the top-level `allowed` field get the correct answer.
-        try:
-            from resolution_outcome import autonomous_gate as _ledger_gate
-            _cls = _automation_classification_key(request.classification)
-            _tid = request.tenant_id or "default"
-            _gate = _ledger_gate(_cls, tenant_id=_tid)
-            result["ledger_gate"] = _gate
-            if _gate["tier"] == "hold_for_approval":
-                result["allowed"] = False
-                result["reason"] = result.get("reason", "") + f" [Ledger gate: {_gate['reason']}]"
-        except Exception:
-            # Fail closed: if ledger gate check fails, mark not allowed
-            result["allowed"] = False
-            result["ledger_gate"] = {"tier": "hold_for_approval", "reason": "Ledger gate check failed — defaulting to hold for approval."}
+        result = dict(decision.components.get("registry") or {"allowed": False, "status": "unavailable"})
+        result["allowed"] = decision.allowed
+        result["autonomous_eligible"] = decision.allowed
+        result["eligibility_reasons"] = decision.reasons
+        result["requires_human_approval"] = decision.requires_human_approval
+        result["ledger_gate"] = decision.components.get("ledger")
+        result["autonomy_decision"] = decision.to_dict()
+        if not decision.allowed:
+            result["reason"] = "; ".join(decision.reasons)
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -1380,16 +1445,14 @@ def automation_queue_route(request: AutomationPlanRequest, http_request: Request
     principal = _require_principal(http_request, "l2")
     try:
         classification_key = _automation_classification_key(request.classification)
-        # An autonomous intent is created only by the server, for a service identity, when the registry
-        # mapping is enabled and the outcome ledger permits autonomous execution.
+        # An autonomous intent is created only by the server, for a service identity, when the composed autonomy
+        # decision (registry, outcome ledger with recurrence cap, confidence, safety configuration) allows it.
         intent = None
-        if principal.kind == "service" and _autonomous_mapping_allowed(classification_key):
-            try:
-                tier = str(_ledger_gate_for(classification_key, _engine.DEFAULT_TENANT_ID).get("tier", ""))
-            except Exception:
-                tier = ""
-            if tier == "auto_execute":
-                intent = {"kind": "autonomous", "created_by": principal.id, "created_at": utc_now_iso(), "ledger_tier": tier}
+        if principal.kind == "service":
+            decision = evaluate_autonomy(classification_key, _engine.DEFAULT_TENANT_ID, "intent")
+            if decision.allowed:
+                intent = {"kind": "autonomous", "created_by": principal.id, "created_at": utc_now_iso(),
+                          "ledger_tier": decision.tier}
         result = queue_automation_plan(
             incident_id=request.incident_id,
             classification=classification_key,
@@ -1514,8 +1577,7 @@ def automation_execute_route(request: AutomationExecuteRequest, http_request: Re
             request.execution_mode or "simulation",
             principal,
             run_gate=lambda e: _run_gate_for_entry(e, principal),
-            ledger_gate=_ledger_gate_for,
-            autonomous_mapping_allowed=_autonomous_mapping_allowed,
+            autonomy_decision=_autonomy_decision_for_entry,
             override=bool(request.override_gate_warnings),
             override_reason=request.override_reason or "",
         )

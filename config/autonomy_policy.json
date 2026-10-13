@@ -1,0 +1,12 @@
+{
+  "schema_version": "autonomy_policy_v1",
+  "success_tiers": {
+    "auto_execute": { "min_success_rate": 0.85, "min_outcomes": 5 },
+    "auto_execute_watch": { "min_success_rate": 0.60, "min_outcomes": 3 }
+  },
+  "recurrence_cap": {
+    "min_outcomes": 3,
+    "moderate_rate": 0.20,
+    "high_rate": 0.40
+  }
+}

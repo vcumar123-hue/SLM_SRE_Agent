@@ -184,19 +184,38 @@ def _read_json_outcomes(
     return rows
 
 
+_TIER_ORDER = {"hold_for_approval": 0, "auto_execute_watch": 1, "auto_execute": 2}
+_CAP_TIER = {"none": "auto_execute", "watch": "auto_execute_watch", "hold": "hold_for_approval"}
+
+
 def autonomous_gate(
     classification: str,
     tenant_id: str = "default",
+    policy: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Return the autonomous execution gate decision for a classification+tenant pair.
+    """Return the outcome-ledger tier for a classification+tenant pair.
 
-    Tiers:
-      auto_execute       — success_rate >= 0.85 AND total_outcomes >= 5
-      auto_execute_watch — success_rate >= 0.60 AND total_outcomes >= 3
-      hold_for_approval  — everything else, including no history
+    Tiers (thresholds come from autonomy_policy, defaults shown):
+      auto_execute       - success_rate >= 0.85 AND total_outcomes >= 5
+      auto_execute_watch - success_rate >= 0.60 AND total_outcomes >= 3
+      hold_for_approval  - everything else, including no history
+
+    Recurrence is a SEPARATE cap, not a failure: a remediation can succeed and still recur. Once there are
+    enough outcomes, a recurrence rate >= moderate_rate caps the tier at auto_execute_watch and a rate >=
+    high_rate forces hold_for_approval. `base_tier` is the tier before the cap.
 
     Always returns a dict; never raises.
     """
+    from autonomy_policy import load_policy
+
+    try:
+        pol = policy or load_policy()
+        tiers, rc = pol["success_tiers"], pol["recurrence_cap"]
+    except Exception:
+        from autonomy_policy import resolve_policy
+        pol = resolve_policy(None)
+        tiers, rc = pol["success_tiers"], pol["recurrence_cap"]
+
     try:
         summary = summarize_outcomes(classification, tenant_id=tenant_id)
     except Exception:
@@ -204,38 +223,62 @@ def autonomous_gate(
 
     if summary is None:
         return {
-            "tier":              "hold_for_approval",
-            "success_rate":      None,
-            "total_outcomes":    0,
-            "confidence_signal": None,
-            "reason":            "No outcome history for this classification - autonomous execution requires at least 3 confirmed resolved outcomes.",
+            "tier":                  "hold_for_approval",
+            "base_tier":             "hold_for_approval",
+            "success_rate":          None,
+            "total_outcomes":        0,
+            "recurrence_rate":       None,
+            "recurrence_cap":        "none",
+            "recurrence_cap_applied": False,
+            "confidence_signal":     None,
+            "reason":                "No outcome history for this classification - autonomous execution requires at least 3 confirmed resolved outcomes.",
         }
 
     total   = summary["total_outcomes"]
     success = summary["success_rate"]
     signal  = summary["confidence_signal"]
+    rate    = float(summary.get("recurrence_rate") or 0.0)
 
-    if success >= 0.85 and total >= 5:
-        tier   = "auto_execute"
+    auto, watch = tiers["auto_execute"], tiers["auto_execute_watch"]
+    if success >= auto["min_success_rate"] and total >= auto["min_outcomes"]:
+        base   = "auto_execute"
         reason = f"Strong outcome history: {total} outcomes, {success:.0%} success rate."
-    elif success >= 0.60 and total >= 3:
-        tier   = "auto_execute_watch"
+    elif success >= watch["min_success_rate"] and total >= watch["min_outcomes"]:
+        base   = "auto_execute_watch"
         reason = f"Sufficient but not fully reliable history: {total} outcomes, {success:.0%} success rate. Monitor closely."
     else:
+        base = "hold_for_approval"
         parts = []
-        if total < 3:
-            parts.append(f"only {total} outcome(s) recorded (minimum 3 required)")
-        if success < 0.60:
-            parts.append(f"success rate {success:.0%} below 60% threshold")
+        if total < watch["min_outcomes"]:
+            parts.append(f"only {total} outcome(s) recorded (minimum {watch['min_outcomes']} required)")
+        if success < watch["min_success_rate"]:
+            parts.append(f"success rate {success:.0%} below {watch['min_success_rate']:.0%} threshold")
         reason = f"Hold for human approval - {'; '.join(parts)}."
-        tier   = "hold_for_approval"
+
+    cap = "none"
+    if total >= rc["min_outcomes"]:
+        if rate >= rc["high_rate"]:
+            cap = "hold"
+        elif rate >= rc["moderate_rate"]:
+            cap = "watch"
+    cap_tier = _CAP_TIER[cap]
+    tier = base if _TIER_ORDER[base] <= _TIER_ORDER[cap_tier] else cap_tier
+    applied = tier != base
+    if applied:
+        threshold = rc["high_rate"] if cap == "hold" else rc["moderate_rate"]
+        reason += (f" Recurrence rate {rate:.0%} is at or above the {cap} threshold of {threshold:.0%}: "
+                   f"tier capped at {tier}.")
 
     return {
-        "tier":              tier,
-        "success_rate":      success,
-        "total_outcomes":    total,
-        "confidence_signal": signal,
-        "reason":            reason,
+        "tier":                   tier,
+        "base_tier":              base,
+        "success_rate":           success,
+        "total_outcomes":         total,
+        "recurrence_rate":        rate,
+        "recurrence_cap":         cap,
+        "recurrence_cap_applied": applied,
+        "confidence_signal":      signal,
+        "reason":                 reason,
     }
 
 

@@ -34,7 +34,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 1 | Server-side execution authorization (W1), authentication and roles (W2), external-LLM governance (W5) | Implemented (`947cd44`, `14e34c2`); verification closed by Wave 1b |
 | 1b | Closure of the Wave 1 review: OS-level queue lock, durable fail-closed egress audit, stable warning overrides, UI contract and simulation-only workflow tests, clean-checkout validation | **See Wave 1b section below** |
 | 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
-| 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Planned |
+| 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Implemented - see the Wave 3 section below |
 | 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Planned |
 | 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
 
@@ -51,6 +51,7 @@ Environment and dependency changes are recorded here as they happen.
 | 2026-10-11 | Wave 1b applied to `C:\Projects\AI\SLM` (26 files, each matching a known-good version before overwrite; `.gitignore` skipped; `.env`, `data/`, `API_Key/` untouched) | Two-tree rule |
 | 2026-10-11 | `tests/__init__.py` disables debug logging for the test process so tests never append to `data/debug/*.jsonl` | Test hermeticity |
 | 2026-10-12 | Wave 2: no new dependencies; no packages installed or changed. New module `safety_evidence.py`; gate-generated evidence now lives in `data/evidence/_generated/` (git-ignored) | Wave 2 |
+| 2026-10-13 | Wave 3: no new dependencies. Added centralized autonomy policy and a composed, fail-closed autonomy decision used by enablement, eligibility and execution authorization | Wave 3 |
 
 ## Two-tree rule (owner request, 2026-10-11)
 All Release 1 changes are made on this branch **and** applied to `C:\Projects\AI\SLM` (the working folder with `.env`, runtime data and venv).
@@ -164,3 +165,18 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 - A real gate run against `SLM`'s evidence folder, CMDB or lab containers (the tests replace the snapshot engine; a real run writes `data/evidence/_generated/`, may take snapshots and creates `./bak`).
 - A real browser session of the Streamlit UI; the new provenance labels were not rendered in a browser.
 - `POST /evidence/run_api_pull` against a real source system (network bound); only the marker contract is tested.
+
+## Wave 3 - Composed autonomy decision and recurrence policy (W4)
+
+### What changed
+- Autonomous eligibility is now one server-side, fail-closed decision composed from registry state, outcome-ledger history, confidence, safety configuration and tenant deployment stage.
+- Recurrence is an independent tier cap. Moderate recurrence can permit watch mode only; high recurrence forces human approval even when the historical success rate is high.
+- Watch mode requires human approval in Release 1. A client-controlled request field cannot grant autonomous authority.
+- Autonomous enablement, eligibility mapping and execution authorization use the same policy result, preventing their decisions from drifting.
+- Disabled Safety Gate checks prevent autonomous execution. Missing policy or evaluation errors also fail closed.
+- Tenant configuration and the template now carry an explicit deployment stage used by the decision.
+
+### Wave 3 validation record (2026-10-13)
+- Full suite: 182 tests run, all passed; 11 Streamlit-dependent tests skipped in the project `.venv`.
+- The tested source/config/test/document baseline was synchronized to both `C:\Projects\AI\SLM` and `C:\Projects\AI\SLM_Agentic`; 196 included files were compared by hash with no missing or different files.
+- Runtime state and secrets were excluded from synchronization: `.env`, virtual environments, `data/`, `API_Key/`, caches, logs, backups and generated evidence.

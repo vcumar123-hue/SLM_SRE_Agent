@@ -1,5 +1,6 @@
 {
   "tenant_id": "{{tenant_id}}",
+  "deployment_stage": "pilot",
   "display_name": "{{display_name}}",
   "knowledge_scope_default": "client_private",
   "collections": {

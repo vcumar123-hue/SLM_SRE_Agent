@@ -1,5 +1,6 @@
 {
   "tenant_id": "poc_client",
+  "deployment_stage": "pilot",
   "display_name": "POC Client",
   "knowledge_scope_default": "client_private",
   "collections": {

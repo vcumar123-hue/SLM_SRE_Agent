@@ -138,6 +138,8 @@ class ExecutionAuthorization:
     override_reason: str = ""
     approval_override_reason: str = ""
     acknowledged_warnings: List[Dict[str, Any]] = field(default_factory=list)
+    autonomy_tier: str = ""
+    autonomy_reasons: List[str] = field(default_factory=list)
     reasons: List[str] = field(default_factory=list)
     decided_at: str = ""
 
@@ -157,8 +159,7 @@ def authorize_execution(
     principal: Any,
     *,
     run_gate: Callable[[Dict[str, Any]], Dict[str, Any]],
-    ledger_gate: Callable[[str, str], Dict[str, Any]],
-    autonomous_mapping_allowed: Callable[[str], bool],
+    autonomy_decision: Callable[[Dict[str, Any]], Any],
     override: bool = False,
     override_reason: str = "",
 ) -> ExecutionAuthorization:
@@ -192,9 +193,6 @@ def authorize_execution(
     intent = (entry or {}).get("intent") or {}
     autonomous_entry = intent.get("kind") == "autonomous"
     auth.execution_class = "autonomous" if autonomous_entry else "human_approved"
-    cls = (entry or {}).get("classification", "")
-    tenant = (entry or {}).get("tenant_id", "") or "default"
-
     if autonomous_entry:
         if getattr(principal, "kind", "") != "service":
             return _deny(auth, "autonomous plans may be executed only by a service identity")
@@ -202,14 +200,14 @@ def authorize_execution(
             return _deny(auth, f"entry status '{status}' is not executable")
         if intent.get("plan_hash") != auth.plan_hash:
             return _deny(auth, "plan changed since the autonomous intent was created")
-        if not autonomous_mapping_allowed(cls):
-            return _deny(auth, "classification is not enabled for autonomous execution in the registry")
         try:
-            tier = str((ledger_gate(cls, tenant) or {}).get("tier", "hold_for_approval"))
-        except Exception:
-            tier = "hold_for_approval"
-        if tier != "auto_execute":
-            return _deny(auth, f"outcome ledger tier '{tier}' does not permit autonomous execution")
+            decision = autonomy_decision(entry)
+        except Exception as exc:  # fail closed
+            return _deny(auth, f"autonomy decision could not be evaluated: {type(exc).__name__}")
+        auth.autonomy_tier = str(getattr(decision, "tier", ""))
+        auth.autonomy_reasons = list(getattr(decision, "reasons", []) or [])
+        if not getattr(decision, "allowed", False):
+            return _deny(auth, "autonomy decision denies autonomous execution: " + "; ".join(auth.autonomy_reasons))
     else:
         if getattr(principal, "kind", "") != "human":
             return _deny(auth, "human-approved plans may be executed only by a human principal")

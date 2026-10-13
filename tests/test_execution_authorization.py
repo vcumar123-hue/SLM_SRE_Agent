@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 
 import agents.automation as aa
 import app as app_module
+import autonomy_decision
 import automation_engine as ae
 import execution_authorization as exec_auth
 import security
@@ -79,8 +80,23 @@ class AuthzBase(unittest.TestCase):
         start(patch.object(aa, "_build_pre_execution_safety_gate", lambda req: dict(self.gate)))
         self.ledger_tier = "auto_execute"
         self.mapping_allowed = True
-        start(patch.object(aa, "_ledger_gate_for", lambda cls, tenant: {"tier": self.ledger_tier}))
-        start(patch.object(aa, "_autonomous_mapping_allowed", lambda cls: self.mapping_allowed))
+        self.confidence_eligible = True
+        self.disabled_checks = []
+        self.ledger_extra = {}
+
+        def fake_evaluate_autonomy(classification, tenant_id, purpose, action="", playbook="", confidence_summary=None):
+            # the real composer with injectable components, so "any deny wins" is exercised end to end
+            return autonomy_decision.decide(
+                classification, tenant_id, purpose,
+                registry_check=lambda c, a, p: {"allowed": self.mapping_allowed, "status": "ok",
+                                                "reason": "mapping is human-in-the-loop only"},
+                ledger_check=lambda c, t: {"tier": self.ledger_tier, "reason": "test ledger", **self.ledger_extra},
+                confidence_check=lambda c, a, p: {"autonomous_eligible": self.confidence_eligible,
+                                                  "eligibility_reasons": ["test: not eligible"]},
+                config_check=lambda: list(self.disabled_checks),
+                action=action, playbook=playbook)
+
+        start(patch.object(aa, "evaluate_autonomy", fake_evaluate_autonomy))
 
         self._env = patch.dict(os.environ, {"AIOPS_PRINCIPALS": json.dumps(PRINCIPALS), "AIOPS_API_KEY": ""})
         self._env.start()

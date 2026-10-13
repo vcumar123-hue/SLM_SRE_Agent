@@ -1,5 +1,6 @@
 {
   "tenant_id": "client_a",
+  "deployment_stage": "pilot",
   "display_name": "PFG",
   "knowledge_scope_default": "client_private",
   "collections": {

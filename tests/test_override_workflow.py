@@ -190,8 +190,7 @@ class OverrideWorkflowTests(AuthzBase):
         moved = {**approved_run, "target_host": "different-host", "gate_run_id": "gr_x"}
         auth = exec_auth.authorize_execution(
             entry, "live", _Human(), run_gate=lambda e: moved,
-            ledger_gate=lambda c, t: {"tier": "hold_for_approval"},
-            autonomous_mapping_allowed=lambda c: False,
+            autonomy_decision=lambda e: None,  # human-approved entry: the autonomy decision is not consulted
             override=True, override_reason="Reconfirmed")
         self.assertFalse(auth.allowed)
         self.assertIn("target changed", " ".join(auth.reasons))
