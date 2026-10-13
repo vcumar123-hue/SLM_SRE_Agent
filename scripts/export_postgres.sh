@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# export_postgres.sh — Dump the running aiops Postgres + Qdrant snapshot for transfer to vast.ai
+# export_postgres.sh — Dump the running aiops Postgres (including its pgvector embeddings) for transfer to vast.ai
 # Usage:  ./scripts/export_postgres.sh [output-dir]
-# Output: data_package/postgres_dump.sql.gz  +  data_package/qdrant_snapshot.tar.gz
+# Output: data_package/postgres_dump.sql.gz
 
 set -euo pipefail
 
@@ -21,12 +21,10 @@ PGPORT="${PGPORT:-5432}"
 PGDATABASE="${PGDATABASE:-aiops}"
 PGUSER="${PGUSER:-aiops_user}"
 PGPASSWORD="${PGPASSWORD:-StrongPassword123}"
-QDRANT_URL="${QDRANT_URL:-http://127.0.0.1:6333}"
 
 echo "═══════════════════════════════════════════════"
 echo "  AI SRE Platform — Data Export"
 echo "  Postgres: $PGHOST:$PGPORT/$PGDATABASE"
-echo "  Qdrant:   $QDRANT_URL"
 echo "  Output:   $OUTPUT_DIR"
 echo "═══════════════════════════════════════════════"
 
@@ -46,50 +44,8 @@ PGPASSWORD="$PGPASSWORD" pg_dump \
 DUMP_SIZE=$(du -sh "$DUMP_FILE" | cut -f1)
 echo "   ✓ Postgres dump: $DUMP_FILE ($DUMP_SIZE)"
 
-# ── 2. Qdrant snapshot ───────────────────────────────────────────────────────
-echo ""
-echo "▶ Creating Qdrant snapshots..."
-QDRANT_SNAPSHOT_DIR="$OUTPUT_DIR/qdrant_snapshots"
-mkdir -p "$QDRANT_SNAPSHOT_DIR"
-
-# Get all collection names
-COLLECTIONS=$(curl -s "$QDRANT_URL/collections" | python3 -c "
-import sys,json
-data=json.load(sys.stdin)
-for c in data.get('result',{}).get('collections',[]):
-    print(c['name'])
-" 2>/dev/null || echo "")
-
-if [ -z "$COLLECTIONS" ]; then
-    echo "   ⚠ No Qdrant collections found (Qdrant may not be running)"
-else
-    for COLLECTION in $COLLECTIONS; do
-        echo "   Snapshotting collection: $COLLECTION"
-        # Create snapshot
-        SNAPSHOT_RESPONSE=$(curl -s -X POST "$QDRANT_URL/collections/$COLLECTION/snapshots")
-        SNAPSHOT_NAME=$(echo "$SNAPSHOT_RESPONSE" | python3 -c "
-import sys,json
-data=json.load(sys.stdin)
-print(data.get('result',{}).get('name',''))
-" 2>/dev/null)
-
-        if [ -n "$SNAPSHOT_NAME" ]; then
-            # Download snapshot
-            curl -s "$QDRANT_URL/collections/$COLLECTION/snapshots/$SNAPSHOT_NAME" \
-                -o "$QDRANT_SNAPSHOT_DIR/${COLLECTION}_${SNAPSHOT_NAME}"
-            echo "   ✓ $COLLECTION → $SNAPSHOT_NAME"
-        else
-            echo "   ✗ Failed to snapshot $COLLECTION"
-        fi
-    done
-
-    # Archive all snapshots
-    QDRANT_ARCHIVE="$OUTPUT_DIR/qdrant_snapshots.tar.gz"
-    tar -czf "$QDRANT_ARCHIVE" -C "$OUTPUT_DIR" qdrant_snapshots/
-    rm -rf "$QDRANT_SNAPSHOT_DIR"
-    QDRANT_SIZE=$(du -sh "$QDRANT_ARCHIVE" | cut -f1)
-    echo "   ✓ Qdrant archive: $QDRANT_ARCHIVE ($QDRANT_SIZE)"
-fi
+# ── 2. Vectors ────────────────────────────────────────────────────────────────
+# Embeddings live in PostgreSQL (pgvector), so the dump above already contains them.
 
 # ── 3. RAG processed outputs (large — output of rag_ingestion.py) ─────────────
 echo ""
@@ -145,7 +101,7 @@ for f in os.listdir(output_dir):
 manifest = {
     "exported_at": datetime.datetime.utcnow().isoformat() + "Z",
     "files": files,
-    "restore_order": ["postgres_dump.sql.gz", "qdrant_snapshots.tar.gz", "knowledge_json.tar.gz"]
+    "restore_order": ["postgres_dump.sql.gz", "knowledge_json.tar.gz"]
 }
 with open(os.path.join(output_dir, "manifest.json"), "w") as fh:
     json.dump(manifest, fh, indent=2)

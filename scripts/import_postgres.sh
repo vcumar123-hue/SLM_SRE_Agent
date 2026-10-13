@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# import_postgres.sh — Restore Postgres + Qdrant data on vast.ai (or any fresh host)
+# import_postgres.sh — Restore Postgres (including pgvector embeddings) on vast.ai (or any fresh host)
 # Usage:  ./scripts/import_postgres.sh [data-package-dir]
 #         ./scripts/import_postgres.sh          # auto-detects ./data_package/
 #         DATA_PACKAGE_URL=https://... ./scripts/import_postgres.sh   # download first
@@ -21,13 +21,11 @@ PGPORT="${PGPORT:-5432}"
 PGDATABASE="${PGDATABASE:-aiops}"
 PGUSER="${PGUSER:-aiops_user}"
 PGPASSWORD="${PGPASSWORD:-StrongPassword123}"
-QDRANT_URL="${QDRANT_URL:-http://127.0.0.1:6333}"
 
 echo "═══════════════════════════════════════════════"
 echo "  AI SRE Platform — Data Import"
 echo "  Source:   $DATA_DIR"
 echo "  Postgres: $PGHOST:$PGPORT/$PGDATABASE"
-echo "  Qdrant:   $QDRANT_URL"
 echo "═══════════════════════════════════════════════"
 
 # ── 0. Optionally download from URL ──────────────────────────────────────────
@@ -99,38 +97,9 @@ else
     fi
 fi
 
-# ── 3. Restore Qdrant snapshots ───────────────────────────────────────────────
-QDRANT_ARCHIVE="$DATA_DIR/qdrant_snapshots.tar.gz"
-if [ -f "$QDRANT_ARCHIVE" ]; then
-    echo ""
-    echo "▶ Restoring Qdrant snapshots ($(du -sh "$QDRANT_ARCHIVE" | cut -f1))..."
-
-    # Wait for Qdrant
-    MAX_WAIT=60; WAITED=0
-    until curl -sf "$QDRANT_URL/healthz" > /dev/null 2>&1; do
-        sleep 2; WAITED=$((WAITED + 2))
-        [ $WAITED -ge $MAX_WAIT ] && echo "   ✗ Qdrant not ready" && break
-    done
-
-    SNAPSHOT_EXTRACT="$DATA_DIR/qdrant_snapshots"
-    mkdir -p "$SNAPSHOT_EXTRACT"
-    tar -xzf "$QDRANT_ARCHIVE" -C "$DATA_DIR"
-
-    for SNAPSHOT_FILE in "$SNAPSHOT_EXTRACT"/*.snapshot 2>/dev/null; do
-        [ -f "$SNAPSHOT_FILE" ] || continue
-        FNAME=$(basename "$SNAPSHOT_FILE")
-        COLLECTION=$(echo "$FNAME" | sed 's/_.*//')
-        echo "   Uploading snapshot for collection: $COLLECTION"
-        curl -s -X POST "$QDRANT_URL/collections/$COLLECTION/snapshots/upload" \
-            -H "Content-Type: multipart/form-data" \
-            -F "snapshot=@$SNAPSHOT_FILE" > /dev/null
-        echo "   ✓ $COLLECTION restored."
-    done
-    rm -rf "$SNAPSHOT_EXTRACT"
-    echo "   ✓ Qdrant snapshots restored."
-else
-    echo "   ⚠ No qdrant_snapshots.tar.gz — vectors will be rebuilt on first run."
-fi
+# ── 3. Vectors ────────────────────────────────────────────────────────────────
+# Embeddings are stored in PostgreSQL (pgvector) and arrive with the dump. The target database must run
+# the pgvector image; rows without a vector can be embedded with: python pg_vector_store.py --backfill
 
 # ── 4. Restore RAG processed outputs ─────────────────────────────────────────
 RAG_ARCHIVE="$DATA_DIR/rag_data.tar.gz"

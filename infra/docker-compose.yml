@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16  # PostgreSQL 16 with the pgvector extension (vector search)
     container_name: aiops-postgres
     restart: unless-stopped
     environment:
@@ -25,6 +25,7 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     container_name: aiops-qdrant
+    profiles: ["legacy"]  # no longer used: vector search runs in PostgreSQL; start with --profile legacy to inspect old data
     restart: unless-stopped
     ports:
       - "6335:6333"
@@ -95,9 +96,6 @@ services:
       - PGUSER=aiops_user
       - PGPASSWORD=StrongPassword123
 
-      # Qdrant
-      - QDRANT_URL=http://aiops-qdrant:6333
-
       # Redis
       - REDIS_HOST=aiops-redis
       - REDIS_PORT=6379
@@ -116,7 +114,6 @@ services:
       - ../.env
     depends_on:
       - postgres
-      - qdrant
       - redis
 
   backtesting-scheduler:

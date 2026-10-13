@@ -78,8 +78,6 @@ PGDATABASE=aiops
 PGUSER=aiops_user
 PGPASSWORD=${PGPASSWORD}
 
-QDRANT_URL=http://aiops-qdrant:6333
-
 AIOPS_DEFAULT_TENANT_ID=poc_client
 AIOPS_TENANT_CONFIG_DIR=/app/tenant_config
 AIOPS_API_KEY=
