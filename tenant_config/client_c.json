@@ -1,0 +1,60 @@
+{
+  "tenant_id": "client_c",
+  "display_name": "PYPL",
+  "knowledge_scope_default": "client_private",
+  "collections": {
+    "client_private": "client_c_index",
+    "global_learned": "global_learned_patterns_index",
+    "global_base": "global_base_index"
+  },
+  "branding": {
+    "client_label": "PYPL",
+    "product_label": "AI SRE Platform"
+  },
+  "fallback_policy": {
+    "enabled": true,
+    "allow_force_fallback_for_engineers": true,
+    "user_visible_force_fallback": false
+  },
+  "retrieval_policy": {
+    "default_search_order": [
+      "client_c_index",
+      "global_learned_patterns_index",
+      "global_base_index"
+    ],
+    "tenant_match_priority": "high",
+    "global_learned_priority": "medium_high",
+    "global_base_priority": "medium"
+  },
+  "qdrant": {
+    "active_collections": [
+      "client_c_index",
+      "global_learned_patterns_index",
+      "global_base_index"
+    ],
+    "vector_payload_required_fields": [
+      "collection_name",
+      "tenant_id",
+      "knowledge_scope",
+      "classification",
+      "domain",
+      "source_type",
+      "source_layer"
+    ]
+  },
+  "knowledge_governance": {
+    "external_knowledge_contribution": "local",
+    "allow_base_release_import": true,
+    "allow_global_pattern_usage": true,
+    "allow_client_data_export": false,
+    "allow_sanitized_pattern_export": false,
+    "allow_cross_client_learning_contribution": false,
+    "export_approval_required": true,
+    "local_learning_enabled": true,
+    "client_local_backtesting_enabled": true,
+    "global_backtesting_enabled": false
+  },
+  "created_at": "2026-08-17T00:00:00.000000+00:00",
+  "updated_at": "2026-08-17T00:00:00.000000+00:00",
+  "deployment_stage": "pilot"
+}

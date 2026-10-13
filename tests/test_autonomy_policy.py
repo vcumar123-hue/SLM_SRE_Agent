@@ -253,7 +253,7 @@ class DisabledChecksTests(unittest.TestCase):
         self.assertFalse(strict["treat_uploaded_files_as_verified"])
 
     def test_shipped_pilot_tenants_declare_the_stage(self):
-        for name in ("client_a", "client_b", "poc_client", "tenant_config_template"):
+        for name in ("client_a", "client_b", "client_c", "poc_client", "tenant_config_template"):
             cfg = json.loads(pathlib.Path("tenant_config/%s.json" % name).read_text(encoding="utf-8-sig"))
             self.assertEqual(cfg.get("deployment_stage"), "pilot", name)
 
