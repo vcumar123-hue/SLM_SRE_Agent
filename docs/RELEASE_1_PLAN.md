@@ -35,7 +35,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 1b | Closure of the Wave 1 review: OS-level queue lock, durable fail-closed egress audit, stable warning overrides, UI contract and simulation-only workflow tests, clean-checkout validation | **See Wave 1b section below** |
 | 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Planned |
-| 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes) | Planned |
+| 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Planned |
 | 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
 
 ## Change manifest
@@ -144,7 +144,7 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 - **Existing `data/evidence/*.json` in `SLM`** that the old gate had overwritten are recognised by their `source_system` and labelled `synthetic` / `estimated` instead of being trusted.
 
 ### Follow-ups noticed, not done
-- `models.py` and `agents/models.py` define the same request models twice and have drifted. One should be removed (Wave 4 cleanup).
+- **Model files (decided 2026-10-12: do in Wave 4).** `models.py` (root) is authoritative for the HTTP request models: `app.py` and `agents/analyze.py`, `automation.py`, `evidence.py` and `telemetry.py` import it, and it carries the newer fields (`tenant_id`, `promote_to_global`, `promoted_by`, and `TelemetryStatusUpdateRequest`). `agents/models.py` is authoritative only for the agentic contracts (`TriageInput`, `RCAOutput`, `OrchestratorState` and 10 more), which exist nowhere else. It also holds a second copy of 28 request models: 24 identical, 4 drifted (`CreatePlaybookRequest`, `CreateResolutionRequest`, `PromoteCandidateRequest`, `TelemetryPromoteRequest`), and only `FallbackControlRequest` is imported from it (by `agents/knowledge.py`; identical in both). Planned cleanup: keep `agents/models.py` for the agentic contracts only, delete its duplicated request models, point `agents/knowledge.py` at `models`, and add a test that fails if a class name is defined in both files. Until then, any change to a request model must be made in the root `models.py`.
 - Rollback readiness can only become `verified` through client evidence or integration; the platform does not yet verify rollback artifacts itself.
 
 ### Wave 2 validation record (code commit `fe55fb9`, 2026-10-12)
