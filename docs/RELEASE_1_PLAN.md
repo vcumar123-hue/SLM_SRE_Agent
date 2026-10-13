@@ -36,7 +36,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Implemented - see the Wave 3 section below |
 | 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Implemented on `agentic-v2` (partial parity; completed in Wave 4b) - see the Wave 4 and 4b sections below |
-| 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
+| 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Baseline recorded 2026-10-13 - see `docs/baselines/WAVE5_BASELINE_2026-10-13.md`; manual browser check of the UI still open |
 
 ## Change manifest
 Environment and dependency changes are recorded here as they happen.

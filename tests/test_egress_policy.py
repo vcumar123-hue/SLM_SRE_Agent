@@ -42,6 +42,8 @@ class EgressBase(unittest.TestCase):
         self._patches = [
             patch.object(egress_policy, "AUDIT_FILE", self.audit),
             patch.object(egress_policy, "_load_tenant_config", loader),
+            # These tests read the JSONL sink, so they must not depend on a PostgreSQL driver or server being present.
+            patch.object(egress_policy, "_write_pg", lambda row: False),
             patch.dict(os.environ, {"GROQ_API_KEY": "test-key", "GROQ_BASE_URL": GROQ_URL}),
         ]
         for p in self._patches:
