@@ -51,6 +51,49 @@ class LegacyAnalyzeDispatchTests(unittest.TestCase):
 
 
 class SharedFinalizationTests(unittest.TestCase):
+    def test_final_incident_filter_prefers_domain_aligned_evidence(self):
+        incidents = [
+            {"id": "db", "domain": "database", "classification": "oracle_deadlock"},
+            {"id": "cpu", "domain": "compute", "classification": "cpu_saturation"},
+        ]
+        filtered = app.filter_final_retrieved_incidents(
+            ticket="CPU is high",
+            classification="cpu_saturation",
+            display_domain="compute",
+            incidents=incidents,
+            top_k=5,
+        )
+        self.assertEqual([item["id"] for item in filtered], ["cpu"])
+
+    def test_post_rca_guards_run_in_stable_order(self):
+        calls = []
+
+        def symptom(**kwargs):
+            calls.append("symptom")
+            return kwargs["domain"], kwargs["final_classification"], kwargs["analysis"]
+
+        def guard(name):
+            def run(**kwargs):
+                calls.append(name)
+                return (
+                    kwargs["domain"], kwargs["final_classification"],
+                    kwargs["classification_certainty"], kwargs["analysis"],
+                )
+            return run
+
+        with patch.object(app, "enforce_symptom_cause_classification_lock", side_effect=symptom), \
+             patch.object(app, "apply_final_container_connectivity_guard", side_effect=guard("container")), \
+             patch.object(app, "apply_final_batch_scheduler_guard", side_effect=guard("batch")), \
+             patch.object(app, "apply_final_compact_context_normalization", side_effect=guard("compact")):
+            app.apply_shared_post_rca_guards(
+                ticket="ticket",
+                analysis={"classification": "x"},
+                domain="general",
+                classification="x",
+                classification_certainty=0.5,
+            )
+        self.assertEqual(calls, ["symptom", "container", "batch", "compact"])
+
     def test_fallback_confidence_is_hidden_when_display_is_disabled(self):
         with patch.object(app.settings, "ALLOW_FALLBACK_CONFIDENCE_DISPLAY", False):
             value = app.finalize_display_confidence(

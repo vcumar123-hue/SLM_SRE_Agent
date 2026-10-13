@@ -119,7 +119,9 @@ class AgenticFinalDomainTests(unittest.TestCase):
             rca=RCAOutput(final_classification=classification, domain=rca_domain),
         )
         with patch.object(OrchestratorAgent, "run", return_value=state), \
-             patch.object(app, "get_resolution_playbook", return_value={}):
+             patch.object(app, "get_resolution_playbook", return_value={}), \
+             patch.object(app, "build_workflow_timeline", return_value=[]), \
+             patch.object(app, "build_automation_summary", return_value={}):
             out = app._analyze_core_agentic(AnalyzeRequest(ticket=ticket))
         self.assertEqual(out["domain"], out["analysis"]["domain"])
         return out["domain"]

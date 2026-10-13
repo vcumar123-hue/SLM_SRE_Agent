@@ -4482,6 +4482,83 @@ def resolve_final_display_domain(
     return domain
 
 
+def apply_shared_post_rca_guards(
+    *,
+    ticket: str,
+    analysis: Dict[str, Any],
+    domain: str,
+    classification: str,
+    classification_certainty: float,
+    symptom_cause_meta: Optional[Dict[str, Any]] = None,
+) -> Tuple[str, str, float, Dict[str, Any]]:
+    """Apply final deterministic classification safeguards to either analysis path."""
+    guarded_analysis = dict(analysis or {})
+    domain, classification, guarded_analysis = enforce_symptom_cause_classification_lock(
+        analysis=guarded_analysis,
+        domain=domain,
+        final_classification=classification,
+        symptom_cause_meta=symptom_cause_meta or {},
+    )
+    for guard in (
+        apply_final_container_connectivity_guard,
+        apply_final_batch_scheduler_guard,
+        apply_final_compact_context_normalization,
+    ):
+        domain, classification, classification_certainty, guarded_analysis = guard(
+            ticket=ticket,
+            analysis=guarded_analysis,
+            domain=domain,
+            final_classification=classification,
+            classification_certainty=classification_certainty,
+        )
+    return domain, classification, classification_certainty, guarded_analysis
+
+
+def filter_final_retrieved_incidents(
+    *,
+    ticket: str,
+    classification: str,
+    display_domain: str,
+    incidents: List[Dict[str, Any]],
+    top_k: int,
+) -> List[Dict[str, Any]]:
+    """Return the evidence set aligned with the final classification and domain."""
+    aligned: List[Dict[str, Any]] = []
+    for item in incidents:
+        item_domain = normalize_phrase(str(item.get("domain", "") or ""))
+        item_cls = normalize_phrase(str(item.get("classification", "") or ""))
+        if display_domain == "compute" and any(t in item_cls for t in ["cpu", "compute", "server", "memory"]):
+            aligned.append(item)
+        elif classification == "container_connection_issue" and item_is_container_relevant(item) and not item_contradicted_by_ticket(ticket, item):
+            aligned.append(item)
+        elif display_domain == "network" and any(t in item_cls for t in [
+            "vpn", "firewall", "dns", "network", "container", "ecs", "kubernetes",
+            "pod", "target group", "alb", "load balancer", "port binding", "service networking",
+        ]):
+            if not item_contradicted_by_ticket(ticket, item):
+                aligned.append(item)
+        elif display_domain == "iam" and any(t in item_cls for t in ["sso", "browser", "mfa", "auth", "login"]):
+            aligned.append(item)
+        elif display_domain == "database" and any(t in item_cls for t in ["database", "oracle", "deadlock", "sql"]):
+            aligned.append(item)
+        elif display_domain == "storage" and any(t in item_cls for t in ["storage", "nas", "san", "disk"]):
+            aligned.append(item)
+        elif display_domain == "integration" and any(t in item_cls for t in ["mft", "goanywhere", "payload", "formatter", "integration"]):
+            aligned.append(item)
+        elif item_domain == display_domain and display_domain != "general":
+            aligned.append(item)
+
+    if classification == "container_connection_issue":
+        container_aligned = [
+            item for item in incidents
+            if item_is_container_relevant(item) and not item_contradicted_by_ticket(ticket, item)
+        ]
+        if container_aligned:
+            return container_aligned[:top_k]
+        return [item for item in incidents if not item_contradicted_by_ticket(ticket, item)][:top_k]
+    return (aligned or incidents)[:top_k]
+
+
 def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
     """
     Agentic path — active when AIOPS_AGENTIC_ORCHESTRATOR_ENABLED=true.
@@ -4517,17 +4594,33 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
 
     # Canonical display domain, mirroring the final step of _analyze_core_legacy.
     _incidents = retrieval.incidents if retrieval else []
+    _analysis = dict(rca.analysis or {})
+    _symptom_meta = rca.routed_intents.get("symptom_cause_normalization", {}) if rca.routed_intents else {}
+    _guarded_domain, _final_classification, _cert, _analysis = apply_shared_post_rca_guards(
+        ticket=state.ticket,
+        analysis=_analysis,
+        domain=rca.domain,
+        classification=rca.final_classification,
+        classification_certainty=_cert,
+        symptom_cause_meta=_symptom_meta,
+    )
     _domain = resolve_final_display_domain(
         ticket=state.ticket,
-        classification=rca.final_classification,
-        current_domain=rca.domain,
+        classification=_final_classification,
+        current_domain=_guarded_domain,
         taxonomy=load_taxonomy(),
         retrieved_incidents=_incidents,
     )
+    _incidents = filter_final_retrieved_incidents(
+        ticket=state.ticket,
+        classification=_final_classification,
+        display_domain=_domain,
+        incidents=_incidents,
+        top_k=request.top_k or settings.TOP_K_RETRIEVAL,
+    )
 
     # Ensure analysis dict carries the resolved classification and domain
-    _analysis = dict(rca.analysis or {})
-    _analysis["classification"] = rca.final_classification
+    _analysis["classification"] = _final_classification
     _analysis["domain"]         = _domain
     _overall = finalize_display_confidence(
         primary_confidence=_primary,
@@ -4535,15 +4628,43 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
         fallback_used=rca.fallback_used,
         has_evidence=bool(_incidents or _analysis),
     )
+    _candidate = resolution.candidate_record if resolution else rca.candidate_record
+    _knowledge_summary = {
+        "has_retrieved_incidents": bool(_incidents),
+        "retrieved_incident_ids": [item.get("id") for item in _incidents if item.get("id")],
+        "linked_resolution_id": linked_resolution.get("resolution_id") if linked_resolution else None,
+        "linked_playbook_id": linked_playbook.get("playbook_id") if linked_playbook else None,
+        "linked_playbook_name": linked_playbook.get("name") if linked_playbook else None,
+        "resolution_confirmed_by": linked_resolution.get("confirmed_by") if linked_resolution else None,
+        "top_retrieval_methods": dedupe_preserve_order([
+            item.get("retrieval_method", "") for item in _incidents if item.get("retrieval_method")
+        ]),
+    }
+    _confirmation_required = bool(safety and safety.confirmation_required)
 
     return {
         "request_id":        state.request_id,
         "ticket":            state.ticket,
+        "routing_input": {
+            "ticket": state.ticket,
+            "top_k": request.top_k or settings.TOP_K_RETRIEVAL,
+            "force_fallback": bool(request.force_fallback),
+            "confirm_local_matches": request.confirm_local_matches,
+        },
         "domain":            _domain,
         "routing": {
             "method":   "agentic_orchestrator",
             "decision": _decision,
+            "fallback_reason": safety.force_fallback_reason if safety else None,
+            "intent_router": rca.routed_intents,
         },
+        "user_confirmation_prompt": (
+            "I found partially similar local incidents. Do any of these look relevant?"
+            if _confirmation_required else None
+        ),
+        "user_confirmation_options": (
+            ["use_local_matches", "none_relevant_use_fallback"] if _confirmation_required else []
+        ),
         "analysis":          _analysis,
         "confidence": {
             "overall_confidence":       _overall,
@@ -4556,6 +4677,7 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
             "classification_certainty": _cert,
         },
         "fallback_used":         rca.fallback_used,
+        "fallback_runtime_enabled": FALLBACK_RUNTIME_ENABLED,
         "fallback_provider":     rca.fallback_provider,
         "fallback_model":        rca.fallback_model,
         "response_source":       rca.response_source,
@@ -4569,11 +4691,38 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
             "resolution_linked":        linked_resolution is not None,
             "playbook_linked":          linked_playbook is not None,
         },
+        "tenant_config": {
+            "tenant_id": state.tenant_id,
+            "display_name": state.tenant_id,
+            "knowledge_scope": request.knowledge_scope or "client_private",
+        },
+        "knowledge_candidate": _candidate,
+        "knowledge_summary": _knowledge_summary,
+        "rag_context": retrieval.rag_context if retrieval else "",
+        "feedback_override": triage.feedback_override if triage else None,
+        "workflow_timeline": build_workflow_timeline(
+            request_id=state.request_id,
+            decision=_decision,
+            fallback_used=rca.fallback_used,
+            candidate_record=_candidate,
+            linked_resolution=linked_resolution,
+            linked_playbook=linked_playbook,
+            request_confirm_local_matches=request.confirm_local_matches,
+        ),
+        "automation_summary": build_automation_summary(linked_resolution, linked_playbook),
+        "evidence_ui": {
+            "details_label": "Why this matched",
+            "section_hint": "This recommendation is based on previously resolved incidents and validated engineering knowledge.",
+        },
+        "validation_recommendation": {
+            "recommended_scenarios_endpoint": "/validation_scenarios",
+            "notes": "Use the validation scenarios pack to regression-test confirmation, fallback, and learned local reuse.",
+        },
         "tenant_id":    state.tenant_id,
         "trace_spans":  state.trace_spans,
         "routed_intents": rca.routed_intents,
         "resolution_playbook": get_resolution_playbook(
-            rca.final_classification,
+            _final_classification,
             ticket=state.ticket,
             rag_context=retrieval.rag_context[:1500] if retrieval and retrieval.rag_context else "",
             allow_external_llm=bool(request.use_fallback),
@@ -4970,35 +5119,13 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
             final_analysis["symptom_cause_normalization_applied"] = True
             final_analysis["symptom_cause_normalization_reason"] = symptom_cause_for_response.get("reason")
 
-        domain, final_classification, final_analysis = enforce_symptom_cause_classification_lock(
+        domain, final_classification, classification_certainty, final_analysis = apply_shared_post_rca_guards(
+            ticket=ticket,
             analysis=final_analysis,
             domain=domain,
-            final_classification=final_classification,
+            classification=final_classification,
+            classification_certainty=classification_certainty,
             symptom_cause_meta=symptom_cause_for_response or symptom_cause_meta,
-        )
-
-        domain, final_classification, classification_certainty, final_analysis = apply_final_container_connectivity_guard(
-            ticket=ticket,
-            analysis=final_analysis,
-            domain=domain,
-            final_classification=final_classification,
-            classification_certainty=classification_certainty,
-        )
-
-        domain, final_classification, classification_certainty, final_analysis = apply_final_batch_scheduler_guard(
-            ticket=ticket,
-            analysis=final_analysis,
-            domain=domain,
-            final_classification=final_classification,
-            classification_certainty=classification_certainty,
-        )
-
-        domain, final_classification, classification_certainty, final_analysis = apply_final_compact_context_normalization(
-            ticket=ticket,
-            analysis=final_analysis,
-            domain=domain,
-            final_classification=final_classification,
-            classification_certainty=classification_certainty,
         )
 
         if final_classification in {"batch_job_failure", "batch_job_delay", "container_connection_issue"}:
@@ -5011,41 +5138,14 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
             has_evidence=bool(retrieved_incidents or final_analysis),
         )
 
-        # Final response cleanup: prefer incidents aligned with the final display domain,
-        # but fall back to raw retrieved incidents if cleanup would empty the list.
         display_domain = canonical_domain_for_classification(final_classification, fallback_domain=domain)
-        domain_aligned_incidents = []
-        for x in retrieved_incidents:
-            item_domain = normalize_phrase(str(x.get("domain", "") or ""))
-            item_cls = normalize_phrase(str(x.get("classification", "") or ""))
-            if display_domain == "compute" and any(t in item_cls for t in ["cpu", "compute", "server", "memory"]):
-                domain_aligned_incidents.append(x)
-            elif final_classification == "container_connection_issue" and item_is_container_relevant(x) and not item_contradicted_by_ticket(ticket, x):
-                domain_aligned_incidents.append(x)
-            elif display_domain == "network" and any(t in item_cls for t in ["vpn", "firewall", "dns", "network", "container", "ecs", "kubernetes", "pod", "target group", "alb", "load balancer", "port binding", "service networking"]):
-                if not item_contradicted_by_ticket(ticket, x):
-                    domain_aligned_incidents.append(x)
-            elif display_domain == "iam" and any(t in item_cls for t in ["sso", "browser", "mfa", "auth", "login"]):
-                domain_aligned_incidents.append(x)
-            elif display_domain == "database" and any(t in item_cls for t in ["database", "oracle", "deadlock", "sql"]):
-                domain_aligned_incidents.append(x)
-            elif display_domain == "storage" and any(t in item_cls for t in ["storage", "nas", "san", "disk"]):
-                domain_aligned_incidents.append(x)
-            elif display_domain == "integration" and any(t in item_cls for t in ["mft", "goanywhere", "payload", "formatter", "integration"]):
-                domain_aligned_incidents.append(x)
-            elif item_domain == display_domain and display_domain != "general":
-                domain_aligned_incidents.append(x)
-
-        if final_classification == "container_connection_issue":
-            container_aligned = [x for x in retrieved_incidents if item_is_container_relevant(x) and not item_contradicted_by_ticket(ticket, x)]
-            if container_aligned:
-                retrieved_incidents = container_aligned[:top_k]
-            else:
-                retrieved_incidents = [x for x in retrieved_incidents if not item_contradicted_by_ticket(ticket, x)][:top_k]
-        elif domain_aligned_incidents:
-            retrieved_incidents = domain_aligned_incidents[:top_k]
-        else:
-            retrieved_incidents = retrieved_incidents[:top_k]
+        retrieved_incidents = filter_final_retrieved_incidents(
+            ticket=ticket,
+            classification=final_classification,
+            display_domain=display_domain,
+            incidents=retrieved_incidents,
+            top_k=top_k,
+        )
 
         domain = display_domain
 

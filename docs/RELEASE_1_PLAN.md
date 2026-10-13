@@ -35,7 +35,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 1b | Closure of the Wave 1 review: OS-level queue lock, durable fail-closed egress audit, stable warning overrides, UI contract and simulation-only workflow tests, clean-checkout validation | **See Wave 1b section below** |
 | 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Implemented - see the Wave 3 section below |
-| 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Planned |
+| 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Implemented on `agentic-v2` - see the Wave 4 section below |
 | 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
 
 ## Change manifest
@@ -165,6 +165,21 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 - A real gate run against `SLM`'s evidence folder, CMDB or lab containers (the tests replace the snapshot engine; a real run writes `data/evidence/_generated/`, may take snapshots and creates `./bak`).
 - A real browser session of the Streamlit UI; the new provenance labels were not rendered in a browser.
 - `POST /evidence/run_api_pull` against a real source system (network bound); only the marker contract is tested.
+
+## Wave 4 - Legacy/agentic analysis parity (`agentic-v2` only)
+
+### What changed
+- Added characterization tests that pin legacy dispatch, agentic failure fallback, response shape, confidence logging and knowledge linkage before refactoring.
+- Root `models.py` is the single source for HTTP request models. `agents/models.py` now contains agent contracts only, with a structural regression test preventing duplicate class definitions.
+- Legacy and agentic analysis now share final confidence display, canonical domain resolution, deterministic post-RCA classification guards and final incident filtering.
+- Agentic fallback now creates a governed knowledge candidate under the same conditions as legacy, feeding the existing draft and approval lifecycle.
+- Successful analysis completion tracing runs from the common dispatcher, covering either path once. PostgreSQL remains best-effort and optional.
+- The agentic result now includes the legacy UI/workflow response contract while retaining agent trace metadata as additive fields.
+
+### Validation
+- Characterization checkpoint: 186 tests passed, 11 Streamlit-dependent tests skipped.
+- Final Wave 4 regression: 194 tests passed; 11 Streamlit-dependent tests skipped in the project `.venv`.
+- Changes were made only in `C:\Projects\AI\SLM_Agentic`, per owner direction.
 
 ## Wave 3 - Composed autonomy decision and recurrence policy (W4)
 
