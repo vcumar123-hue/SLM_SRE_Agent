@@ -781,6 +781,7 @@ def queue_automation_plan(
     linked_playbook: Optional[Dict[str, Any]] = None,
     requested_by: str = "system",
     intent: Optional[Dict[str, Any]] = None,
+    tenant_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a queue entry. `intent` is set only by the server (never from a request body)."""
     plan = build_automation_plan(classification, linked_resolution, linked_playbook)
@@ -789,7 +790,7 @@ def queue_automation_plan(
         "queue_id": f"aq_{uuid.uuid4().hex[:10]}",
         "incident_id": str(incident_id or "").strip(),
         "classification": _normalize_key(classification),
-        "tenant_id": DEFAULT_TENANT_ID,
+        "tenant_id": str(tenant_id or "").strip() or DEFAULT_TENANT_ID,
         "requested_by": str(requested_by or "system").strip(),
         "created_at": _utc_now_iso(),
         "status": "queued",

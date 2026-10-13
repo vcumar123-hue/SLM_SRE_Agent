@@ -104,6 +104,7 @@ class AutomationPlanRequest(BaseModel):
     linked_resolution: Optional[Dict[str, Any]] = None
     linked_playbook: Optional[Dict[str, Any]] = None
     requested_by: Optional[str] = "system"
+    tenant_id: Optional[str] = None  # the tenant the incident belongs to; the server falls back to its default when omitted
 
 
 class AutomationApproveRequest(BaseModel):

@@ -493,6 +493,7 @@ def _render_evaluate_incident() -> None:
                 "recommendation": recommendation,
                 "source": "error_tolerance_page",
                 "requested_by": "operator",
+                "tenant_id": st.session_state.get("tenant_id", "client_c"),
             }
             try:
                 r = SESSION.post(

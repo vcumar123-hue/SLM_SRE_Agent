@@ -491,7 +491,7 @@ def render_automation_queue_page():
         st.metric("Rollback Readiness", rollback_status)
     with gate_cols[5]:
         st.metric("Blast Radius", blast_radius_status)
-    if safety_gate_passed:
+    if safety_gate_status == "passed":
         st.success("Execution Gate: PASSED. Human approval is now enabled for this queue.")
     elif safety_gate_status == "warning":
         st.warning("Execution Gate: WARNING. Human approval is enabled, but review the warning details before proceeding.")

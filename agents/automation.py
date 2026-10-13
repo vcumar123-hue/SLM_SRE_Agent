@@ -1438,18 +1438,33 @@ def automation_autonomous_eligible_mapping_route(request: AutomationAutonomousEl
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _tenant_is_known(tenant_id: str) -> bool:
+    """A tenant is known when it has a config file (or is the engine default); this keeps typos out of the queue."""
+    if tenant_id == _engine.DEFAULT_TENANT_ID:
+        return True
+    safe = "".join(ch for ch in tenant_id if ch.isalnum() or ch in "_-")
+    if safe != tenant_id or not safe:
+        return False
+    return (Path(os.getenv("AIOPS_TENANT_CONFIG_DIR", "tenant_config")) / f"{safe}.json").exists()
+
+
 @router.post("/automation/queue")
 def automation_queue_route(request: AutomationPlanRequest, http_request: Request) -> Dict[str, Any]:
     if queue_automation_plan is None:
         raise HTTPException(status_code=500, detail="automation_engine not available")
     principal = _require_principal(http_request, "l2")
+    tenant_id = (request.tenant_id or "").strip() or _engine.DEFAULT_TENANT_ID
+    if not _tenant_is_known(tenant_id):
+        raise HTTPException(status_code=400, detail=f"Unknown tenant '{tenant_id}'")
+    if not principal.allows_tenant(tenant_id):
+        raise HTTPException(status_code=403, detail=f"Principal '{principal.id}' is not permitted to queue work for tenant '{tenant_id}'")
     try:
         classification_key = _automation_classification_key(request.classification)
         # An autonomous intent is created only by the server, for a service identity, when the composed autonomy
         # decision (registry, outcome ledger with recurrence cap, confidence, safety configuration) allows it.
         intent = None
         if principal.kind == "service":
-            decision = evaluate_autonomy(classification_key, _engine.DEFAULT_TENANT_ID, "intent")
+            decision = evaluate_autonomy(classification_key, tenant_id, "intent")
             if decision.allowed:
                 intent = {"kind": "autonomous", "created_by": principal.id, "created_at": utc_now_iso(),
                           "ledger_tier": decision.tier}
@@ -1460,6 +1475,7 @@ def automation_queue_route(request: AutomationPlanRequest, http_request: Request
             linked_playbook=request.linked_playbook,
             requested_by=principal.id if principal.kind == "service" else (request.requested_by or "system"),
             intent=intent,
+            tenant_id=tenant_id,
         )
         queue_entry = result.get("queue_entry", {}) if isinstance(result, dict) else {}
         plan = queue_entry.get("plan", {}) if isinstance(queue_entry, dict) else {}

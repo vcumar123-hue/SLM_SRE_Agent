@@ -23,7 +23,7 @@ Recorded before the pgvector migration so that migration can be compared against
 ## Results
 - Full suite in the container: **241 tests, all passed, 0 skipped** (the 11 Streamlit tests ran here; they skip in the Windows `.venv`).
 - Test-isolation defect found and fixed: three egress-policy tests assumed no PostgreSQL driver; with a reachable database the audit correctly goes to PostgreSQL and the tests read an empty JSONL file.
-- Not done: a manual browser session of the Streamlit UI (only the AppTest-based UI tests ran).
+- Manual browser session of the Streamlit UI done (see below).
 
 ## Findings that matter for the migration
 1. **Embedding mismatch.** Default config embeds with LM Studio `nomic-embed-text-v1.5` (768-dim); all Qdrant collections are 384-dim (`sentence-transformers/all-MiniLM-L6-v2`). With default settings every vector query fails with "vector size mismatch" and retrieval silently falls back to lexical results. Baseline numbers below use `EMBEDDING_BACKEND=sentence_transformers EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2`.
@@ -33,3 +33,17 @@ Recorded before the pgvector migration so that migration can be compared against
 
 ## How to use this baseline
 After migration, re-run the same six tickets for both tenants and the same suite; retrieval must be at least as good, and findings 1-2 should be resolved.
+
+## Manual UI session (2026-10-13, scratch services, dev-open API)
+- All nine pages load without exceptions; all four tenants (PFG, Demo Corp, PYPL, POC Client) appear in the selector.
+- Incident Console analysis, Resolution Queue create -> Safety Gate -> approve (blocked until an override reason is typed when the gate has warnings) -> simulated execute all worked. The approval record carried the principal, reason, plan hash and acknowledged warnings.
+- Not exercised: live execution (no connectors started), real authentication (API ran open), screenshots (pane window hidden; the DOM was inspected instead).
+
+### Defects found and fixed (same day)
+1. Queue entries were saved under a fixed default tenant (`client_a`) regardless of the active tenant. Fix: `tenant_id` on the queue request, validated against known tenants and the principal's allowed tenants; the UI sends the active tenant; the autonomy intent is judged for that tenant. Tests: `tests/test_queue_tenant.py`. Re-verified in the UI: a PYPL session now queues under `client_c`.
+2. The Safety Gate banner said "PASSED" for a gate with warnings. It now says WARNING.
+3. The onboarding header always defaulted to "PFG / client_a"; it now starts on the active tenant.
+
+### Still open
+- The two default-tenant settings differ (`app.py` defaults to `client_c`, `automation_engine.py` to `client_a`); callers that omit a tenant still get the engine default.
+- Contradictory "no approved automation" / "approved automation exists" notices in the Incident Console.

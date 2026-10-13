@@ -44,10 +44,22 @@ ONBOARDING_STEPS = [
 ]
 
 
+def _tenant_display_name(tenant_id: str) -> str:
+    """Display name from tenant_config/<tenant_id>.json, or the tenant id when there is none."""
+    try:
+        from pathlib import Path
+        cfg = json.loads((Path(__file__).parent / "tenant_config" / f"{tenant_id}.json").read_text(encoding="utf-8-sig"))
+        return cfg.get("display_name") or tenant_id
+    except Exception:
+        return tenant_id
+
+
 def init_onboarding_state() -> None:
     st.session_state.setdefault("onboarding_active_step", "overview")
-    st.session_state.setdefault("onboarding_client_name", "PFG")
-    st.session_state.setdefault("onboarding_tenant_id", "client_a")
+    # The workspace starts on the tenant selected in the sidebar (still editable below).
+    _active_tenant = st.session_state.get("tenant_id") or "client_a"
+    st.session_state.setdefault("onboarding_client_name", _tenant_display_name(_active_tenant))
+    st.session_state.setdefault("onboarding_tenant_id", _active_tenant)
     st.session_state.setdefault(
         "onboarding_status",
         {

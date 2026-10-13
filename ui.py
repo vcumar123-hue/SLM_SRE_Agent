@@ -627,6 +627,8 @@ def build_playbook_improvement_candidate_payload(
 
 
 def queue_automation(payload: dict) -> dict:
+    payload = dict(payload)
+    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_c"))
     response = SESSION.post(f"{BACKEND_URL}/automation/queue", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
     return response.json()
@@ -4588,6 +4590,7 @@ def _render_demo_page():  # noqa: C901
             "incident_id": st.session_state.demo_incident_id or "demo-incident",
             "classification": automation_class,
             "requested_by": "demo",
+            "tenant_id": st.session_state.get("tenant_id", "client_c"),
         })
         if code >= 300:
             return None, d
