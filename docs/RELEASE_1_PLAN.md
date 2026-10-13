@@ -146,3 +146,21 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 ### Follow-ups noticed, not done
 - `models.py` and `agents/models.py` define the same request models twice and have drifted. One should be removed (Wave 4 cleanup).
 - Rollback readiness can only become `verified` through client evidence or integration; the platform does not yet verify rollback artifacts itself.
+
+### Wave 2 validation record (code commit `fe55fb9`, 2026-10-12)
+180 tests: 118 from Waves 0-1b plus 62 new in Wave 2 (`tests/test_safety_gate_evidence.py`).
+
+| Tree | `.venv` interpreter | System Python 3.14 (Streamlit) |
+|---|---|---|
+| `SLM_Repo` | 180 run, OK, 11 skipped (UI layers) | 180 run, OK, 0 skipped |
+| `SLM` | 180 run, OK, 11 skipped (UI layers) | 180 run, OK, 0 skipped |
+| Clean clone of the branch (no `.env`, no untracked files) | 180 run, OK, 11 skipped (UI layers) | 180 run, OK, 0 skipped |
+
+- `SLM` holds the same content as the branch for all 33 changed files (each matched a known-good version before it was overwritten).
+- The suite does not modify `SLM`'s runtime data and does not create `bak/` or `data/evidence/_generated/`.
+- Read-only preview against `SLM`'s real evidence (nothing written, gate not run): all six checks are stale (June timestamps against a 72 h TTL) and none is verified, so live execution reports `warn` for every check (override needed) and autonomous reports `fail`. Three files are old gate-written files now recognised as synthetic or estimated; three are manual/uploaded and therefore unattested. The two files that start with a byte-order mark now parse.
+
+### Not verified in Wave 2
+- A real gate run against `SLM`'s evidence folder, CMDB or lab containers (the tests replace the snapshot engine; a real run writes `data/evidence/_generated/`, may take snapshots and creates `./bak`).
+- A real browser session of the Streamlit UI; the new provenance labels were not rendered in a browser.
+- `POST /evidence/run_api_pull` against a real source system (network bound); only the marker contract is tested.
