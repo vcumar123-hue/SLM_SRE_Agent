@@ -22,12 +22,16 @@ class FakeCursor:
     def __init__(self, rows_by_table):
         self.rows_by_table = rows_by_table
         self.calls = []
+        self.settings = []
         self.description = [(n,) for n in ("id", "title", "content", "classification", "domain", "service_scope",
                                            "environment", "severity", "tenant_id", "knowledge_scope",
                                            "source_type", "score")]
         self._rows = []
 
     def execute(self, sql, params=None):
+        if sql.lstrip().upper().startswith("SET"):
+            self.settings.append(sql)  # session settings are not searches
+            return
         self.calls.append((sql, params))
         table = "chunks" if "client_knowledge_chunks" in sql else "incidents"
         scope = "tenant" if "tenant_id = %s" in sql else ("learned" if "'global_learned'" in sql else "base")
@@ -122,6 +126,10 @@ class SearchTests(unittest.TestCase):
         self.assertIn("classification", chunk_sql.split("WHERE")[1])
         self.assertNotIn("severity", chunk_sql.split("WHERE")[1])  # chunks have no severity column
         self.assertIn("severity", incident_sql.split("WHERE")[1])
+
+    def test_searches_use_iterative_scans_so_small_tenants_are_not_starved(self):
+        _, cursor = self.search({}, limit=5, tenant_id="client_a")
+        self.assertTrue(any("iterative_scan" in s and "strict_order" in s for s in cursor.settings))
 
     def test_unknown_layers_are_ignored(self):
         _, cursor = self.search({}, limit=5, tenant_id="client_a", search_order=["bogus", "global_base"])
@@ -282,6 +290,20 @@ class LivePgVectorTests(unittest.TestCase):
             cur.execute("UPDATE incidents SET content = 'edited text' WHERE id = 'livetest_stale'")
             cur.execute("SELECT embedding IS NULL FROM incidents WHERE id = 'livetest_stale'")
             self.assertTrue(cur.fetchone()[0])
+
+    def test_a_small_tenant_is_not_starved_by_a_large_neighbour(self):
+        """Filters run after the index scan: 300 near-identical rows for one tenant must not hide another tenant's rows."""
+        import random
+        rnd = random.Random(7)
+        target = self.vec(10)
+        for n in range(300):
+            v = [x + rnd.uniform(-0.01, 0.01) for x in target]
+            pv.upsert_knowledge({"id": f"livetest_big_{n}", "title": "T", "content": f"big {n}", "classification": "live_test",
+                                 "domain": "test"}, v, model="test", tenant_id=self.other, knowledge_scope="client_private")
+        for n in range(3):
+            self.put(f"livetest_small_{n}", 11 + n, self.tenant, "client_private")
+        found = {r["id"] for r in pv.search_multi_scope(target, limit=10, tenant_id=self.tenant, search_order=["tenant"])}
+        self.assertEqual(found, {"livetest_small_0", "livetest_small_1", "livetest_small_2"})
 
     def test_upsert_is_idempotent(self):
         for _ in range(2):

@@ -15,6 +15,7 @@ Run as a script to add the schema and embed rows that do not have a vector yet:
     python pg_vector_store.py --migrate           # add columns, indexes
     python pg_vector_store.py --backfill          # embed rows with no embedding (resumable)
     python pg_vector_store.py --status            # counts
+    python pg_vector_store.py --check-recall      # HNSW index versus exact search
 """
 from __future__ import annotations
 
@@ -35,6 +36,10 @@ SCOPE_LAYERS = {
 }
 
 SCHEMA_SQL = f"""
+-- parallel index builds need more shared memory than a default container has; build serially
+SET max_parallel_maintenance_workers = 0;
+-- an HNSW graph that does not fit in maintenance_work_mem is built badly (recall collapses), so give the build room
+SET maintenance_work_mem = '1GB';
 CREATE EXTENSION IF NOT EXISTS vector;
 
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS tenant_id TEXT;
@@ -70,8 +75,10 @@ DROP TRIGGER IF EXISTS trg_chunks_stale_embedding ON client_knowledge_chunks;
 CREATE TRIGGER trg_chunks_stale_embedding BEFORE UPDATE ON client_knowledge_chunks
     FOR EACH ROW EXECUTE FUNCTION aiops_clear_stale_embedding();
 
-CREATE INDEX IF NOT EXISTS idx_incidents_embedding ON incidents USING hnsw (embedding vector_cosine_ops);
-CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON client_knowledge_chunks USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_incidents_embedding ON incidents USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 128);
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON client_knowledge_chunks USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 128);
 """
 
 
@@ -164,6 +171,10 @@ def search_multi_scope(
     merged: List[Dict[str, Any]] = []
     seen = set()
     with _connect() as conn, conn.cursor() as cur:
+        # Tenant and scope filters are applied after the index scan; iterative scans keep scanning until `limit`
+        # matching rows are found, so a small tenant is not starved by a large neighbour.
+        cur.execute("SET LOCAL hnsw.iterative_scan = 'strict_order'")
+        cur.execute("SET LOCAL hnsw.ef_search = 100")
         for layer in layers:
             for sql, params in _layer_queries(layer, tenant, wanted):
                 cur.execute(sql, [qv, *params, qv, per_layer])
@@ -247,6 +258,29 @@ TABLES = {
 }
 
 
+def check_recall(samples: int = 25, k: int = 10) -> Dict[str, float]:
+    """Compare index results with exact results for sample rows; a low value means the HNSW index must be rebuilt."""
+    result: Dict[str, float] = {}
+    with _connect() as conn, conn.cursor() as cur:
+        for table, (key, key_expr, _cols) in TABLES.items():
+            cur.execute(f"SELECT embedding::text FROM {table} WHERE embedding IS NOT NULL ORDER BY random() LIMIT %s", (samples,))
+            queries = [r[0] for r in cur.fetchall()]
+            if not queries:
+                continue
+            overlap = 0
+            for q in queries:
+                sets = []
+                for scan in ("on", "off"):
+                    cur.execute(f"SET LOCAL enable_indexscan = {scan}")
+                    cur.execute(f"SET LOCAL enable_bitmapscan = {scan}")
+                    cur.execute(f"SELECT {key_expr} FROM {table} WHERE embedding IS NOT NULL "
+                                f"ORDER BY embedding <=> %s::vector LIMIT %s", (q, k))
+                    sets.append({r[0] for r in cur.fetchall()})
+                overlap += len(sets[0] & sets[1])
+            result[table] = round(overlap / (len(queries) * k), 3)
+    return result
+
+
 def status() -> Dict[str, Dict[str, int]]:
     out: Dict[str, Dict[str, int]] = {}
     with _connect() as conn, conn.cursor() as cur:
@@ -300,6 +334,7 @@ if __name__ == "__main__":
     parser.add_argument("--migrate", action="store_true")
     parser.add_argument("--backfill", action="store_true")
     parser.add_argument("--status", action="store_true")
+    parser.add_argument("--check-recall", action="store_true", help="compare HNSW results with exact results")
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
     if args.migrate:
@@ -307,5 +342,7 @@ if __name__ == "__main__":
         print("schema ready")
     if args.backfill:
         print(backfill(limit=args.limit))
-    if args.status or not (args.migrate or args.backfill):
+    if args.check_recall:
+        print("recall@10 (1.0 is exact):", check_recall())
+    if args.status or not (args.migrate or args.backfill or args.check_recall):
         print(status())
