@@ -262,6 +262,9 @@ def run_from_pull_specs(dry_run: bool = False) -> Dict[str, Any]:
             severity=str(payload.get("severity") or "low"),
             confidence=float(payload.get("confidence") or 0.7),
         )
+        # Provenance marker: evidence pulled from the configured source system is authoritative (see safety_evidence.py).
+        evidence["_submitted_via"] = "api_pull"
+        evidence["pulled_from"] = url
         path = write_evidence(evidence)
         results.append({"key": key, "status": "ok", "written": str(path.relative_to(ROOT)), "evidence_status": evidence_status})
 

@@ -33,7 +33,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 0 | Version control; characterization/regression tests | Done (W1/W5 regression suites; legacy `/analyze` characterization is the first task of Wave 4, before any extraction) |
 | 1 | Server-side execution authorization (W1), authentication and roles (W2), external-LLM governance (W5) | Implemented (`947cd44`, `14e34c2`); verification closed by Wave 1b |
 | 1b | Closure of the Wave 1 review: OS-level queue lock, durable fail-closed egress audit, stable warning overrides, UI contract and simulation-only workflow tests, clean-checkout validation | **See Wave 1b section below** |
-| 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | On hold until Wave 1b exit criteria are met |
+| 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Planned |
 | 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes) | Planned |
 | 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
@@ -50,6 +50,7 @@ Environment and dependency changes are recorded here as they happen.
 | 2026-10-11 | Environment fact recorded: the project `.venv` has no Streamlit (declared in `requirements.txt`, but installing it would conflict with the pinned `pandas==3.0.2`). The system Python 3.14 has Streamlit 1.55.0 and was used for the UI-layer tests. No package was installed or changed in either interpreter | Wave 1b UI tests |
 | 2026-10-11 | Wave 1b applied to `C:\Projects\AI\SLM` (26 files, each matching a known-good version before overwrite; `.gitignore` skipped; `.env`, `data/`, `API_Key/` untouched) | Two-tree rule |
 | 2026-10-11 | `tests/__init__.py` disables debug logging for the test process so tests never append to `data/debug/*.jsonl` | Test hermeticity |
+| 2026-10-12 | Wave 2: no new dependencies; no packages installed or changed. New module `safety_evidence.py`; gate-generated evidence now lives in `data/evidence/_generated/` (git-ignored) | Wave 2 |
 
 ## Two-tree rule (owner request, 2026-10-11)
 All Release 1 changes are made on this branch **and** applied to `C:\Projects\AI\SLM` (the working folder with `.env`, runtime data and venv).
@@ -110,3 +111,38 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 - The queue page's override-reason input is covered through the helpers and the server contract, not by driving that page in `AppTest` (it needs candidate and registry state).
 - The PostgreSQL audit sink (`insert_egress_audit`) against a live database; the driver is absent until Wave 5.
 - The reviewer's original sandbox. The failures reported there were not reproduced; see the note above.
+
+## Wave 2 - Safety Gate evidence semantics and provenance (W3)
+
+### What changed
+- Every piece of evidence is judged on two independent axes. **What it says** (raw status `pass | warn | fail | unknown`; anything missing, malformed or unrecognised is `unknown`, never `pass`) and **how far it can be trusted** (provenance `verified | synthetic | estimated | unknown`).
+- Provenance is decided by the platform, not by the file: `verified` = pulled from a configured API, pushed by an authenticated principal (`submitted_by` recorded), or captured from real state (CMDB / lab container). `synthetic` = dry-mode snapshot or dry-run simulation. `estimated` = inferred by the platform (blast radius, rollback readiness). `unknown` = origin cannot be established, including uploaded or manual files. A `provenance` field written inside a client file is ignored.
+- Effective status by execution class (`evidence_policy` in `safety_gate_config.json`; defaults shown):
+
+| Condition (would otherwise pass) | simulation | live | autonomous |
+|---|---|---|---|
+| Missing / unreadable / malformed / unrecognised status / unattested / synthetic / estimated | `unknown` | `warn` (override required) | `fail` (blocked) |
+| Stale beyond TTL (default 72 h) | `warn` | `warn` | `fail` |
+
+  A reported `warn` or `fail` is never softened. `degraded_status` can only be configured to `unknown`, `warn` or `fail`, never `pass`. Simulation proceeds (the gate reports `warning`; it does not block simulation); live needs a recorded human override; autonomous is blocked.
+- **Separate folders.** The gate writes only to `<evidence_dir>/_generated/` (drift, error-budget/simulation, rollback readiness). It never writes over client evidence. Where both exist, a source that actually reports a problem wins; otherwise the most trustworthy source wins, so degraded generated evidence cannot veto verified client evidence.
+- **Honest labels.** The "error budget" check is the dry-run simulation result and says so. "Rollback readiness" is an estimate and no longer claims "Rollback artifacts available".
+- **Gate modes.** The gate evaluates `simulation`, `live` and `autonomous` classes; autonomous queue entries are gated as autonomous (the stricter staleness/evidence rules never applied before). `warning` identities (Wave 1b) are mode-independent so an approval granted from a simulation-class run still matches the live re-run, and a change in the underlying condition (for example a snapshot failure) is rejected.
+- **Gate report.** New fields: `execution_mode_class`, `evidence_policy`, `evidence_provenance` (counts), `unverified_checks`, and per check `raw_status`, `provenance`, `evidence_issue`, `evidence_source`, `policy_reasons`, `evidence_sources_considered`. `enforcement_mode` is now `server_enforced`.
+- **Defects fixed on the way.**
+  1. The shipped config's `pilot_defaults.missing_evidence_status: "pass"` made missing evidence pass, and the `policy` block in the same file was never read by any code. Both are replaced by `evidence_policy`.
+  2. Evidence files that start with a byte-order mark (`concurrent_activity.json`, `rollback_readiness.json`) failed to parse and were silently treated as missing, then passed by default. They are now read correctly.
+  3. `POST /evidence/submit` returned HTTP 500 for every request: the root `models.py` copy of `EvidenceSubmitRequest` lacked `details`, `checked_at` and `confidence` (present in `agents/models.py`). This was already the case on `main`. The two model files have drifted; see the follow-up below.
+  4. The gate overwrote client evidence files of the same names on every run.
+  5. `POST /evidence/submit` and `POST /evidence/run_api_pull` now require an authenticated principal with role l2 or above, and push evidence records who submitted it.
+
+### Operational notes
+- **Default behaviour changes.** With the shipped configuration and no integrated evidence, every gate run reports `warning`: nothing is verified. Approval therefore needs an override reason (the queue page prompts for it), live execution needs execute-time reconfirmation, and autonomous execution is blocked until evidence is verified. To make a client's checks `verified`: push evidence with an authenticated principal (`POST /evidence/submit`), configure an API pull, or - only if the client accepts file uploads as authoritative - set `evidence_policy.treat_uploaded_files_as_verified: true`.
+- **Client push scripts** now need a bearer token for a principal with role l2 or above.
+- **Evidence files are not tamper-proof.** Provenance is an assertion recorded when evidence is written; anyone with write access to the evidence folder can forge it. Signed evidence or database-backed evidence is the long-term answer.
+- **Disabled checks** remain `pass` with provenance `not_applicable` (an explicit client decision). Consider refusing autonomous execution when any check is disabled (Wave 3).
+- **Existing `data/evidence/*.json` in `SLM`** that the old gate had overwritten are recognised by their `source_system` and labelled `synthetic` / `estimated` instead of being trusted.
+
+### Follow-ups noticed, not done
+- `models.py` and `agents/models.py` define the same request models twice and have drifted. One should be removed (Wave 4 cleanup).
+- Rollback readiness can only become `verified` through client evidence or integration; the platform does not yet verify rollback artifacts itself.

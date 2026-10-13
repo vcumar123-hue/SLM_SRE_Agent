@@ -277,3 +277,6 @@ class EvidenceSubmitRequest(BaseModel):
     severity: Optional[str] = None
     source_system: Optional[str] = None
     summary: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+    checked_at: Optional[str] = None
+    confidence: Optional[float] = None

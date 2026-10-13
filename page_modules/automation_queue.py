@@ -452,9 +452,9 @@ def render_automation_queue_page():
 
     st.markdown("#### Pre-Execution Safety Gate")
     st.caption(
-        "Calls the backend safety-gate endpoint before human approval. "
-        "Step 2C is advisory-only: it records drift/SLO/change/rollback/blast-radius status, "
-        "but live execution blocking will be added in the next backend enforcement step."
+        "Calls the backend safety-gate endpoint before human approval. The backend enforces the gate for live "
+        "execution. Evidence that is missing, synthetic, estimated or unattested is never reported as passed: "
+        "simulation may proceed, live execution needs a recorded human override, and autonomous execution is blocked."
     )
     safety_checks = safety_gate_result.get("checks", {}) if isinstance(safety_gate_result.get("checks"), dict) else {}
 
@@ -462,6 +462,9 @@ def render_automation_queue_page():
         detail = safety_checks.get(name) if isinstance(safety_checks, dict) else None
         if isinstance(detail, dict):
             status = str(detail.get("status") or default).upper()
+            _prov = str(detail.get("provenance") or "")
+            if _prov and _prov not in {"verified", "not_applicable"} and status != "PASS":
+                status = f"{status} ({_prov})"
             if name == "blast_radius":
                 severity = str(detail.get("severity") or "").strip()
                 return f"{status} / {severity.upper()}" if severity else status

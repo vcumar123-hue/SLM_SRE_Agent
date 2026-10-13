@@ -44,6 +44,9 @@ ROUTE_MIN_ROLE: Tuple[Tuple[Optional[Tuple[str, ...]], str, str], ...] = (
     (("POST",), "/automation/candidates/save_playbook", "l3"),
     (("POST",), "/automation/queue", "l2"),
     (("POST",), "/automation/refresh_queue", "l2"),
+    # Evidence writers: what they submit or pull is weighed by the Safety Gate as verified evidence.
+    (("POST",), "/evidence/submit", "l2"),
+    (("POST",), "/evidence/run_api_pull", "l2"),
 )
 
 

@@ -10,27 +10,18 @@
     "storage_mode": "local_slm_bak_folder",
     "default_available_for_read_only_playbooks": true
   },
-  "pilot_defaults": {
-    "missing_evidence_status": "pass",
-    "missing_evidence_severity": "low",
-    "missing_evidence_note": "Pilot mode: no external integration evidence provided yet; treated as PASS for human-in-loop validation. Change to WARN/FAIL for production readiness."
-  },
-  "policy": {
-    "simulation": {
-      "missing_evidence": "warn",
-      "fail_blocks": false,
-      "warn_blocks": false
+  "evidence_policy": {
+    "degraded_status": {
+      "simulation": "unknown",
+      "live": "warn",
+      "autonomous": "fail"
     },
-    "live_human_approved": {
-      "missing_evidence": "warn",
-      "fail_blocks": true,
-      "warn_blocks": false
+    "stale_status": {
+      "simulation": "warn",
+      "live": "warn",
+      "autonomous": "fail"
     },
-    "autonomous": {
-      "missing_evidence": "fail",
-      "fail_blocks": true,
-      "warn_blocks": true
-    }
+    "treat_uploaded_files_as_verified": false
   },
   "checks": {
     "infrastructure_drift": {

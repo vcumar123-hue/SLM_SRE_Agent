@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json, os, re, threading, traceback, uuid
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +12,7 @@ from fastapi.encoders import jsonable_encoder
 import settings_portable as settings
 import automation_engine as _engine
 import execution_authorization as exec_auth
+import safety_evidence as _ev
 from security import Principal, principal_from_request
 from agents.helpers import _automation_classification_key
 from file_manager import append_debug_event, append_jsonl, read_json, utc_now_iso
@@ -154,6 +156,8 @@ def _first_playbook(entry: Dict[str, Any]) -> str:
 def _run_gate_for_entry(entry: Dict[str, Any], principal: Principal, mode: str = "live") -> Dict[str, Any]:
     """Evaluate the Safety Gate for a queue entry using the parameters of its last recorded run."""
     # Re-run with the parameters that were approved, not whatever check happened to run last.
+    if (entry.get("intent") or {}).get("kind") == "autonomous":
+        mode = "autonomous"
     approved = (entry.get("approval") or {}).get("gate_params") or {}
     last = approved or exec_auth.latest_gate_run(entry.get("queue_id", "")) or {}
     params = {
@@ -193,6 +197,56 @@ def _automation_safety_level(value: Optional[str], default: str = "medium") -> s
     if token in {"low", "medium", "high", "critical"}:
         return token
     return default
+
+
+def _blast_radius_check(config: Dict[str, Any], request: AutomationPreExecutionCheckRequest, blast: Dict[str, Any], now: str) -> Dict[str, Any]:
+    mode_class = _ev.gate_mode_class(request.execution_mode)
+    policy = _ev.resolve_policy(config)
+    br_cfg = (config.get("checks", {}) or {}).get("blast_radius", {})
+    br_cfg = br_cfg if isinstance(br_cfg, dict) else {}
+    if br_cfg.get("enabled") is False:
+        return _configured_safety_check("blast_radius", config, request)
+
+    candidates: List[Dict[str, Any]] = []
+    lookup = _lookup_client_evidence("blast_radius", br_cfg, config, request)
+    if lookup.evidence:
+        candidates.append(_evidence_to_check_detail(
+            "blast_radius", lookup.evidence, br_cfg, config,
+            provenance=_ev.client_provenance(lookup.evidence, lookup.source, policy),
+            evidence_source="api" if lookup.source == "api" else "client_file",
+            mode_class=mode_class,
+        ))
+    elif lookup.issue in _UNUSABLE_CLIENT_EVIDENCE:
+        candidates.append(_missing_evidence_detail("blast_radius", br_cfg, config, lookup.issue, mode_class))
+
+    level = blast.get("level", "medium")
+    raw = "pass" if level in {"low", "medium"} else "warn"
+    status, reasons = _ev.effective_status(raw, "estimated", "", False, mode_class, policy)
+    candidates.append({
+        "status": status,
+        "raw_status": raw,
+        "provenance": "estimated",
+        "evidence_issue": "",
+        "evidence_source": "derived",
+        "policy_reasons": reasons,
+        "mode_class": mode_class,
+        "severity": level,
+        "summary": f"Estimated blast radius is {level} (derived locally; not verified).",
+        "evidence": blast.get("reason", "Derived locally from classification, playbook and risk tier."),
+        "scope": blast.get("scope", ""),
+        "blast_radius_level": level,
+        "source_system": "derived_local_estimator",
+        "adapter_mode": "derived_then_file",
+        "checked_at": now,
+    })
+    # Client-supplied blast-radius evidence is authoritative when present; the local estimate is the fallback.
+    has_client_evidence = bool(lookup.evidence)
+    chosen = dict(candidates[0] if has_client_evidence else _ev.choose_candidate(candidates))
+    chosen["evidence_sources_considered"] = [
+        {"source": c.get("evidence_source"), "provenance": c.get("provenance"), "status": c.get("status"),
+         "raw_status": c.get("raw_status")} for c in candidates
+    ]
+    return chosen
 
 
 def _estimate_blast_radius(classification: Optional[str], playbook: Optional[str], risk_tier: Optional[str]) -> Dict[str, Any]:
@@ -249,16 +303,9 @@ DEFAULT_SAFETY_GATE_CONFIG: Dict[str, Any] = {
         "storage_mode": "local_slm_bak_folder",
         "default_available_for_read_only_playbooks": True,
     },
-    "pilot_defaults": {
-        "missing_evidence_status": "pass",
-        "missing_evidence_severity": "low",
-        "missing_evidence_note": "Pilot mode: no external integration evidence provided yet; treated as PASS for human-in-loop validation.",
-    },
-    "policy": {
-        "simulation": {"missing_evidence": "warn", "fail_blocks": False, "warn_blocks": False},
-        "live_human_approved": {"missing_evidence": "warn", "fail_blocks": True, "warn_blocks": False},
-        "autonomous": {"missing_evidence": "fail", "fail_blocks": True, "warn_blocks": True},
-    },
+    # Evidence semantics (Wave 2): missing, malformed, unattested, synthetic or estimated evidence is never
+    # reported as passed. See safety_evidence.py for the meaning of each setting.
+    "evidence_policy": _ev.DEFAULT_EVIDENCE_POLICY,
     "checks": {
         "infrastructure_drift": {
             "enabled": True,
@@ -354,17 +401,9 @@ def _evidence_store_dir(config: Dict[str, Any]) -> Path:
     return Path(raw)
 
 
-def _status_from_evidence(value: Any, default: str = "pass") -> str:
-    token = clean_text(str(value or default)).lower().replace(" ", "_").replace("-", "_")
-    if token in {"pass", "passed", "ok", "healthy", "clear"}:
-        return "pass"
-    if token in {"warn", "warning", "degraded"}:
-        return "warn"
-    if token in {"fail", "failed", "block", "blocked", "critical"}:
-        return "fail"
-    if token in {"unknown", "missing", "not_available"}:
-        return "unknown"
-    return default
+def _status_from_evidence(value: Any, default: str = "unknown") -> str:
+    """Normalise an evidence status. Missing or unrecognised values are `unknown`, never `pass`."""
+    return _ev.normalize_status(value)
 
 
 def _request_match_score(item: Dict[str, Any], request: AutomationPreExecutionCheckRequest) -> int:
@@ -419,24 +458,40 @@ def _load_evidence_from_api(check_name: str, check_cfg: Dict[str, Any]) -> Optio
     return None
 
 
-def _load_universal_evidence(check_name: str, check_cfg: Dict[str, Any], config: Dict[str, Any], request: AutomationPreExecutionCheckRequest) -> Optional[Dict[str, Any]]:
+@dataclass
+class _EvidenceLookup:
+    evidence: Optional[Dict[str, Any]]
+    source: str          # "api" | "file" | "none"
+    issue: str = ""      # "" | missing | unreadable | empty | no_match | api_unavailable
+
+
+# Issues that mean the client DID provide something we cannot use (as opposed to providing nothing).
+_UNUSABLE_CLIENT_EVIDENCE = {"unreadable", "empty", "no_match", "api_unavailable"}
+
+
+def _generated_evidence_dir(config: Dict[str, Any]) -> Path:
+    """Gate-generated evidence lives apart from client-supplied evidence and never overwrites it."""
+    return _evidence_store_dir(config) / "_generated"
+
+
+def _lookup_client_evidence(check_name: str, check_cfg: Dict[str, Any], config: Dict[str, Any], request: AutomationPreExecutionCheckRequest) -> _EvidenceLookup:
     adapter_mode = clean_text(check_cfg.get("adapter_mode") or "file").lower()
 
     # MF-04: Try API pull first when configured as "api" or "api_first"
     if adapter_mode in {"api", "api_first"}:
         api_result = _load_evidence_from_api(check_name, check_cfg)
         if api_result:
-            return api_result
-        # Fall through to file if API pull fails and mode allows it
+            return _EvidenceLookup(api_result, "api")
         if adapter_mode == "api":
-            return None
+            return _EvidenceLookup(None, "none", "api_unavailable")
 
     source_file = clean_text(check_cfg.get("source_file") or f"{check_cfg.get('evidence_type', check_name)}.json")
     path = _evidence_store_dir(config) / source_file
     try:
         if not path.exists():
-            return None
-        payload = json.loads(path.read_text(encoding="utf-8"))
+            return _EvidenceLookup(None, "none", "missing")
+        # utf-8-sig: several client files carry a byte-order mark; treating them as unreadable would hide real evidence
+        payload = json.loads(path.read_text(encoding="utf-8-sig"))
         if isinstance(payload, dict) and isinstance(payload.get("items"), list):
             items = payload.get("items", [])
         elif isinstance(payload, list):
@@ -444,35 +499,46 @@ def _load_universal_evidence(check_name: str, check_cfg: Dict[str, Any], config:
         elif isinstance(payload, dict):
             items = [payload]
         else:
-            return None
+            return _EvidenceLookup(None, "none", "unreadable")
         candidates = [item for item in items if isinstance(item, dict)]
         if not candidates:
-            return None
+            return _EvidenceLookup(None, "none", "empty")
         scored = sorted(((_request_match_score(item, request), item) for item in candidates), key=lambda x: x[0], reverse=True)
         best_score, best_item = scored[0]
         # If no specific match exists, use the first/default item only when it is explicitly generic.
         if best_score <= 0:
             generic = [item for item in candidates if clean_text(str(item.get("resource", ""))).lower() in {"*", "all", "any", ""}]
             if not generic:
-                return None
+                return _EvidenceLookup(None, "none", "no_match")
             best_item = generic[0]
-        return best_item
+        return _EvidenceLookup(best_item, "file")
     except Exception:
         pipeline_debug("safety_gate_evidence_load_error", {"check": check_name, "path": str(path), "traceback": traceback.format_exc()})
-        return None
+        return _EvidenceLookup(None, "none", "unreadable")
 
 
-def _missing_evidence_detail(check_name: str, check_cfg: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
-    pilot = config.get("pilot_defaults", {}) if isinstance(config.get("pilot_defaults"), dict) else {}
-    status = _status_from_evidence(pilot.get("missing_evidence_status", "pass"), "pass")
-    severity = clean_text(pilot.get("missing_evidence_severity", "low") or "low")
-    note = clean_text(pilot.get("missing_evidence_note", "No evidence file found; using onboarding default."))
+def _missing_evidence_detail(check_name: str, check_cfg: Dict[str, Any], config: Dict[str, Any], issue: str = "missing", mode_class: str = "simulation") -> Dict[str, Any]:
+    policy = _ev.resolve_policy(config)
+    status, reasons = _ev.effective_status("unknown", "unknown", issue or "missing", False, mode_class, policy)
+    notes = {
+        "missing": "No evidence was supplied for this check.",
+        "unreadable": "The evidence file could not be parsed.",
+        "empty": "The evidence source contained no usable records.",
+        "no_match": "No evidence record matched this target or classification.",
+        "api_unavailable": "The configured evidence API could not be reached or returned nothing usable.",
+    }
     return {
         "status": status,
-        "severity": severity,
-        "summary": f"{check_name.replace('_', ' ').title()} using onboarding default.",
-        "evidence": note,
-        "source_system": "client_onboarding_config",
+        "raw_status": "unknown",
+        "provenance": "unknown",
+        "evidence_issue": issue or "missing",
+        "evidence_source": "none",
+        "policy_reasons": reasons,
+        "mode_class": mode_class,
+        "severity": "medium",
+        "summary": f"{check_name.replace('_', ' ').title()} has no usable evidence ({issue or 'missing'}).",
+        "evidence": notes.get(issue or "missing", "Evidence unavailable."),
+        "source_system": "none",
         "adapter_mode": clean_text(check_cfg.get("adapter_mode", "file")),
         "evidence_type": clean_text(check_cfg.get("evidence_type", check_name)),
         "source_file": str(_evidence_store_dir(config) / clean_text(check_cfg.get("source_file") or f"{check_name}.json")),
@@ -507,18 +573,36 @@ def _check_evidence_ttl(evidence: Dict[str, Any], check_cfg: Dict[str, Any]) -> 
     return None
 
 
-def _evidence_to_check_detail(check_name: str, evidence: Dict[str, Any], check_cfg: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
-    status = _status_from_evidence(evidence.get("status", evidence.get("gate_status", "pass")), "pass")
+def _evidence_to_check_detail(
+    check_name: str,
+    evidence: Dict[str, Any],
+    check_cfg: Dict[str, Any],
+    config: Dict[str, Any],
+    *,
+    provenance: str,
+    evidence_source: str,
+    mode_class: str = "simulation",
+) -> Dict[str, Any]:
+    policy = _ev.resolve_policy(config)
+    raw_value = evidence.get("status", evidence.get("gate_status"))
+    issue = str(evidence.get("evidence_issue") or "")  # set by the gate on its own generated evidence
+    if not issue and not _ev.is_recognized_status(raw_value):
+        issue = "unrecognized_status" if raw_value not in (None, "") else "status_missing"
+    raw_status = _ev.normalize_status(raw_value)
     severity = clean_text(evidence.get("severity", "low") or "low").lower()
 
-    # MF-03: TTL enforcement — stale evidence blocks autonomous mode, warns others
+    # MF-03: TTL enforcement - stale passing evidence warns (blocks in autonomous mode)
     ttl_warning = _check_evidence_ttl(evidence, check_cfg)
-    if ttl_warning and status == "pass":
-        execution_mode = clean_text(check_cfg.get("_execution_mode", "")).lower()
-        status = "fail" if execution_mode == "autonomous" else "warn"
+    status, reasons = _ev.effective_status(raw_status, provenance, issue, bool(ttl_warning), mode_class, policy)
 
     detail = {
         "status": status,
+        "raw_status": raw_status,
+        "provenance": provenance,
+        "evidence_issue": issue,
+        "evidence_source": evidence_source,
+        "policy_reasons": reasons,
+        "mode_class": mode_class,
         "severity": severity,
         "summary": clean_text(evidence.get("summary") or evidence.get("message") or f"{check_name.replace('_', ' ').title()} evidence received."),
         "evidence": clean_text(evidence.get("evidence") or evidence.get("details") or evidence.get("reason") or "Evidence provided by Universal Evidence Adapter."),
@@ -533,46 +617,99 @@ def _evidence_to_check_detail(check_name: str, evidence: Dict[str, Any], check_c
     }
     if ttl_warning:
         detail["ttl_warning"] = ttl_warning
+    for passthrough in ("simulation_status", "blast_radius_level", "scope", "snapshot_id"):
+        if evidence.get(passthrough) is not None:
+            detail[passthrough] = evidence[passthrough]
     return detail
 
 
-def _configured_safety_check(check_name: str, config: Dict[str, Any], request: AutomationPreExecutionCheckRequest) -> Dict[str, Any]:
+def _configured_safety_check(check_name: str, config: Dict[str, Any], request: AutomationPreExecutionCheckRequest, generated: Optional[Dict[str, Dict[str, Any]]] = None) -> Dict[str, Any]:
     checks_cfg = config.get("checks", {}) if isinstance(config.get("checks"), dict) else {}
     check_cfg = checks_cfg.get(check_name, {}) if isinstance(checks_cfg.get(check_name), dict) else {}
+    mode_class = _ev.gate_mode_class(request.execution_mode)
     if check_cfg and check_cfg.get("enabled") is False:
         return {
             "status": "pass",
+            "raw_status": "pass",
+            "provenance": "not_applicable",
+            "evidence_issue": "",
+            "policy_reasons": ["check_disabled"],
+            "mode_class": mode_class,
             "severity": "low",
             "summary": f"{check_name.replace('_', ' ').title()} disabled by client onboarding configuration.",
             "evidence": "Check disabled in safety_gate_config.json.",
             "source_system": "client_onboarding_config",
             "disabled": True,
         }
-    evidence = _load_universal_evidence(check_name, check_cfg, config, request)
-    if evidence:
-        check_cfg_with_mode = {**check_cfg, "_execution_mode": clean_text(request.execution_mode or "")}
-        return _evidence_to_check_detail(check_name, evidence, check_cfg_with_mode, config)
-    return _missing_evidence_detail(check_name, check_cfg, config)
+
+    policy = _ev.resolve_policy(config)
+    candidates: List[Dict[str, Any]] = []
+
+    lookup = _lookup_client_evidence(check_name, check_cfg, config, request)
+    if lookup.evidence:
+        candidates.append(_evidence_to_check_detail(
+            check_name, lookup.evidence, check_cfg, config,
+            provenance=_ev.client_provenance(lookup.evidence, lookup.source, policy),
+            evidence_source="api" if lookup.source == "api" else "client_file",
+            mode_class=mode_class,
+        ))
+    elif lookup.issue in _UNUSABLE_CLIENT_EVIDENCE:
+        candidates.append(_missing_evidence_detail(check_name, check_cfg, config, lookup.issue, mode_class))
+
+    generated_doc = (generated or {}).get(clean_text(check_cfg.get("evidence_type") or check_name))
+    if generated_doc:
+        candidates.append(_evidence_to_check_detail(
+            check_name, generated_doc, check_cfg, config,
+            provenance=_ev.generated_provenance(generated_doc),
+            evidence_source="generated",
+            mode_class=mode_class,
+        ))
+
+    if not candidates:
+        return _missing_evidence_detail(check_name, check_cfg, config, lookup.issue or "missing", mode_class)
+
+    chosen = dict(_ev.choose_candidate(candidates))
+    chosen["evidence_sources_considered"] = [
+        {"source": c.get("evidence_source"), "provenance": c.get("provenance"), "status": c.get("status"),
+         "raw_status": c.get("raw_status")} for c in candidates
+    ]
+    return chosen
+
+
+def _write_generated_evidence(path: Path, doc: Dict[str, Any]) -> None:
+    import tempfile
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(doc, indent=2))
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def _refresh_live_evidence(request: AutomationPreExecutionCheckRequest, config: Dict[str, Any]) -> Dict[str, Any]:
-    """Run a live dry-mode snapshot + dry-run simulation and write fresh evidence files.
+    """Capture a snapshot and run a dry-run simulation, producing GENERATED evidence.
 
-    This is called at the start of every Safety Gate evaluation so the gate
-    never reads stale static files.  All operations use mode='dry' — no
-    infrastructure changes occur.  Returns a summary of what was written.
+    Generated evidence is stored under <evidence_dir>/_generated and is never written over client-supplied
+    evidence. Every document records its provenance:
+      drift_status         verified in cmdb/lab snapshot mode, otherwise synthetic (dry-mode state); unknown on failure
+      error_budget_status  synthetic: the result of a dry-run simulation (it is not an SLO error budget)
+      rollback_readiness   estimated from the blast-radius estimate; rollback artifacts are NOT verified
+    No infrastructure changes occur: the simulation always uses a separate dry snapshot.
     """
     from datetime import datetime, timezone
-    evidence_dir = _evidence_store_dir(config)
-    evidence_dir.mkdir(parents=True, exist_ok=True)
+    gen_dir = _generated_evidence_dir(config)
 
     ci_name = clean_text(request.target_host or request.classification or "unknown-ci")
     now_iso = utc_now_iso()
 
     # Select snapshot mode based on what is actually available in this environment.
-    # "dry" is the fallback when neither Docker nor CMDB is reachable — it returns
-    # synthetic state and must not be treated as a real infrastructure signal.
-    # In production: CMDB_ENABLED=true → cmdb; LAB containers reachable → lab.
+    # "dry" is the fallback when neither Docker nor CMDB is reachable - it returns synthetic state.
     _cmdb_enabled = os.getenv("CMDB_ENABLED", "").lower() in {"1", "true", "yes"}
     _lab_enabled = os.getenv("LAB_SNAPSHOT_ENABLED", "").lower() in {"1", "true", "yes"}
     if _cmdb_enabled:
@@ -580,7 +717,7 @@ def _refresh_live_evidence(request: AutomationPreExecutionCheckRequest, config: 
     elif _lab_enabled:
         _snapshot_mode = "lab"
     else:
-        _snapshot_mode = "dry"  # POC/dev only — returns synthetic state
+        _snapshot_mode = "dry"
 
     refresh_summary: Dict[str, Any] = {
         "ci_name": ci_name,
@@ -589,90 +726,88 @@ def _refresh_live_evidence(request: AutomationPreExecutionCheckRequest, config: 
         "snapshot_mode_note": (
             "CMDB integration active" if _snapshot_mode == "cmdb"
             else "Lab Docker containers active" if _snapshot_mode == "lab"
-            else "Synthetic dry-mode (no live infrastructure access) — set CMDB_ENABLED=true or LAB_SNAPSHOT_ENABLED=true for real state"
+            else "Synthetic dry-mode (no live infrastructure access) - set CMDB_ENABLED=true or LAB_SNAPSHOT_ENABLED=true for real state"
         ),
+        "generated_evidence_dir": str(gen_dir),
         "steps": [],
     }
+    documents: Dict[str, Dict[str, Any]] = {}
+    common = {"generated_by": "safety_gate_refresh", "queue_id": request.queue_id or "", "target": ci_name}
 
-    # ── Step 1: Infrastructure snapshot ───────────────────────────────────────
+    # -- Step 1: infrastructure snapshot -------------------------------------------------------------
     snapshot: Dict[str, Any] = {}
-    drift_detected = False
-    # Default to warn if snapshot fails — unknown state is never a pass
-    snapshot_status = "warn"
-    snapshot_summary = "Snapshot capture failed; infrastructure state unknown."
-    snapshot_evidence = f"SnapshotEngine could not complete {_snapshot_mode}-mode capture at safety gate evaluation time."
+    snap_status, snap_provenance, snap_issue = "unknown", "unknown", "snapshot_failed"
+    snap_summary = "Snapshot capture failed; infrastructure state unknown."
+    snap_evidence = f"SnapshotEngine could not complete {_snapshot_mode}-mode capture at safety gate evaluation time."
     try:
         from tools.snapshot_engine import SnapshotEngine
         engine = SnapshotEngine()
         snapshot = engine.capture(ci_name=ci_name, mode=_snapshot_mode, notes=f"safety_gate pre-check for {request.queue_id or 'unknown'}")
         state = snapshot.get("state", {})
-        # Upgrade to pass once capture succeeds; check for anomalies
-        snapshot_status = "pass"
+        snap_issue = ""
+        snap_provenance = "verified" if _snapshot_mode in {"cmdb", "lab"} else "synthetic"
+        snap_status = "pass"
         _mode_label = {
             "lab": "live Docker container",
             "cmdb": "CMDB read-only",
-            "dry": "synthetic dry-mode (simulated state only — not live host data)",
+            "dry": "synthetic dry-mode (simulated state only - not live host data)",
         }.get(_snapshot_mode, _snapshot_mode)
-        snapshot_summary = f"No infrastructure drift detected ({_mode_label} snapshot)."
-        snapshot_evidence = f"Snapshot captured via SnapshotEngine mode={_snapshot_mode}."
+        snap_summary = f"No infrastructure drift detected ({_mode_label} snapshot)."
+        snap_evidence = f"Snapshot captured via SnapshotEngine mode={_snapshot_mode}."
         if _snapshot_mode == "dry":
-            snapshot_evidence += " Set CMDB_ENABLED=true or LAB_SNAPSHOT_ENABLED=true to capture real infrastructure state."
+            snap_evidence += " Set CMDB_ENABLED=true or LAB_SNAPSHOT_ENABLED=true to capture real infrastructure state."
         if isinstance(state, dict):
             anomalies = state.get("anomalies") or state.get("drift_items") or []
             if anomalies:
-                drift_detected = True
-                snapshot_status = "warn"
-                snapshot_summary = f"Dry-mode snapshot reported {len(anomalies)} potential drift item(s)."
-                snapshot_evidence = f"Drift items: {', '.join(str(a) for a in anomalies[:5])}"
+                snap_status = "warn"
+                snap_summary = f"Snapshot reported {len(anomalies)} potential drift item(s)."
+                snap_evidence = f"Drift items: {', '.join(str(a) for a in anomalies[:5])}"
         refresh_summary["steps"].append({"step": "snapshot", "status": "ok", "snapshot_id": snapshot.get("snapshot_id")})
     except Exception:
         refresh_summary["steps"].append({"step": "snapshot", "status": "error", "detail": traceback.format_exc(limit=3)})
-
-    # Write fresh drift_status.json so _configured_safety_check reads current data
-    drift_evidence = {
-        "status": snapshot_status,
-        "severity": "medium" if snapshot_status != "pass" else "low",
-        "summary": snapshot_summary,
-        "evidence": snapshot_evidence,
+    documents["drift_status"] = {
+        **common,
+        "evidence_type": "drift_status",
+        "status": snap_status,
+        "provenance": snap_provenance,
+        "evidence_issue": snap_issue,
+        "severity": "low" if snap_status == "pass" else "medium",
+        "summary": snap_summary,
+        "evidence": snap_evidence,
         "source_system": f"snapshot_engine_{_snapshot_mode}",
         "snapshot_id": snapshot.get("snapshot_id", ""),
         "checked_at": now_iso,
     }
-    try:
-        (evidence_dir / "drift_status.json").write_text(json.dumps(drift_evidence, indent=2), encoding="utf-8")
-        refresh_summary["drift_status_written"] = True
-    except Exception:
-        refresh_summary["drift_status_write_error"] = traceback.format_exc(limit=2)
 
-    # ── Step 2: Simulation of the playbook (always dry — NEVER on the lab/cmdb snapshot) ──
-    # Safety Check must never execute anything. Capture (Step 1) may use lab or cmdb mode
-    # to read real state, but simulation always creates and uses a *separate* dry snapshot
-    # so apply_remediation() cannot trigger real Ansible execution on any live target.
-    sim_status = "pass"
-    sim_summary = "Dry-run simulation completed — no execution errors."
-    sim_evidence = "Playbook simulated against a separate dry-mode snapshot; no infrastructure changes applied."
+    # -- Step 2: simulation of the playbook (always dry - NEVER on the lab/cmdb snapshot) ------------
+    # Safety Check must never execute anything. Capture (Step 1) may use lab or cmdb mode to read real
+    # state, but simulation always creates and uses a *separate* dry snapshot so apply_remediation()
+    # cannot trigger real Ansible execution on any live target.
+    sim_status, sim_issue = "unknown", "simulation_not_run"
+    sim_summary = "Dry-run simulation was not run."
+    sim_evidence = "No playbook or classification was available to simulate."
     try:
         playbook_name = clean_text(request.playbook or request.classification or "")
         if playbook_name:
             from tools.snapshot_engine import SnapshotEngine as _SE
             _sim_engine = _SE()
-            # Always capture a new dry snapshot for simulation — isolated from the
-            # infrastructure-state snapshot above, so lab mode cannot reach this path.
             _sim_snap = _sim_engine.capture(
                 ci_name=ci_name,
-                mode="dry",  # forced — simulation is never lab or cmdb
+                mode="dry",  # forced - simulation is never lab or cmdb
                 notes=f"safety_gate simulation-only for {request.queue_id or 'unknown'}",
             )
             _sim_snap_id = _sim_snap.get("snapshot_id", "")
+            sim_status, sim_issue = "pass", ""
+            sim_summary = "Dry-run simulation completed - no execution errors (simulated state; not an SLO error budget)."
+            sim_evidence = "Playbook simulated against a separate dry-mode snapshot; no infrastructure changes applied."
             if _sim_snap_id:
                 sim_result = _sim_engine.apply_remediation(
                     snapshot_id=_sim_snap_id,
                     playbook_name=playbook_name,
                     changes=[{"action": "dry_run", "target": ci_name, "description": f"Simulate {playbook_name}"}],
                 )
-                # apply_remediation returns the updated snapshot dict;
-                # remediation outcome is at snapshot["remediation"]["result"]["status"]
                 rem_status = ""
+                rem_result: Any = {}
                 if isinstance(sim_result, dict):
                     rem = sim_result.get("remediation") or {}
                     rem_result = rem.get("result") or {}
@@ -681,105 +816,83 @@ def _refresh_live_evidence(request: AutomationPreExecutionCheckRequest, config: 
                     sim_status = "warn"
                     sim_summary = f"Dry-run simulation reported issues for playbook '{playbook_name}'."
                     sim_evidence = str(rem_result)
-                # "simulated" is the expected dry-mode result — not a failure
-        refresh_summary["steps"].append({"step": "simulation", "status": "ok", "playbook": playbook_name, "mode": "dry"})
+                # "simulated" is the expected dry-mode result - not a failure
+            refresh_summary["steps"].append({"step": "simulation", "status": "ok", "playbook": playbook_name, "mode": "dry"})
+        else:
+            refresh_summary["steps"].append({"step": "simulation", "status": "skipped", "mode": "dry"})
     except Exception:
-        # Simulation failure is advisory — the playbook may not exist in the registry yet
-        sim_status = "warn"
-        sim_summary = "Dry-run simulation encountered an error; treat as advisory warning."
+        sim_status, sim_issue = "unknown", "simulation_failed"
+        sim_summary = "Dry-run simulation encountered an error; its result is unknown."
         sim_evidence = traceback.format_exc(limit=3)
         refresh_summary["steps"].append({"step": "simulation", "status": "warn", "detail": sim_evidence[:200]})
-
-    # ── Step 3: Error tolerance / rollback readiness ──────────────────────────
-    # Derive from blast radius estimate and simulation result
-    blast = _estimate_blast_radius(request.classification, request.playbook, request.risk_tier)
-    rollback_status = "pass"
-    rollback_summary = "Rollback artifacts available; error tolerance within acceptable range."
-    rollback_evidence = f"Blast radius: {blast.get('level', 'unknown')}. Scope: {blast.get('scope', 'unknown')}."
-    if blast.get("level") in {"high", "critical"}:
-        rollback_status = "warn"
-        rollback_summary = f"High blast radius ({blast.get('level')}) — verify rollback plan before executing."
-        rollback_evidence = blast.get("reason", rollback_evidence)
-
-    rollback_evidence_payload = {
-        "status": rollback_status,
-        "severity": blast.get("level", "medium"),
-        "summary": rollback_summary,
-        "evidence": rollback_evidence,
-        "source_system": "blast_radius_estimator_live",
-        "blast_radius_level": blast.get("level"),
-        "blast_radius_scope": blast.get("scope"),
-        "simulation_status": sim_status,
-        "simulation_summary": sim_summary,
-        "checked_at": now_iso,
-    }
-    try:
-        (evidence_dir / "rollback_readiness.json").write_text(json.dumps(rollback_evidence_payload, indent=2), encoding="utf-8")
-        refresh_summary["rollback_readiness_written"] = True
-    except Exception:
-        refresh_summary["rollback_readiness_write_error"] = traceback.format_exc(limit=2)
-
-    # Write error_budget_status.json — combines simulation + blast radius signals
-    error_budget_payload = {
+    documents["error_budget_status"] = {
+        **common,
+        "evidence_type": "error_budget_status",
         "status": sim_status,
-        "severity": "medium" if sim_status != "pass" else "low",
+        "provenance": "synthetic",
+        "evidence_issue": sim_issue,
+        "severity": "low" if sim_status == "pass" else "medium",
         "summary": sim_summary,
         "evidence": sim_evidence[:500] if sim_evidence else "Simulation clean.",
         "source_system": "dry_run_simulation",
-        "blast_radius": blast.get("level"),
         "checked_at": now_iso,
     }
-    try:
-        (evidence_dir / "error_budget_status.json").write_text(json.dumps(error_budget_payload, indent=2), encoding="utf-8")
-        refresh_summary["error_budget_written"] = True
-    except Exception:
-        refresh_summary["error_budget_write_error"] = traceback.format_exc(limit=2)
 
+    # -- Step 3: rollback readiness - an ESTIMATE from the blast radius; artifacts are not verified --
+    blast = _estimate_blast_radius(request.classification, request.playbook, request.risk_tier)
+    rollback_status = "warn" if blast.get("level") in {"high", "critical"} else "pass"
+    documents["rollback_readiness"] = {
+        **common,
+        "evidence_type": "rollback_readiness",
+        "status": rollback_status,
+        "provenance": "estimated",
+        "evidence_issue": "",
+        "severity": blast.get("level", "medium"),
+        "summary": (
+            f"High blast radius ({blast.get('level')}) - verify the rollback plan before executing."
+            if rollback_status == "warn"
+            else "Rollback readiness estimated from the blast radius; rollback artifacts were not verified."
+        ),
+        "evidence": f"Blast radius: {blast.get('level', 'unknown')}. Scope: {blast.get('scope', 'unknown')}. Estimate only.",
+        "source_system": "blast_radius_estimator_live",
+        "blast_radius_level": blast.get("level"),
+        "scope": blast.get("scope"),
+        "simulation_status": sim_status,
+        "checked_at": now_iso,
+    }
+
+    for ev_type, doc in documents.items():
+        try:
+            _write_generated_evidence(gen_dir / f"{ev_type}.json", doc)
+            refresh_summary[f"{ev_type}_written"] = True
+        except Exception:
+            refresh_summary[f"{ev_type}_write_error"] = traceback.format_exc(limit=2)
+
+    refresh_summary["_documents"] = documents  # consumed (and removed) by the gate; not part of the response
     return refresh_summary
 
 
 def _build_pre_execution_safety_gate(request: AutomationPreExecutionCheckRequest) -> Dict[str, Any]:
     config = _load_safety_gate_config()
+    mode_class = _ev.gate_mode_class(request.execution_mode)
 
-    # Trigger live snapshot + dry-run simulation + error tolerance before reading evidence.
-    # This ensures the Safety Gate never evaluates stale static files.
+    # Trigger a snapshot and a dry-run simulation. Their results are GENERATED evidence (never written over
+    # client-supplied evidence) and are weighed against client evidence, most conservative status winning.
     live_refresh = _refresh_live_evidence(request, config)
+    generated = live_refresh.pop("_documents", {})
 
     blast_radius = _estimate_blast_radius(request.classification, request.playbook, request.risk_tier)
     now = utc_now_iso()
 
-    # Step 5A changes the gate from hardcoded simulation to a client-onboarding
-    # evidence-docking model. It still works on Day 1 with local JSON files, and
-    # the same contract can later be fed by ServiceNow/Prometheus/CMDB/etc.
+    # The gate consumes a client onboarding configuration + normalised evidence (file, API push or API pull).
     checks = {
-        "infrastructure_drift": _configured_safety_check("infrastructure_drift", config, request),
-        "error_budget_slo": _configured_safety_check("error_budget_slo", config, request),
-        "concurrent_activity": _configured_safety_check("concurrent_activity", config, request),
-        "change_window": _configured_safety_check("change_window", config, request),
-        "rollback_readiness": _configured_safety_check("rollback_readiness", config, request),
+        "infrastructure_drift": _configured_safety_check("infrastructure_drift", config, request, generated),
+        "error_budget_slo": _configured_safety_check("error_budget_slo", config, request, generated),
+        "concurrent_activity": _configured_safety_check("concurrent_activity", config, request, generated),
+        "change_window": _configured_safety_check("change_window", config, request, generated),
+        "rollback_readiness": _configured_safety_check("rollback_readiness", config, request, generated),
+        "blast_radius": _blast_radius_check(config, request, blast_radius, now),
     }
-
-    # Blast radius can come from client evidence if available; otherwise derive it
-    # from classification/playbook/risk so rollout does not wait for CMDB maturity.
-    blast_evidence = _load_universal_evidence(
-        "blast_radius",
-        (config.get("checks", {}) or {}).get("blast_radius", {}),
-        config,
-        request,
-    )
-    if blast_evidence:
-        br_cfg = {**(config.get("checks", {}) or {}).get("blast_radius", {}), "_execution_mode": clean_text(request.execution_mode or "")}
-        checks["blast_radius"] = _evidence_to_check_detail("blast_radius", blast_evidence, br_cfg, config)
-    else:
-        checks["blast_radius"] = {
-            "status": "pass" if blast_radius.get("level") in {"low", "medium"} else "warn",
-            "severity": blast_radius.get("level", "medium"),
-            "summary": f"Estimated blast radius is {blast_radius.get('level', 'medium')}.",
-            "evidence": blast_radius.get("reason", "Derived locally from classification, playbook and risk tier."),
-            "scope": blast_radius.get("scope", ""),
-            "source_system": "derived_local_estimator",
-            "adapter_mode": "derived_then_file",
-        }
 
     blocking_checks = [
         name for name, detail in checks.items()
@@ -791,10 +904,11 @@ def _build_pre_execution_safety_gate(request: AutomationPreExecutionCheckRequest
     ]
 
     gate_status = "blocked" if blocking_checks else "warning" if warning_checks else "passed"
+    unverified = sorted(n for n, d in checks.items() if d.get("provenance") not in {"verified", "not_applicable"})
 
     return {
         "status": "ok",
-        "schema_version": "pre_execution_safety_gate_v2_configured",
+        "schema_version": "pre_execution_safety_gate_v3_evidence_provenance",
         "queue_id": request.queue_id,
         "incident_id": request.incident_id,
         "classification": _automation_classification_key(request.classification or ""),
@@ -802,22 +916,31 @@ def _build_pre_execution_safety_gate(request: AutomationPreExecutionCheckRequest
         "target_host": clean_text(request.target_host or ""),
         "risk_tier": _automation_safety_level(request.risk_tier),
         "execution_mode": clean_text(request.execution_mode or "simulation").lower(),
+        "execution_mode_class": mode_class,
         "requested_by": clean_text(request.requested_by or "engineer"),
         "checked_at": now,
         "gate_status": gate_status,
         "safe_to_approve": gate_status in {"passed", "warning"},
         "safe_to_execute_live": gate_status == "passed",
-        "enforcement_mode": "configuration_backed_advisory",
+        "enforcement_mode": "server_enforced",
         "human_override_required": gate_status == "warning",
         "safety_gate_config_file": str(SAFETY_GATE_CONFIG_FILE),
         "evidence_store_dir": str(_evidence_store_dir(config)),
+        "generated_evidence_dir": str(_generated_evidence_dir(config)),
         "adapter_strategy": clean_text(config.get("adapter_strategy", "file_first_api_later")),
         "rollout_model": clean_text(config.get("rollout_model", "universal_evidence_docking_layer")),
+        "evidence_policy": _ev.resolve_policy(config),
+        "evidence_provenance": _ev.provenance_summary(checks),
+        "unverified_checks": unverified,
         "checks": checks,
         **_rollback_backup_dir_payload(),
         "blocking_checks": blocking_checks,
         "warning_checks": warning_checks,
-        "message": "Pre-execution safety gate completed using client onboarding safety_gate_config.json and Universal Evidence Adapter files.",
+        "message": (
+            "Pre-execution safety gate completed. Evidence that is missing, malformed, unattested, synthetic or "
+            "estimated is never reported as passed: simulation may proceed, live execution needs a recorded human "
+            "override, and autonomous execution is blocked."
+        ),
         "live_refresh": live_refresh,
     }
 

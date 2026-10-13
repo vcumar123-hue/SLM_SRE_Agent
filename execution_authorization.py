@@ -21,6 +21,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
 import automation_engine as ae
+import safety_evidence as ev
 
 GATE_RUNS_FILE = ae.DATA_DIR / "automation_gate_runs.json"
 _GATE_RUNS_KEEP = 1000
@@ -30,14 +31,11 @@ LIVE_EXECUTE_MIN_ROLE = "l3"
 
 # ── Stable warning identities ────────────────────────────────────────────────
 
-# Only fields that describe the underlying condition, never human-readable text or timestamps.
-_STABLE_EVIDENCE_KEYS = ("status", "severity", "source_system", "evidence_type", "adapter_mode",
-                         "scope", "blast_radius_level", "simulation_status")
-
-
-def _normalized_status(value: Any) -> str:
-    token = str(value or "").strip().lower()
-    return "unknown" if token in {"unknown", "missing", "not_available"} else "warn"
+# Only fields that describe the underlying evidence condition; never human-readable text, timestamps,
+# or the effective status (which depends on the execution class: a simulation-class run reports
+# `unknown` where a live-class run reports `warn` for the same condition).
+_STABLE_EVIDENCE_KEYS = ("provenance", "evidence_issue", "severity", "source_system", "evidence_type",
+                         "adapter_mode", "scope", "blast_radius_level", "simulation_status")
 
 
 def warning_identities(gate_result: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -53,11 +51,12 @@ def warning_identities(gate_result: Dict[str, Any]) -> List[Dict[str, str]]:
     out: List[Dict[str, str]] = []
     for name in sorted(set(str(n) for n in names)):
         detail = checks.get(name) or {}
-        code = f"{name}:stale" if detail.get("ttl_warning") else f"{name}:{_normalized_status(detail.get('status'))}"
+        reason = ev.warning_reason(detail)
         material = {k: detail.get(k) for k in _STABLE_EVIDENCE_KEYS}
-        material["stale"] = bool(detail.get("ttl_warning"))
+        material["raw_status"] = ev.normalize_status(detail.get("raw_status", detail.get("status")))
+        material["stale"] = reason == "stale"
         fingerprint = hashlib.sha256(json.dumps(material, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:16]
-        out.append({"check_id": name, "warning_code": code, "evidence_fingerprint": fingerprint})
+        out.append({"check_id": name, "warning_code": f"{name}:{reason}", "evidence_fingerprint": fingerprint})
     return out
 
 

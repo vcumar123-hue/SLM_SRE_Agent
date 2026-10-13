@@ -1705,10 +1705,12 @@ def render_rollout_readiness_submenu() -> None:
 
             for check_name, detail in checks.items():
                 chk_status = str(detail.get("status") or "unknown").lower()
-                icon = "✅" if chk_status == "pass" else ("⚠️" if chk_status in {"warn", "warning"} else "❌")
+                icon = "✅" if chk_status == "pass" else ("⚠️" if chk_status in {"warn", "warning"} else ("❔" if chk_status == "unknown" else "❌"))
                 ttl_warn = detail.get("ttl_warning", "")
                 ttl_note = f" _(stale: {ttl_warn})_" if ttl_warn else ""
-                st.markdown(f"{icon} **{nice_label(check_name)}**: {detail.get('summary', chk_status)}{ttl_note}")
+                prov = str(detail.get("provenance") or "")
+                prov_note = f" `[{prov}]`" if prov and prov not in {"verified", "not_applicable"} else ""
+                st.markdown(f"{icon} **{nice_label(check_name)}**: {detail.get('summary', chk_status)}{ttl_note}{prov_note}")
         except Exception as exc:
             st.error(f"Live gate check failed: {exc}")
 

@@ -74,3 +74,4 @@ API_Key/
 data/egress_audit.jsonl
 data/automation_gate_runs.json
 data/automation_queue.lock
+data/evidence/_generated/

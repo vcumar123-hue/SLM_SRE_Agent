@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 import settings_portable as settings
+from security import principal_from_request
 from file_manager import append_debug_event, append_jsonl, read_json, utc_now_iso
 from models import (
     AnalyzeRequest, FeedbackRequest, ReviewCandidateRequest,
@@ -71,8 +72,16 @@ _VALID_EVIDENCE_TYPES = {
 
 
 @router.post("/evidence/submit")
-def evidence_submit(request: EvidenceSubmitRequest) -> Dict[str, Any]:
-    """Accept API-Push evidence from external adapters or source systems."""
+def evidence_submit(request: EvidenceSubmitRequest, http_request: Request) -> Dict[str, Any]:
+    """Accept API-Push evidence from external adapters or source systems.
+
+    Requires an authenticated principal (role l2 or above, enforced by the route table). The submitter is
+    recorded in the evidence; the Safety Gate treats evidence pushed by an authenticated principal as
+    `verified`, so who may call this route is a trust decision.
+    """
+    principal = principal_from_request(http_request)
+    if principal is None:
+        raise HTTPException(status_code=401, detail="authentication required")
     ev_type = (request.evidence_type or "").strip().lower()
     if ev_type not in _VALID_EVIDENCE_TYPES:
         raise HTTPException(
@@ -96,6 +105,9 @@ def evidence_submit(request: EvidenceSubmitRequest) -> Dict[str, Any]:
         "checked_at": request.checked_at or utc_now_iso(),
         "confidence": request.confidence if request.confidence is not None else 0.85,
         "_submitted_via": "api_push",
+        "submitted_by": principal.id,
+        "submitted_role": principal.role,
+        "submitted_at": utc_now_iso(),
     }
 
     EVIDENCE_STORE_DIR.mkdir(parents=True, exist_ok=True)
