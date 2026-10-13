@@ -1,5 +1,7 @@
 # Release 1 — SLM Hardening and Agentic Parity
 
+**Status: COMPLETE (2026-10-13), tag `release-1`, branch `agentic-v2`.** Carried-over items are listed under "Carried into the next release" at the end of this file.
+
 **Branch:** `release-1-hardening` (from `main` @ `1bc02f2`) in `C:\Projects\AI\SLM_Repo`
 **Out of scope:** everything in Release 2 (agent runtime, tool registry, RCA loop, adaptive retrieval, playbook repair loop, dynamic orchestration). Do not start it on this branch.
 
@@ -36,7 +38,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Implemented - see the Wave 3 section below |
 | 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Implemented on `agentic-v2` (partial parity; completed in Wave 4b) - see the Wave 4 and 4b sections below |
-| 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Baseline recorded 2026-10-13 - see `docs/baselines/WAVE5_BASELINE_2026-10-13.md`; manual browser check of the UI still open |
+| 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Done 2026-10-13 - baseline and manual UI session recorded in `docs/baselines/WAVE5_BASELINE_2026-10-13.md` |
 
 ## Change manifest
 Environment and dependency changes are recorded here as they happen.
@@ -210,3 +212,15 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 - Full suite: 182 tests run, all passed; 11 Streamlit-dependent tests skipped in the project `.venv`.
 - The tested source/config/test/document baseline was synchronized to both `C:\Projects\AI\SLM` and `C:\Projects\AI\SLM_Agentic`; 196 included files were compared by hash with no missing or different files.
 - Runtime state and secrets were excluded from synchronization: `.env`, virtual environments, `data/`, `API_Key/`, caches, logs, backups and generated evidence.
+
+## Release 1 sign-off (2026-10-13)
+- Exit criterion met: direct API calls cannot bypass approval, the Safety Gate, autonomy policy, role checks or tenant egress policy; queue entries now belong to the tenant that raised them.
+- Verification: 247 tests pass in the project `.venv` (11 Streamlit tests skipped there) and in a Linux arm64 container built from `requirements.txt` against live-service copies (0 skipped); manual UI session recorded in the Wave 5 baseline.
+- Not verified: live execution against real hosts, real authentication, and a UI session with screenshots.
+
+### Carried into the next release
+- pgvector migration: PostgreSQL as the single store for historical knowledge and vector search (baseline findings: embedding-model mismatch 768 vs 384 dimensions, 96 of 176 curated classifications without vectors, heavy post-retrieval filtering). Remove references to the `aiops_knowledge` collection from code; leave the collection in Qdrant for now.
+- Default-tenant settings differ (`app.py` `client_c`, `automation_engine.py` `client_a`).
+- Contradictory "no approved automation" / "approved automation exists" notices in the Incident Console.
+- `psycopg2-binary==2.9.11` has no Windows-ARM64 wheel; the project is validated in a Linux container.
+- Release 2 (agent runtime, tool registry, bounded RCA loop) not started.
