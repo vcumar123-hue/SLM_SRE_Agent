@@ -14,6 +14,7 @@ from agents.models import OrchestratorState, RCAInput, RetrievalOutput, TriageOu
 from agents.orchestrator import OrchestratorAgent
 from agents.rca_agent import _do_rca
 from confidence_engine import compute_confidence_score
+from models import AnalyzeRequest
 
 
 def _state(retrieval_quality: float, embedding_score: float, certainty: float, feedback: float = 0.0,
@@ -110,7 +111,7 @@ class AgenticFinalDomainTests(unittest.TestCase):
     """_analyze_core_agentic must apply legacy's canonical display-domain step."""
 
     def _domain(self, ticket, classification, rca_domain, incidents=None):
-        from agents.models import AnalyzeRequest, RCAOutput
+        from agents.models import RCAOutput
         state = OrchestratorState(
             request_id="x", tenant_id="t", ticket=ticket, completed=True,
             triage=TriageOutput(domain=rca_domain, classification=classification, classification_certainty=0.5),
@@ -142,28 +143,32 @@ class AgenticFinalDomainTests(unittest.TestCase):
 class RCAAgentConfidenceTests(unittest.TestCase):
     def _run(self, context: dict, fallback_result):
         with patch.object(app, "build_enriched_analysis", return_value={"classification": "sap_login_failure"}), \
-             patch.object(app, "maybe_run_fallback", return_value=fallback_result) as fb:
+             patch.object(app, "maybe_run_fallback", return_value=fallback_result) as fb, \
+             patch.object(app, "create_knowledge_candidate", return_value={"candidate_id": "kc-1"}) as candidate:
             out = _do_rca(_rca_input(context))
-        return out, fb
+        return out, fb, candidate
 
     def test_fallback_decision_uses_context_confidence_not_zeros(self):
         context = {"primary_confidence": 0.82, "retrieval_quality": 0.8, "embedding_score": 0.7}
         no_fallback = (False, None, 0.0, None, None, None, "threshold_not_met")
-        out, fb = self._run(context, no_fallback)
+        out, fb, candidate = self._run(context, no_fallback)
         self.assertEqual(fb.call_args.kwargs["primary_confidence"], 0.82)
         self.assertFalse(out.fallback_used)
         self.assertEqual(out.confidence_info["primary_confidence"], 0.82)
         self.assertEqual(out.confidence_info["embedding_score"], 0.7)
+        candidate.assert_not_called()
 
     def test_fallback_confidence_is_persisted(self):
         context = {"primary_confidence": 0.30, "retrieval_quality": 0.1}
         analysis = {"classification": "sap_login_failure", "probable_causes": [], "next_checks": [],
                     "recommended_actions": [], "confidence": 0.71}
         fallback = (True, analysis, 0.71, "groq", "model-x", "groq", None)
-        out, _ = self._run(context, fallback)
+        out, _, candidate = self._run(context, fallback)
         self.assertTrue(out.fallback_used)
         self.assertEqual(out.confidence_info["fallback_confidence"], 0.71)
         self.assertEqual(out.confidence_info["primary_confidence"], 0.30)
+        self.assertEqual(out.candidate_record, {"candidate_id": "kc-1"})
+        candidate.assert_called_once()
 
     def test_missing_context_falls_back_to_passed_primary_confidence(self):
         no_fallback = (False, None, 0.0, None, None, None, "threshold_not_met")

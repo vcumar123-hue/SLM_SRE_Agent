@@ -17,8 +17,9 @@ import agents.playbook_agent as playbook_agent
 import app as app_module
 import egress_policy
 import groq_fallback_real
-from agents.models import AnalyzeRequest, OrchestratorState, RCAOutput, RetrievalOutput, TriageOutput
+from agents.models import OrchestratorState, RCAOutput, RetrievalOutput, TriageOutput
 from agents.orchestrator import OrchestratorAgent
+from models import AnalyzeRequest
 
 GROQ_URL = "https://api.groq.com/openai/v1"
 

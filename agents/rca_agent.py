@@ -31,6 +31,7 @@ def _do_rca(inp: RCAInput) -> RCAOutput:
         load_taxonomy,
         dedupe_semanticish,
         is_diagnostic_phrase,
+        create_knowledge_candidate,
         DEFAULT_TENANT_ID,
     )
     taxonomy = load_taxonomy()
@@ -129,6 +130,24 @@ def _do_rca(inp: RCAInput) -> RCAOutput:
         }
         final_classification = normalize_classification_token(str(_resolved_cls))
         decision = "fallback_required"
+        if not (inp.linked_resolution and inp.linked_playbook):
+            try:
+                candidate_record = create_knowledge_candidate(
+                    ticket=ticket,
+                    domain=inp.domain,
+                    classification=final_classification,
+                    probable_causes=final_analysis.get("probable_causes", []),
+                    next_checks=final_analysis.get("next_checks", []),
+                    recommended_actions=final_analysis.get("recommended_actions", []),
+                    confidence=float(final_analysis.get("confidence", fallback_confidence) or 0.0),
+                    fallback_provider=fallback_provider or "unknown",
+                    fallback_model=fallback_model or "",
+                    retrieved_incidents=[item.get("id") for item in inp.incidents if item.get("id")],
+                    tenant_id=inp.tenant_id or DEFAULT_TENANT_ID,
+                    knowledge_scope=inp.knowledge_scope or "client_private",
+                )
+            except Exception as exc:
+                logger.warning("RCA candidate creation failed: %s", exc)
 
     return RCAOutput(
         final_classification=final_classification,

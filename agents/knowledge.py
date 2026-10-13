@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException
-from agents.models import FallbackControlRequest
+from models import FallbackControlRequest
 
 # ---------------------------------------------------------------------------
 # Module-level imports with graceful fallback

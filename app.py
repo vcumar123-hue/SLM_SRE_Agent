@@ -4442,6 +4442,46 @@ import logging as _analyze_logging
 _logger = _analyze_logging.getLogger("aiops.analyze")
 
 
+def finalize_display_confidence(
+    *,
+    primary_confidence: float,
+    fallback_confidence: float,
+    fallback_used: bool,
+    has_evidence: bool,
+) -> float:
+    """Return the canonical confidence shown by both analysis paths."""
+    if fallback_used and settings.ALLOW_FALLBACK_CONFIDENCE_DISPLAY and fallback_confidence > 0:
+        display_confidence = round(max(primary_confidence, fallback_confidence), 4)
+    else:
+        display_confidence = round(primary_confidence, 4)
+    if display_confidence == 0.0 and has_evidence:
+        return round(settings.MIN_PRIMARY_CONFIDENCE_FLOOR, 4)
+    return display_confidence
+
+
+def resolve_final_display_domain(
+    *,
+    ticket: str,
+    classification: str,
+    current_domain: str,
+    taxonomy: Dict[str, Any],
+    retrieved_incidents: List[Dict[str, Any]],
+) -> str:
+    """Resolve the final display domain consistently across analysis paths."""
+    inferred = infer_ticket_domain(ticket)
+    domain = canonical_domain_from_classification(
+        classification,
+        taxonomy,
+        fallback_domain=(inferred if inferred != "general" else current_domain),
+    )
+    if str(domain or "").strip().lower() == "general":
+        for item in retrieved_incidents:
+            candidate = str(item.get("domain", "") or "").strip().lower()
+            if candidate and candidate != "general":
+                return candidate
+    return domain
+
+
 def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
     """
     Agentic path — active when AIOPS_AGENTIC_ORCHESTRATOR_ENABLED=true.
@@ -4471,29 +4511,30 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
     _ci       = rca.confidence_info or {}
     _primary  = float(_ci.get("primary_confidence") or rca.analysis.get("confidence") or 0.0)
     _fallback = float(_ci.get("fallback_confidence") or 0.0)
-    _overall  = round(max(_primary, _fallback), 4) if rca.fallback_used and _fallback else round(_primary, 4)
     _rq       = retrieval.retrieval_quality if retrieval else 0.0
     _cert     = triage.classification_certainty if triage else 0.0
     _decision = resolution.decision if resolution else rca.decision
 
     # Canonical display domain, mirroring the final step of _analyze_core_legacy.
-    _inferred = infer_ticket_domain(state.ticket)
-    _domain = canonical_domain_from_classification(
-        rca.final_classification,
-        load_taxonomy(),
-        fallback_domain=(_inferred if _inferred != "general" else rca.domain),
+    _incidents = retrieval.incidents if retrieval else []
+    _domain = resolve_final_display_domain(
+        ticket=state.ticket,
+        classification=rca.final_classification,
+        current_domain=rca.domain,
+        taxonomy=load_taxonomy(),
+        retrieved_incidents=_incidents,
     )
-    if str(_domain or "").strip().lower() == "general":
-        for _item in (retrieval.incidents if retrieval else []):
-            _cand = str(_item.get("domain", "") or "").strip().lower()
-            if _cand and _cand != "general":
-                _domain = _cand
-                break
 
     # Ensure analysis dict carries the resolved classification and domain
     _analysis = dict(rca.analysis or {})
     _analysis["classification"] = rca.final_classification
     _analysis["domain"]         = _domain
+    _overall = finalize_display_confidence(
+        primary_confidence=_primary,
+        fallback_confidence=_fallback,
+        fallback_used=rca.fallback_used,
+        has_evidence=bool(_incidents or _analysis),
+    )
 
     return {
         "request_id":        state.request_id,
@@ -4521,10 +4562,10 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
         "analysis_source_label": rca.analysis_source_label,
         "linked_resolution":     linked_resolution,
         "linked_playbook":       linked_playbook,
-        "retrieved_incidents":   retrieval.incidents if retrieval else [],
-        "similar_incidents":     retrieval.incidents if retrieval else [],
+        "retrieved_incidents":   _incidents,
+        "similar_incidents":     _incidents,
         "knowledge_sources_used": {
-            "retrieved_incident_count": len(retrieval.incidents) if retrieval else 0,
+            "retrieved_incident_count": len(_incidents),
             "resolution_linked":        linked_resolution is not None,
             "playbook_linked":          linked_playbook is not None,
         },
@@ -4543,12 +4584,41 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
 
 def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
     import os
+    from trace_context import get_trace_id
+
+    started = __import__("time").monotonic()
+    trace_id = get_trace_id() or str(uuid.uuid4())
+    result: Dict[str, Any]
     if os.environ.get("AIOPS_AGENTIC_ORCHESTRATOR_ENABLED", "false").strip().lower() in {"1", "true", "yes"}:
         try:
-            return _analyze_core_agentic(request)
+            result = _analyze_core_agentic(request)
         except Exception as _orch_exc:
             _logger.warning("Agentic orchestrator raised, falling back to legacy: %s", _orch_exc)
-    return _analyze_core_legacy(request)
+            result = _analyze_core_legacy(request)
+    else:
+        result = _analyze_core_legacy(request)
+
+    try:
+        from postgres_store import insert_agent_trace
+
+        confidence = result.get("confidence", {}) if isinstance(result, dict) else {}
+        analysis = result.get("analysis", {}) if isinstance(result, dict) else {}
+        insert_agent_trace(
+            trace_id=trace_id,
+            agent_name="analyze_core",
+            operation="complete",
+            status="completed",
+            input_summary=clean_text(request.ticket)[:200],
+            output_summary=(
+                f"classification={analysis.get('classification', '')} "
+                f"confidence={float(confidence.get('overall_confidence', 0.0) or 0.0):.2f} "
+                f"fallback={bool(result.get('fallback_used', False))}"
+            ),
+            latency_ms=int((__import__("time").monotonic() - started) * 1000),
+        )
+    except Exception:
+        pass
+    return result
 
 
 def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
@@ -4934,13 +5004,12 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
         if final_classification in {"batch_job_failure", "batch_job_delay", "container_connection_issue"}:
             linked_resolution, linked_playbook = resolve_linked_knowledge(final_classification)
 
-        if fallback_used and settings.ALLOW_FALLBACK_CONFIDENCE_DISPLAY and fallback_confidence > 0:
-            display_confidence = round(max(primary_confidence, fallback_confidence), 4)
-        else:
-            display_confidence = round(primary_confidence, 4)
-
-        if display_confidence == 0.0 and (retrieved_incidents or final_analysis):
-            display_confidence = round(settings.MIN_PRIMARY_CONFIDENCE_FLOOR, 4)
+        display_confidence = finalize_display_confidence(
+            primary_confidence=primary_confidence,
+            fallback_confidence=fallback_confidence,
+            fallback_used=fallback_used,
+            has_evidence=bool(retrieved_incidents or final_analysis),
+        )
 
         # Final response cleanup: prefer incidents aligned with the final display domain,
         # but fall back to raw retrieved incidents if cleanup would empty the list.
@@ -4981,20 +5050,13 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
         domain = display_domain
 
         # Canonical display domain comes from taxonomy using the final resolved classification.
-        inferred_from_ticket = infer_ticket_domain(ticket) if 'infer_ticket_domain' in globals() else "general"
-        domain = canonical_domain_from_classification(
-            final_classification,
-            taxonomy,
-            fallback_domain=(inferred_from_ticket if inferred_from_ticket != "general" else domain),
+        domain = resolve_final_display_domain(
+            ticket=ticket,
+            classification=final_classification,
+            current_domain=domain,
+            taxonomy=taxonomy,
+            retrieved_incidents=retrieved_incidents,
         )
-
-        # Last-resort fallback only if domain remains too generic.
-        if str(domain or "").strip().lower() == "general" and retrieved_incidents:
-            for item in retrieved_incidents:
-                candidate_domain = str(item.get("domain", "") or "").strip().lower()
-                if candidate_domain and candidate_domain != "general":
-                    domain = candidate_domain
-                    break
 
         knowledge_summary = {
             "has_retrieved_incidents": len(retrieved_incidents) > 0,

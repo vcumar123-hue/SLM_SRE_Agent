@@ -1,9 +1,11 @@
 """Characterization tests for the legacy analysis contract before Wave 4 extraction."""
 
 import os
+import sys
+import types
 import unittest
 from contextlib import ExitStack
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import app
 from models import AnalyzeRequest
@@ -29,6 +31,64 @@ class LegacyAnalyzeDispatchTests(unittest.TestCase):
             self.assertIs(app.analyze_core(request), expected)
         agentic.assert_called_once_with(request)
         legacy.assert_called_once_with(request)
+
+    def test_successful_dispatch_records_completion_once(self):
+        request = AnalyzeRequest(ticket="CPU high on host-01")
+        result = {
+            "analysis": {"classification": "cpu_saturation"},
+            "confidence": {"overall_confidence": 0.81},
+            "fallback_used": False,
+        }
+        insert_trace = Mock()
+        trace_store = types.SimpleNamespace(insert_agent_trace=insert_trace)
+        with patch.dict(os.environ, {"AIOPS_AGENTIC_ORCHESTRATOR_ENABLED": "false"}), \
+             patch.object(app, "_analyze_core_legacy", return_value=result), \
+             patch.dict(sys.modules, {"postgres_store": trace_store}):
+            self.assertIs(app.analyze_core(request), result)
+        insert_trace.assert_called_once()
+        self.assertEqual(insert_trace.call_args.kwargs["status"], "completed")
+        self.assertIn("classification=cpu_saturation", insert_trace.call_args.kwargs["output_summary"])
+
+
+class SharedFinalizationTests(unittest.TestCase):
+    def test_fallback_confidence_is_hidden_when_display_is_disabled(self):
+        with patch.object(app.settings, "ALLOW_FALLBACK_CONFIDENCE_DISPLAY", False):
+            value = app.finalize_display_confidence(
+                primary_confidence=0.42,
+                fallback_confidence=0.91,
+                fallback_used=True,
+                has_evidence=True,
+            )
+        self.assertEqual(value, 0.42)
+
+    def test_zero_confidence_uses_floor_only_when_evidence_exists(self):
+        with patch.object(app.settings, "MIN_PRIMARY_CONFIDENCE_FLOOR", 0.2):
+            with_evidence = app.finalize_display_confidence(
+                primary_confidence=0.0,
+                fallback_confidence=0.0,
+                fallback_used=False,
+                has_evidence=True,
+            )
+            without_evidence = app.finalize_display_confidence(
+                primary_confidence=0.0,
+                fallback_confidence=0.0,
+                fallback_used=False,
+                has_evidence=False,
+            )
+        self.assertEqual(with_evidence, 0.2)
+        self.assertEqual(without_evidence, 0.0)
+
+    def test_generic_domain_uses_retrieved_specific_domain(self):
+        with patch.object(app, "infer_ticket_domain", return_value="general"), \
+             patch.object(app, "canonical_domain_from_classification", return_value="general"):
+            domain = app.resolve_final_display_domain(
+                ticket="Something failed",
+                classification="unclassified_issue",
+                current_domain="general",
+                taxonomy={},
+                retrieved_incidents=[{"domain": "general"}, {"domain": "database"}],
+            )
+        self.assertEqual(domain, "database")
 
 
 class LegacyAnalyzeResponseContractTests(unittest.TestCase):
