@@ -4,12 +4,12 @@ Hybrid retrieval engine for AI Ops.
 
 This version adds:
 - tenant-aware search scope
-- search order across:
-    client_<tenant>_index
-    global_learned_patterns_index
-    global_base_index
+- search order across three knowledge layers (logical names; all stored in PostgreSQL):
+    <tenant>_index                 the tenant's own chunks and promoted incidents
+    global_learned_patterns_index  patterns learned across tenants
+    global_base_index              the curated incidents every tenant starts from
 - optional local topology corpus loading
-- backward-compatible calls to vector_store
+- vector search in PostgreSQL (pgvector) via pg_vector_store
 - backward-compatible public API
 
 Environment variables (optional):
@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from embedding_store import embed_text, ping_model
-from vector_store import search_similar as qdrant_search_similar, ping as qdrant_ping, search_multi_scope as qdrant_search_multi_scope
+from pg_vector_store import search_multi_scope as pg_search_multi_scope, ping as vector_ping
 
 LOGGER = logging.getLogger("retrieval_engine")
 if not LOGGER.handlers:
@@ -139,11 +139,11 @@ def build_search_order(
     tenant = _normalize_token(tenant_id, default="shared")
     scope = normalize_scope_token(knowledge_scope)
     if scope == "global_base":
-        return ["global_base_index", "aiops_knowledge"]
+        return ["global_base_index"]
     if scope == "global_learned":
-        return ["global_learned_patterns_index", "global_base_index", "aiops_knowledge"]
-    # client_private: tenant-specific first, then learned patterns, then curated library
-    return [f"{tenant}_index", "global_learned_patterns_index", "global_base_index", "aiops_knowledge"]
+        return ["global_learned_patterns_index", "global_base_index"]
+    # client_private: tenant-specific first, then learned patterns, then the curated base
+    return [f"{tenant}_index", "global_learned_patterns_index", "global_base_index"]
 
 
 def _collection_matches(
@@ -344,7 +344,7 @@ def vector_search(
 ) -> List[Dict[str, Any]]:
     if not ENABLE_VECTOR:
         return []
-    if not qdrant_ping():
+    if not vector_ping():
         return []
     if not ping_model():
         return []
@@ -353,35 +353,31 @@ def vector_search(
     scope_order = build_search_order(tenant_id=tenant_id, knowledge_scope=knowledge_scope, search_order=search_order)
     target_collection = collection_name or build_collection_name(tenant_id, knowledge_scope)
 
-    # Use multi-scope search to cover all collections in the scope order (including aiops_knowledge).
-    # Fall back to single-collection search if multi-scope is unavailable.
+    # Logical layer names map to the three pgvector layers; unknown names are ignored.
+    layers = []
+    for name in scope_order:
+        if name == "global_learned_patterns_index":
+            layers.append("global_learned")
+        elif name == "global_base_index":
+            layers.append("global_base")
+        elif name.endswith("_index"):
+            layers.append("tenant")
     try:
-        rows = qdrant_search_multi_scope(
+        rows = pg_search_multi_scope(
             query_vector=qvec,
             limit=limit,
             tenant_id=tenant_id or "client_a",
             knowledge_scope=knowledge_scope or "client_private",
-            search_order=scope_order,
+            search_order=list(dict.fromkeys(layers)),
             domain=domain,
             classification=classification,
             service_scope=service_scope,
             environment=environment,
             severity=severity,
         )
-    except Exception:
-        try:
-            rows = qdrant_search_similar(
-                query_vector=qvec,
-                limit=limit,
-                collection_name=target_collection,
-                domain=domain,
-                classification=classification,
-                service_scope=service_scope,
-                environment=environment,
-                severity=severity,
-            )
-        except Exception:
-            rows = []
+    except Exception as exc:
+        LOGGER.warning("pgvector search failed: %s", exc)
+        rows = []
 
     out: List[Dict[str, Any]] = []
     for row in rows:
@@ -407,7 +403,7 @@ def vector_search(
                 "score_local": 0.0,
                 "score_vector": score,
                 "score_combined": score,
-                "retrieval_method": "qdrant_vector",
+                "retrieval_method": "pgvector",
             }
         )
     return out
@@ -454,7 +450,7 @@ def merge_hybrid_results(
         if score_local > 0 and score_vector > 0:
             row["retrieval_method"] = "hybrid"
         elif score_vector > 0:
-            row["retrieval_method"] = "qdrant_vector"
+            row["retrieval_method"] = "pgvector"
         else:
             row["retrieval_method"] = "local_lexical"
 
@@ -549,7 +545,7 @@ def summarize_retrieval_quality(results: List[Dict[str, Any]]) -> Dict[str, Any]
     avg_top3 = sum(float(x.get("score_combined") or x.get("score") or 0.0) for x in top3) / max(len(top3), 1)
 
     hybrid_hits = sum(1 for x in results if x.get("retrieval_method") == "hybrid")
-    vector_hits = sum(1 for x in results if x.get("retrieval_method") == "qdrant_vector")
+    vector_hits = sum(1 for x in results if x.get("retrieval_method") == "pgvector")
     local_hits = sum(1 for x in results if x.get("retrieval_method") == "local_lexical")
     collections = sorted({str(x.get("collection_name") or "").strip() for x in results if str(x.get("collection_name") or "").strip()})
 

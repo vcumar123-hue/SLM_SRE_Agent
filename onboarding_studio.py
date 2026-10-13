@@ -1201,7 +1201,7 @@ def render_taxonomy() -> None:
 
 def render_knowledge_build() -> None:
     st.subheader("3. Knowledge Build")
-    st.caption("Run RAG ingestion, chunking, embedding, Qdrant upsert, and metadata registration.")
+    st.caption("Run RAG ingestion, chunking, embedding, vector indexing, and metadata registration.")
     if not is_step_enabled("knowledge_build"):
         st.warning("Complete Sources first.")
         return
@@ -1217,8 +1217,8 @@ def render_knowledge_build() -> None:
 
     build_options = st.multiselect(
         "Build options",
-        ["Parse ticket dumps", "Parse KB/SOP docs", "Parse topology / CMDB", "Generate chunks", "Create embeddings", "Upsert Qdrant", "Write Postgres metadata"],
-        default=["Parse ticket dumps", "Parse KB/SOP docs", "Generate chunks", "Create embeddings", "Upsert Qdrant", "Write Postgres metadata"],
+        ["Parse ticket dumps", "Parse KB/SOP docs", "Parse topology / CMDB", "Generate chunks", "Create embeddings", "Index vectors", "Write Postgres metadata"],
+        default=["Parse ticket dumps", "Parse KB/SOP docs", "Generate chunks", "Create embeddings", "Index vectors", "Write Postgres metadata"],
     )
 
     if st.button("Start Knowledge Build", type="primary", use_container_width=True):

@@ -37,14 +37,34 @@ def _pg_write(fn, *args, **kwargs) -> None:
         logger.warning("PostgreSQL dual-write failed: %s", exc)
 
 
+def _collection_for(tenant: str, scope: str) -> str:
+    """Logical layer name for a tenant and knowledge scope."""
+    if scope == "global_learned":
+        return "global_learned_patterns_index"
+    if scope == "global_base":
+        return "global_base_index"
+    return f"{(tenant or 'shared').strip().lower().replace(' ', '_')}_index"
+
+
+def _layer_for(collection_name: str, record: Dict[str, Any]) -> tuple:
+    """Map a logical layer name (e.g. client_a_index) to (knowledge_scope, tenant_id)."""
+    if collection_name == "global_learned_patterns_index":
+        return "global_learned", None
+    if collection_name == "global_base_index":
+        return "global_base", None
+    tenant = collection_name[: -len("_index")] if collection_name.endswith("_index") else _clean_str(record.get("tenant_id"))
+    return "client_private", tenant or None
+
+
 def _best_effort_vector_upsert(record: Dict[str, Any], collection_name: str, quiet: bool = False) -> bool:
-    """Index learned knowledge into Qdrant without blocking promotion.
+    """Index learned knowledge in PostgreSQL (pgvector) without blocking promotion.
     Returns True on success, False on any failure.
     quiet=True downgrades internal failure logs to DEBUG (use at promotion call sites)."""
     _log = logger.debug if quiet else logger.warning
     try:
         from embedding_store import embed_text
-        from vector_store import ensure_collection, upsert_point
+        from pg_vector_store import embedding_text, upsert_knowledge
+        import settings_portable
 
         point_id = _clean_str(record.get("id") or record.get("incident_id") or record.get("point_id"))
         title = _clean_str(record.get("title"))
@@ -52,38 +72,22 @@ def _best_effort_vector_upsert(record: Dict[str, Any], collection_name: str, qui
         classification = _clean_str(record.get("classification"), "unknown")
         domain = _clean_str(record.get("domain"), "general")
         if not point_id or not content:
-            _log("Qdrant upsert skipped — missing point_id or content for record: %s", record.get("id"))
+            _log("Vector upsert skipped - missing id or content for record: %s", record.get("id"))
             return False
 
-        embedding_text = ". ".join([x for x in [title, content, classification, domain] if x]).strip()
-        vector = embed_text(embedding_text)
-        ensure_collection(collection_name=collection_name)
-        source_type = _clean_str(record.get("source_type") or record.get("knowledge_type"), "incident")
-        upsert_point(
-            point_id=point_id,
-            vector=vector,
-            source_type=source_type,
-            title=title,
-            content=content,
-            classification=classification,
-            domain=domain,
-            service_scope=_clean_str(record.get("service_scope")),
-            environment=_clean_str(record.get("environment")),
-            severity=_clean_str(record.get("severity")),
-            extra_payload={
-                "tenant_id": _clean_str(record.get("tenant_id")),
-                "knowledge_scope": _clean_str(record.get("knowledge_scope")),
-                "knowledge_type": _clean_str(record.get("knowledge_type"), "incident"),
-                "source_layer": _clean_str(record.get("source_layer")),
-                "source": _clean_str(record.get("source")),
-                "linked_candidate_id": _clean_str(record.get("linked_candidate_id")),
-                "collection_name": collection_name,
-            },
-            collection_name=collection_name,
+        vector = embed_text(embedding_text(title, content, classification, domain))
+        scope, tenant = _layer_for(collection_name, record)
+        upsert_knowledge(
+            {**record, "id": point_id, "title": title, "content": content,
+             "classification": classification, "domain": domain},
+            vector,
+            model=getattr(settings_portable, "EMBEDDING_MODEL", "unknown"),
+            tenant_id=tenant,
+            knowledge_scope=scope,
         )
         return True
     except Exception as exc:
-        _log("Qdrant learned-knowledge upsert failed: %s", exc)
+        _log("Learned-knowledge vector upsert failed: %s", exc)
         return False
 
 
@@ -432,7 +436,7 @@ def promote_candidate_to_incident(
         global_patterns.append(pattern)
         _save_list(GLOBAL_LEARNED_PATTERNS_FILE, global_patterns)
         if not _best_effort_vector_upsert(pattern, "global_learned_patterns_index", quiet=True):
-            logger.debug("promote: new global pattern %s failed to index in Qdrant (non-blocking)", pattern.get("id"))
+            logger.debug("promote: new global pattern %s failed to index in the vector store (non-blocking)", pattern.get("id"))
 
         candidate["status"] = "promoted_global"
         candidate["promotion_target"] = "global_learned"
@@ -448,16 +452,9 @@ def promote_candidate_to_incident(
         None,
     )
     if existing:
-        try:
-            from vector_store import build_collection_name as _bcn
-            _coll = _bcn(
-                _normalize_tenant(existing.get("tenant_id"), tenant_clean),
-                _normalize_scope(existing.get("knowledge_scope"), scope_clean),
-            )
-        except Exception:
-            _t = _normalize_tenant(existing.get("tenant_id"), tenant_clean)
-            _s = _normalize_scope(existing.get("knowledge_scope"), scope_clean)
-            _coll = f"{_t}_index" if _s == "client_private" else "aiops_knowledge"
+        _t = _normalize_tenant(existing.get("tenant_id"), tenant_clean)
+        _s = _normalize_scope(existing.get("knowledge_scope"), scope_clean)
+        _coll = _collection_for(_t, _s)
         if not _best_effort_vector_upsert(existing, _coll, quiet=True):
             logger.debug("promote: re-index of existing incident %s failed (non-blocking)", existing.get("id"))
         return existing
@@ -496,13 +493,9 @@ def promote_candidate_to_incident(
 
     incidents.append(incident)
     write_json(settings.INCIDENTS_FILE, incidents, indent=2)
-    try:
-        from vector_store import build_collection_name
-        collection_name = build_collection_name(tenant_clean, scope_clean)
-    except Exception:
-        collection_name = f"{tenant_clean}_index" if scope_clean == "client_private" else "aiops_knowledge"
+    collection_name = _collection_for(tenant_clean, scope_clean)
     if not _best_effort_vector_upsert(incident, collection_name, quiet=True):
-        logger.debug("promote: new incident %s failed to index in Qdrant (non-blocking)", incident.get("id"))
+        logger.debug("promote: new incident %s failed to index in the vector store (non-blocking)", incident.get("id"))
 
     candidate["status"] = "promoted"
     candidate["promotion_target"] = "client_private"
@@ -744,10 +737,10 @@ def get_playbook_by_id(playbook_id: str) -> Optional[Dict[str, Any]]:
 
 def backfill_promoted_vectors() -> Dict[str, Any]:
     """
-    Index all previously promoted records that may be missing Qdrant vectors.
+    Index all previously promoted records that may be missing vectors.
     Reads incidents.json (source=promoted_from_fallback) and
     global_learned_patterns.json (source=promoted_global_learned) and upserts
-    vectors for each. Safe to re-run: Qdrant upsert is idempotent.
+    vectors for each. Safe to re-run: the upsert is idempotent.
 
     Returns counts: scanned, indexed, skipped, failed.
     """
@@ -760,15 +753,9 @@ def backfill_promoted_vectors() -> Dict[str, Any]:
         if source != "promoted_from_fallback":
             counts["skipped"] += 1
             continue
-        try:
-            from vector_store import build_collection_name as _bcn
-            t = _normalize_tenant(inc.get("tenant_id"), "client_a")
-            s = _normalize_scope(inc.get("knowledge_scope"), "client_private")
-            coll = _bcn(t, s)
-        except Exception:
-            t = _normalize_tenant(inc.get("tenant_id"), "client_a")
-            s = _normalize_scope(inc.get("knowledge_scope"), "client_private")
-            coll = f"{t}_index" if s == "client_private" else "aiops_knowledge"
+        t = _normalize_tenant(inc.get("tenant_id"), "client_a")
+        s = _normalize_scope(inc.get("knowledge_scope"), "client_private")
+        coll = _collection_for(t, s)
         if _best_effort_vector_upsert(inc, coll):
             counts["indexed"] += 1
         else:

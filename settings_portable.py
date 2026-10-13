@@ -167,25 +167,15 @@ PRIMARY_VISION_MODEL = os.getenv(
     "PRIMARY_VISION_MODEL",
     _remap_model("gemma-3n-4b-vision-finetuned-i1", LOCAL_MODEL_PROVIDER),
 )
-EMBEDDING_MODEL = os.getenv(
-    "EMBEDDING_MODEL",
-    _remap_model("text-embedding-nomic-embed-text-v1.5", LOCAL_MODEL_PROVIDER),
-)
+# 384-dimensional embeddings; the pgvector columns are vector(384). Changing the model means re-embedding every row.
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "60"))
 
 
 # -------------------------------------------------------------------
-# Qdrant config
+# Retrieval config (vector search runs in PostgreSQL via pgvector)
 # -------------------------------------------------------------------
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
-QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
-QDRANT_USE_HTTPS = _get_bool("QDRANT_USE_HTTPS", False)
-
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "ai_ops_incidents")
-QDRANT_FEEDBACK_COLLECTION = os.getenv("QDRANT_FEEDBACK_COLLECTION", QDRANT_COLLECTION)
-
 TOP_K_RETRIEVAL = int(os.getenv("TOP_K_RETRIEVAL", "5"))
 MIN_RETRIEVAL_SCORE = float(os.getenv("MIN_RETRIEVAL_SCORE", "0.25"))
 HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.7"))
@@ -258,11 +248,6 @@ DISPLAY_RESPONSE_SOURCE = _get_bool("DISPLAY_RESPONSE_SOURCE", True)
 # -------------------------------------------------------------------
 # Helpers
 # -------------------------------------------------------------------
-def get_qdrant_url() -> str:
-    scheme = "https" if QDRANT_USE_HTTPS else "http"
-    return f"{scheme}://{QDRANT_HOST}:{QDRANT_PORT}"
-
-
 def fallback_is_configured() -> bool:
     if not FALLBACK_ENABLED:
         return False
@@ -292,8 +277,7 @@ def as_dict() -> Dict:
         "LOG_DIR": str(LOG_DIR),
         "MODEL": PRIMARY_CHAT_MODEL,
         "EMBEDDING_MODEL": EMBEDDING_MODEL,
-        "QDRANT_URL": get_qdrant_url(),
-        "QDRANT_COLLECTION": QDRANT_COLLECTION,
+        "VECTOR_STORE": "pgvector",
         "CONFIDENCE_THRESHOLD": CONFIDENCE_THRESHOLD,
         "FALLBACK_ENABLED": FALLBACK_ENABLED,
         "FALLBACK_PROVIDER": FALLBACK_PROVIDER,

@@ -1635,6 +1635,13 @@ def main() -> int:
         conn.close()
 
     print("Sync completed successfully.")
+    # New or changed chunks have no vector yet; embed them so they are searchable (resumable, safe to skip).
+    try:
+        import pg_vector_store
+        pg_vector_store.ensure_schema()
+        print("Embedded rows:", pg_vector_store.backfill())
+    except Exception as exc:
+        print(f"WARNING: vector indexing skipped ({exc}). Run: python pg_vector_store.py --backfill")
     print()
     print("Validation commands:")
     print(r'docker exec -it aiops-postgres psql -U aiops_user -d aiops -c "\dt client_*"')

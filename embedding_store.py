@@ -14,12 +14,12 @@ if not LOGGER.handlers:
 LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", os.getenv("OLLAMA_BASE_URL", "http://localhost:1234/v1"))
 MODEL_NAME = os.getenv(
     "EMBEDDING_MODEL",
-    os.getenv("AIOPS_EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5"),
+    os.getenv("AIOPS_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
 )
 
 # Fallback: sentence_transformers when LM Studio is unavailable and
 # EMBEDDING_BACKEND=sentence_transformers is set.
-EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "lm_studio").strip().lower()
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "sentence_transformers").strip().lower()
 
 
 # ── LM Studio / OpenAI-compatible backend ─────────────────────────────────────
@@ -48,16 +48,21 @@ def _normalize(vec: List[float]) -> List[float]:
 
 # ── sentence_transformers fallback ─────────────────────────────────────────────
 
-def _st_embed(texts: List[str], normalize: bool) -> List[List[float]]:
-    from sentence_transformers import SentenceTransformer  # type: ignore[import]
-    from functools import lru_cache
+_ST_MODEL = None
 
-    @lru_cache(maxsize=1)
-    def _model():
+
+def _st_model():
+    """Load the sentence-transformers model once per process (loading takes about a second)."""
+    global _ST_MODEL
+    if _ST_MODEL is None:
+        from sentence_transformers import SentenceTransformer  # type: ignore[import]
         LOGGER.info("Loading sentence-transformers model: %s", MODEL_NAME)
-        return SentenceTransformer(MODEL_NAME)
+        _ST_MODEL = SentenceTransformer(MODEL_NAME)
+    return _ST_MODEL
 
-    vectors = _model().encode(texts, normalize_embeddings=normalize)
+
+def _st_embed(texts: List[str], normalize: bool) -> List[List[float]]:
+    vectors = _st_model().encode(texts, normalize_embeddings=normalize, show_progress_bar=False)
     return [[float(x) for x in row.tolist()] for row in vectors]
 
 

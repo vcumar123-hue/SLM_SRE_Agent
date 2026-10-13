@@ -1574,7 +1574,7 @@ def render_sidebar_nav(current_page: str) -> None:
         '<hr class="sb-divider"/>'
         '<div class="sb-status">'
         '<div class="sb-status-row"><div class="sb-dot sb-dot-green"></div>Backend API</div>'
-        '<div class="sb-status-row"><div class="sb-dot sb-dot-green"></div>Qdrant Vector DB</div>'
+        '<div class="sb-status-row"><div class="sb-dot sb-dot-green"></div>Vector search (pgvector)</div>'
         "</div>"
         '<hr class="sb-divider"/>'
     )

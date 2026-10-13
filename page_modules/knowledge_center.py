@@ -52,7 +52,7 @@ def _review_and_promote_candidate(candidate_id: str, reviewed_by: str, notes: st
         _write_audit("promotion_step1_review_exception", {**_ctx, "error": str(exc), "traceback": traceback.format_exc()})
         return False, f"Step 1 (Review) error: {exc}"
 
-    # ── Step 2: Promote to Qdrant ─────────────────────────────────────────────
+    # ── Step 2: Promote to the knowledge base ─────────────────────────────────────────────
     try:
         pv = SESSION.post(
             f"{BACKEND_URL}/promote_candidate",
@@ -552,7 +552,7 @@ def render_knowledge_center_page():
                         st.markdown(
                             f"| Step | Result |\n|---|---|\n"
                             f"| 1 · Candidate reviewed & approved | ✅ `{_dcid}` |\n"
-                            f"| 2 · Promoted to Qdrant KB | ✅ Classification: **{_cls_done}** |\n"
+                            f"| 2 · Promoted to the knowledge base | ✅ Classification: **{_cls_done}** |\n"
                             f"| 3 · Resolution created | ✅ `{_res_id}` |\n"
                             f"| 4 · Playbook created | ✅ `{_pb_id}` |"
                         )

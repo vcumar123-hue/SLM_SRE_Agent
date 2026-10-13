@@ -736,7 +736,7 @@ def render_backtesting_page():
     with h2:
         metric_card("Confidence", format_confidence(confidence, 2))
     with h3:
-        metric_card("Qdrant Matches", str(len(retrieved)))
+        metric_card("Vector Matches", str(len(retrieved)))
 
     # Search text for both panels: prefer ticket text, fall back to classification
     search_text = selected_ticket or nice_label(classification)
@@ -768,10 +768,10 @@ def render_backtesting_page():
         )
         _render_peer_benchmark_panel(search_text, client_id="client_a", classification=classification)
 
-    # ── Pattern Replay (from Qdrant) ─────────────────────────────────────────
+    # ── Pattern Replay (from vector search) ─────────────────────────────────────────
     if retrieved:
         st.markdown("---")
-        section_title("Knowledge Base Matches (Qdrant retrieval)")
+        section_title("Knowledge Base Matches (vector retrieval)")
         for row in retrieved[:8]:
             title = nice_label(row.get("classification", "unknown"))
             score = format_confidence(row.get("score"), 2)

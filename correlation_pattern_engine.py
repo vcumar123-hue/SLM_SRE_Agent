@@ -10,7 +10,7 @@ This standalone module consumes:
 It returns top associated incident/change/dependency scenarios for a given
 classification and optional ticket text.
 
-No app.py, ui.py, Postgres, Qdrant, or external API dependency in v1.
+No app.py, ui.py, Postgres, vector search, or external API dependency in v1.
 """
 
 from __future__ import annotations

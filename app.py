@@ -3791,7 +3791,7 @@ def run_hybrid_retrieval(
 
 
 def _fetch_nearest_neighbour_incidents(ticket: str, top_k: int = 3) -> List[Dict[str, Any]]:
-    """Cross-classification Qdrant search — returns the most semantically similar
+    """Cross-classification vector search — returns the most semantically similar
     incidents regardless of classification match. Used to ground the LLM when
     the primary RAG retrieval returned zero exact-classification hits."""
     if retrieve_incidents is None:
