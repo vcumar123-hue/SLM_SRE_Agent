@@ -191,9 +191,9 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 
 ### Validation
 - Full suite in the project `.venv`: 241 tests passed, 11 Streamlit-dependent tests skipped (194 before Wave 4b).
-- New: `tests/test_legacy_agentic_parity.py` (6 ticket families side by side, plus fallback-used cases) and `tests/test_autonomy_policy.py` (43 Wave 3 tests: recurrence matrix, policy validation, composer, fail-closed, disabled checks, pilot trust, enable/eligibility routes, tenant separation).
-- Real-ticket comparison (5 tickets, Qdrant down, fallback stubbed): legacy and agentic now return identical values; previously CPU and VPN differed in `probable_causes`.
-- Not verified: the 11 UI tests were not run in this pass (the system Python lacks `portalocker`, so 2 of its 14 tests fail there for that reason only). Real Qdrant/PostgreSQL behaviour is Wave 5.
+- New: `tests/test_legacy_agentic_parity.py` (hermetic: realistic tickets, 6 families side by side plus fallback-used cases, with Qdrant, PostgreSQL and LLM calls stubbed; it proves deterministic path parity, not production integration parity) and `tests/test_autonomy_policy.py` (43 Wave 3 tests: recurrence matrix, policy validation, composer, fail-closed, disabled checks, pilot trust, enable/eligibility routes, tenant separation).
+- Real-ticket comparison (5 tickets, Qdrant down, fallback stubbed; deterministic parity only): legacy and agentic now return identical values; previously CPU and VPN differed in `probable_causes`.
+- Not verified: the UI. The project `.venv` skipped 11 Streamlit-dependent tests. A separate attempt under system Python hit 2 failures because `portalocker` is absent there; nothing was installed into the global interpreter. Wave 5 validates the UI in a clean environment built from the project dependency manifest. Real Qdrant/PostgreSQL behaviour is also Wave 5.
 - **Behaviour change:** outcome history is matched strictly by tenant. Rows recorded under `default` no longer count toward other tenants' autonomy tiers, so named tenants hold for approval until they build their own history.
 
 ## Wave 3 - Composed autonomy decision and recurrence policy (W4)
