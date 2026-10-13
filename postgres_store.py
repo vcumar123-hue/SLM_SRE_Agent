@@ -1735,7 +1735,7 @@ def get_outcomes_by_classification(
         cur.execute("""
             SELECT * FROM resolution_outcomes
             WHERE classification = %s
-              AND (tenant_id = %s OR tenant_id = 'default')
+              AND tenant_id = %s
             ORDER BY created_at DESC
             LIMIT %s
         """, (classification, tenant_id, limit))

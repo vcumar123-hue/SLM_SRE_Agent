@@ -35,7 +35,7 @@ The request's `autonomous_requested` flag carries no authority.
 | 1b | Closure of the Wave 1 review: OS-level queue lock, durable fail-closed egress audit, stable warning overrides, UI contract and simulation-only workflow tests, clean-checkout validation | **See Wave 1b section below** |
 | 2 | Safety Gate evidence semantics, provenance separation (W3). The execution-time re-check is already done in Wave 1 | Implemented - see the Wave 2 section below |
 | 3 | Composed autonomy decision: recurrence cap, conservative watch policy (W4) | Implemented - see the Wave 3 section below |
-| 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Implemented on `agentic-v2` - see the Wave 4 section below |
+| 4 | Shared legacy/agentic finalization (W6): characterization tests first; pure normalization separated from side effects (candidate creation, trace writes). Also the model-file cleanup below | Implemented on `agentic-v2` (partial parity; completed in Wave 4b) - see the Wave 4 and 4b sections below |
 | 5 | Start Qdrant/PostgreSQL, run full baseline, record versioned results (W7) | Planned |
 
 ## Change manifest
@@ -178,8 +178,23 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 
 ### Validation
 - Characterization checkpoint: 186 tests passed, 11 Streamlit-dependent tests skipped.
-- Final Wave 4 regression: 194 tests passed; 11 Streamlit-dependent tests skipped in the project `.venv`.
+- Wave 4 regression: 194 tests passed; 11 Streamlit-dependent tests skipped in the project `.venv`.
+- **Correction:** Wave 4 shared the confidence, domain and guard steps, but did NOT reach full legacy/agentic parity. A side-by-side run on real tickets showed different `probable_causes` for CPU and VPN tickets and a different decision label (`knowledge_reused`). That gap is closed in Wave 4b below.
 - Changes were made only in `C:\Projects\AI\SLM_Agentic`, per owner direction.
+
+## Wave 4b - RCA enrichment parity (`agentic-v2` only)
+
+### What changed
+- The legacy post-fallback finalization (final symptom/cause normalisation, re-linking knowledge when the class changed, canonical domain, learned-local preference, final analysis rebuild) is now one shared function, `finalize_post_rca_state`, used by both paths.
+- `_analyze_core_agentic` calls it, so both paths take the same final classification and knowledge inputs. The agentic-only `knowledge_reused` decision label was removed.
+- The final analysis rebuild passes no `rag_context`, exactly as legacy always did. Whether that is intended is a separate question; parity came first.
+
+### Validation
+- Full suite in the project `.venv`: 241 tests passed, 11 Streamlit-dependent tests skipped (194 before Wave 4b).
+- New: `tests/test_legacy_agentic_parity.py` (6 ticket families side by side, plus fallback-used cases) and `tests/test_autonomy_policy.py` (43 Wave 3 tests: recurrence matrix, policy validation, composer, fail-closed, disabled checks, pilot trust, enable/eligibility routes, tenant separation).
+- Real-ticket comparison (5 tickets, Qdrant down, fallback stubbed): legacy and agentic now return identical values; previously CPU and VPN differed in `probable_causes`.
+- Not verified: the 11 UI tests were not run in this pass (the system Python lacks `portalocker`, so 2 of its 14 tests fail there for that reason only). Real Qdrant/PostgreSQL behaviour is Wave 5.
+- **Behaviour change:** outcome history is matched strictly by tenant. Rows recorded under `default` no longer count toward other tenants' autonomy tiers, so named tenants hold for approval until they build their own history.
 
 ## Wave 3 - Composed autonomy decision and recurrence policy (W4)
 
@@ -189,7 +204,7 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 - Watch mode requires human approval in Release 1. A client-controlled request field cannot grant autonomous authority.
 - Autonomous enablement, eligibility mapping and execution authorization use the same policy result, preventing their decisions from drifting.
 - Disabled Safety Gate checks prevent autonomous execution. Missing policy or evaluation errors also fail closed.
-- Tenant configuration and the template now carry an explicit deployment stage used by the decision.
+- Tenant configuration and the template carry an explicit deployment stage (`pilot`). It currently feeds the **Safety Gate evidence policy** (pilot clients may treat uploaded files as verified); it is not an input to the autonomy decision composer itself.
 
 ### Wave 3 validation record (2026-10-13)
 - Full suite: 182 tests run, all passed; 11 Streamlit-dependent tests skipped in the project `.venv`.

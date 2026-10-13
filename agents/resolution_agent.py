@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 def _do_resolution(inp: ResolutionInput) -> ResolutionOutput:
     from app import resolve_linked_knowledge, maybe_create_fallback_drafts
 
-    linked_resolution, linked_playbook = resolve_linked_knowledge(inp.final_classification)
+    # Legacy links knowledge by the INITIAL classification; the shared post-RCA finalization re-links if the final one differs.
+
+    linked_resolution, linked_playbook = resolve_linked_knowledge(inp.classification)
 
     if inp.fallback_used and inp.candidate_record:
         linked_resolution, linked_playbook = maybe_create_fallback_drafts(
@@ -33,9 +35,8 @@ def _do_resolution(inp: ResolutionInput) -> ResolutionOutput:
             request_id="",
         )
 
+    # The decision label is owned by the RCA/finalization step; legacy never relabels it on link.
     decision = inp.decision
-    if linked_resolution and linked_playbook:
-        decision = "knowledge_reused"
 
     return ResolutionOutput(
         linked_resolution=linked_resolution,

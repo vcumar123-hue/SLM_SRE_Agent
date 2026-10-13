@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass, replace as _dc_replace
 import os
 import re
 import traceback
@@ -4559,6 +4560,141 @@ def filter_final_retrieved_incidents(
     return (aligned or incidents)[:top_k]
 
 
+@dataclass
+class PostRcaState:
+    """Everything the post-RCA finalization reads and writes, shared by the legacy and agentic analysis paths."""
+    domain: str
+    classification: str                 # classification before RCA (initial)
+    final_classification: str
+    classification_certainty: float
+    final_analysis: Dict[str, Any]
+    fallback_used: bool
+    fallback_analysis: Optional[Dict[str, Any]]
+    fallback_confidence: float
+    fallback_source: Optional[str]
+    fallback_model: Optional[str]
+    fallback_provider: Optional[str]
+    fallback_reason: Optional[str]
+    response_source: str
+    analysis_source_label: str
+    decision: str
+    candidate_record: Optional[Dict[str, Any]]
+    primary_confidence: float
+    linked_resolution: Optional[Dict[str, Any]]
+    linked_playbook: Optional[Dict[str, Any]]
+    routed_intents: Dict[str, Any]
+
+
+def finalize_post_rca_state(
+    state: PostRcaState,
+    *,
+    ticket: str,
+    force_fallback: bool,
+    retrieved_incidents: List[Dict[str, Any]],
+    retrieval_quality: float,
+) -> PostRcaState:
+    """The legacy post-fallback finalization, shared by both analysis paths.
+
+    In order: final symptom/cause normalisation; re-resolving linked knowledge when the classification changed;
+    canonical domain; the learned-local preference (discard a fallback when local knowledge can be reused);
+    and, for local answers, rebuilding the analysis from the FINAL classification and linked knowledge.
+
+    Note: the rebuild deliberately passes no rag_context, exactly as the legacy path always has. Whether that is
+    intended is a separate question; parity comes first.
+    """
+    s = _dc_replace(state)
+    s.routed_intents = dict(s.routed_intents or {})
+    s.final_analysis = dict(s.final_analysis or {})
+    domain, classification, final_classification = s.domain, s.classification, s.final_classification
+    classification_certainty, routed_intents = s.classification_certainty, s.routed_intents
+    linked_resolution, linked_playbook = s.linked_resolution, s.linked_playbook
+    fallback_used, fallback_analysis = s.fallback_used, s.fallback_analysis
+    fallback_confidence, fallback_source = s.fallback_confidence, s.fallback_source
+    fallback_model, fallback_provider, fallback_reason = s.fallback_model, s.fallback_provider, s.fallback_reason
+    response_source, analysis_source_label = s.response_source, s.analysis_source_label
+    decision, candidate_record, primary_confidence = s.decision, s.candidate_record, s.primary_confidence
+    final_analysis = s.final_analysis
+
+    normalized_domain, normalized_classification, normalized_certainty, final_symptom_cause_meta = normalize_symptom_vs_cause_classification(
+        ticket=ticket,
+        domain=domain,
+        classification=final_classification,
+        classification_certainty=classification_certainty,
+    )
+    if final_symptom_cause_meta.get("applied"):
+        domain = normalized_domain
+        final_classification = normalize_classification_token(final_symptom_cause_meta.get("locked_classification") or normalized_classification)
+        classification_certainty = max(classification_certainty, normalized_certainty)
+        routed_intents["symptom_cause_normalization"] = final_symptom_cause_meta
+
+    if final_classification != classification:
+        linked_resolution, linked_playbook = resolve_linked_knowledge(final_classification)
+
+    inferred_from_ticket = infer_ticket_domain(ticket)
+    domain = canonical_domain_for_classification(
+        final_classification,
+        fallback_domain=(inferred_from_ticket if inferred_from_ticket != "general" else domain),
+    )
+
+    if fallback_used and should_prefer_learned_local_path(
+        force_fallback=bool(force_fallback),
+        linked_resolution=linked_resolution,
+        linked_playbook=linked_playbook,
+        classification=final_classification,
+        primary_confidence=primary_confidence,
+        retrieval_quality=retrieval_quality,
+    ):
+        fallback_used = False
+        fallback_analysis = None
+        fallback_confidence = 0.0
+        fallback_source = None
+        fallback_model = None
+        fallback_provider = None
+        fallback_reason = "learned_knowledge_reuse"
+        response_source = "local_primary"
+        analysis_source_label = build_analysis_source_label(
+            response_source=response_source,
+            fallback_used=False,
+        )
+        decision = "local_primary"
+        candidate_record = None
+        primary_confidence = max(primary_confidence, settings.CONFIDENCE_THRESHOLD + 0.02)
+
+    if not fallback_used:
+        final_analysis = build_enriched_analysis(
+            ticket=ticket,
+            domain=domain,
+            classification=final_classification,
+            retrieved_incidents=retrieved_incidents,
+            primary_confidence=primary_confidence,
+            linked_resolution=linked_resolution,
+            linked_playbook=linked_playbook,
+            analysis_source=response_source,
+            analysis_source_label=analysis_source_label,
+        )
+
+    s.domain, s.final_classification, s.classification_certainty = domain, final_classification, classification_certainty
+    s.final_analysis, s.routed_intents = final_analysis, routed_intents
+    s.linked_resolution, s.linked_playbook = linked_resolution, linked_playbook
+    s.fallback_used, s.fallback_analysis = fallback_used, fallback_analysis
+    s.fallback_confidence, s.fallback_source = fallback_confidence, fallback_source
+    s.fallback_model, s.fallback_provider, s.fallback_reason = fallback_model, fallback_provider, fallback_reason
+    s.response_source, s.analysis_source_label = response_source, analysis_source_label
+    s.decision, s.candidate_record, s.primary_confidence = decision, candidate_record, primary_confidence
+    return s
+
+
+def apply_symptom_cause_metadata(final_analysis: Dict[str, Any], final_classification: str, symptom_cause: Dict[str, Any]) -> None:
+    """Record an applied symptom-versus-cause normalisation on the analysis (shared by both paths)."""
+    if symptom_cause and symptom_cause.get("applied"):
+        final_analysis["classification"] = final_classification
+        final_analysis["associated_scenario"] = symptom_cause.get("associated_scenario")
+        final_analysis["associated_change_type"] = symptom_cause.get("associated_change_type")
+        final_analysis["drift_type"] = symptom_cause.get("drift_type")
+        final_analysis["symptom_cause_normalization_applied"] = True
+        final_analysis["symptom_cause_normalization_reason"] = symptom_cause.get("reason")
+
+
 def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
     """
     Agentic path — active when AIOPS_AGENTIC_ORCHESTRATOR_ENABLED=true.
@@ -4590,24 +4726,58 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
     _fallback = float(_ci.get("fallback_confidence") or 0.0)
     _rq       = retrieval.retrieval_quality if retrieval else 0.0
     _cert     = triage.classification_certainty if triage else 0.0
-    _decision = resolution.decision if resolution else rca.decision
-
-    # Canonical display domain, mirroring the final step of _analyze_core_legacy.
     _incidents = retrieval.incidents if retrieval else []
-    _analysis = dict(rca.analysis or {})
-    _symptom_meta = rca.routed_intents.get("symptom_cause_normalization", {}) if rca.routed_intents else {}
+
+    # Same post-RCA finalization as the legacy path: one shared function, one set of rules.
+    _post = finalize_post_rca_state(
+        PostRcaState(
+            domain=rca.domain,
+            classification=triage.classification if triage else rca.final_classification,
+            final_classification=rca.final_classification,
+            classification_certainty=_cert,
+            final_analysis=dict(rca.analysis or {}),
+            fallback_used=rca.fallback_used,
+            fallback_analysis=dict(rca.analysis or {}) if rca.fallback_used else None,
+            fallback_confidence=_fallback,
+            fallback_source=rca.fallback_source,
+            fallback_model=rca.fallback_model,
+            fallback_provider=rca.fallback_provider,
+            fallback_reason=safety.force_fallback_reason if safety else None,
+            response_source=rca.response_source,
+            analysis_source_label=rca.analysis_source_label,
+            decision=rca.decision,
+            candidate_record=resolution.candidate_record if resolution else rca.candidate_record,
+            primary_confidence=_primary,
+            linked_resolution=linked_resolution,
+            linked_playbook=linked_playbook,
+            routed_intents=rca.routed_intents or {},
+        ),
+        ticket=state.ticket,
+        force_fallback=bool(request.force_fallback),
+        retrieved_incidents=_incidents,
+        retrieval_quality=_rq,
+    )
+    _symptom_meta = _post.routed_intents.get("symptom_cause_normalization", {}) if isinstance(_post.routed_intents, dict) else {}
+    _analysis = _post.final_analysis
+    apply_symptom_cause_metadata(_analysis, _post.final_classification, _symptom_meta)
     _guarded_domain, _final_classification, _cert, _analysis = apply_shared_post_rca_guards(
         ticket=state.ticket,
         analysis=_analysis,
-        domain=rca.domain,
-        classification=rca.final_classification,
-        classification_certainty=_cert,
+        domain=_post.domain,
+        classification=_post.final_classification,
+        classification_certainty=_post.classification_certainty,
         symptom_cause_meta=_symptom_meta,
     )
+    linked_resolution, linked_playbook = _post.linked_resolution, _post.linked_playbook
+    if _final_classification in {"batch_job_failure", "batch_job_delay", "container_connection_issue"}:
+        linked_resolution, linked_playbook = resolve_linked_knowledge(_final_classification)
+    _primary, _fallback = _post.primary_confidence, _post.fallback_confidence
+    _decision = _post.decision
+    _fallback_used = _post.fallback_used
     _domain = resolve_final_display_domain(
         ticket=state.ticket,
         classification=_final_classification,
-        current_domain=_guarded_domain,
+        current_domain=canonical_domain_for_classification(_final_classification, fallback_domain=_guarded_domain),
         taxonomy=load_taxonomy(),
         retrieved_incidents=_incidents,
     )
@@ -4625,10 +4795,10 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
     _overall = finalize_display_confidence(
         primary_confidence=_primary,
         fallback_confidence=_fallback,
-        fallback_used=rca.fallback_used,
+        fallback_used=_fallback_used,
         has_evidence=bool(_incidents or _analysis),
     )
-    _candidate = resolution.candidate_record if resolution else rca.candidate_record
+    _candidate = _post.candidate_record
     _knowledge_summary = {
         "has_retrieved_incidents": bool(_incidents),
         "retrieved_incident_ids": [item.get("id") for item in _incidents if item.get("id")],
@@ -4655,8 +4825,8 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
         "routing": {
             "method":   "agentic_orchestrator",
             "decision": _decision,
-            "fallback_reason": safety.force_fallback_reason if safety else None,
-            "intent_router": rca.routed_intents,
+            "fallback_reason": _post.fallback_reason,
+            "intent_router": _post.routed_intents,
         },
         "user_confirmation_prompt": (
             "I found partially similar local incidents. Do any of these look relevant?"
@@ -4676,12 +4846,12 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
             "learned_feedback_score":   float(_ci.get("learned_feedback_score") or 0.0),
             "classification_certainty": _cert,
         },
-        "fallback_used":         rca.fallback_used,
+        "fallback_used":         _fallback_used,
         "fallback_runtime_enabled": FALLBACK_RUNTIME_ENABLED,
-        "fallback_provider":     rca.fallback_provider,
-        "fallback_model":        rca.fallback_model,
-        "response_source":       rca.response_source,
-        "analysis_source_label": rca.analysis_source_label,
+        "fallback_provider":     _post.fallback_provider,
+        "fallback_model":        _post.fallback_model,
+        "response_source":       _post.response_source,
+        "analysis_source_label": _post.analysis_source_label,
         "linked_resolution":     linked_resolution,
         "linked_playbook":       linked_playbook,
         "retrieved_incidents":   _incidents,
@@ -4703,7 +4873,7 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
         "workflow_timeline": build_workflow_timeline(
             request_id=state.request_id,
             decision=_decision,
-            fallback_used=rca.fallback_used,
+            fallback_used=_fallback_used,
             candidate_record=_candidate,
             linked_resolution=linked_resolution,
             linked_playbook=linked_playbook,
@@ -4720,7 +4890,7 @@ def _analyze_core_agentic(request: AnalyzeRequest) -> Dict[str, Any]:
         },
         "tenant_id":    state.tenant_id,
         "trace_spans":  state.trace_spans,
-        "routed_intents": rca.routed_intents,
+        "routed_intents": _post.routed_intents,
         "resolution_playbook": get_resolution_playbook(
             _final_classification,
             ticket=state.ticket,
@@ -5052,72 +5222,56 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
             else:
                 decision = "local_primary"
 
-            normalized_domain, normalized_classification, normalized_certainty, final_symptom_cause_meta = normalize_symptom_vs_cause_classification(
-                ticket=ticket,
-                domain=domain,
-                classification=final_classification,
-                classification_certainty=classification_certainty,
-            )
-            if final_symptom_cause_meta.get("applied"):
-                domain = normalized_domain
-                final_classification = normalize_classification_token(final_symptom_cause_meta.get("locked_classification") or normalized_classification)
-                classification_certainty = max(classification_certainty, normalized_certainty)
-                routed_intents["symptom_cause_normalization"] = final_symptom_cause_meta
-
-            if final_classification != classification:
-                linked_resolution, linked_playbook = resolve_linked_knowledge(final_classification)
-
-            inferred_from_ticket = infer_ticket_domain(ticket)
-            domain = canonical_domain_for_classification(
-                final_classification,
-                fallback_domain=(inferred_from_ticket if inferred_from_ticket != "general" else domain),
-            )
-
-            if fallback_used and should_prefer_learned_local_path(
-                force_fallback=bool(request.force_fallback),
-                linked_resolution=linked_resolution,
-                linked_playbook=linked_playbook,
-                classification=final_classification,
-                primary_confidence=primary_confidence,
-                retrieval_quality=retrieval_quality,
-            ):
-                fallback_used = False
-                fallback_analysis = None
-                fallback_confidence = 0.0
-                fallback_source = None
-                fallback_model = None
-                fallback_provider = None
-                fallback_reason = "learned_knowledge_reuse"
-                response_source = "local_primary"
-                analysis_source_label = build_analysis_source_label(
-                    response_source=response_source,
-                    fallback_used=False,
-                )
-                decision = "local_primary"
-                candidate_record = None
-                primary_confidence = max(primary_confidence, settings.CONFIDENCE_THRESHOLD + 0.02)
-
-            if not fallback_used:
-                final_analysis = build_enriched_analysis(
-                    ticket=ticket,
+            _post = finalize_post_rca_state(
+                PostRcaState(
                     domain=domain,
-                    classification=final_classification,
-                    retrieved_incidents=retrieved_incidents,
+                    classification=classification,
+                    final_classification=final_classification,
+                    classification_certainty=classification_certainty,
+                    final_analysis=final_analysis,
+                    fallback_used=fallback_used,
+                    fallback_analysis=fallback_analysis,
+                    fallback_confidence=fallback_confidence,
+                    fallback_source=fallback_source,
+                    fallback_model=fallback_model,
+                    fallback_provider=fallback_provider,
+                    fallback_reason=fallback_reason,
+                    response_source=response_source,
+                    analysis_source_label=analysis_source_label,
+                    decision=decision,
+                    candidate_record=candidate_record,
                     primary_confidence=primary_confidence,
                     linked_resolution=linked_resolution,
                     linked_playbook=linked_playbook,
-                    analysis_source=response_source,
-                    analysis_source_label=analysis_source_label,
-                )
+                    routed_intents=routed_intents,
+                ),
+                ticket=ticket,
+                force_fallback=bool(request.force_fallback),
+                retrieved_incidents=retrieved_incidents,
+                retrieval_quality=retrieval_quality,
+            )
+            domain = _post.domain
+            final_classification = _post.final_classification
+            classification_certainty = _post.classification_certainty
+            final_analysis = _post.final_analysis
+            fallback_used = _post.fallback_used
+            fallback_analysis = _post.fallback_analysis
+            fallback_confidence = _post.fallback_confidence
+            fallback_source = _post.fallback_source
+            fallback_model = _post.fallback_model
+            fallback_provider = _post.fallback_provider
+            fallback_reason = _post.fallback_reason
+            response_source = _post.response_source
+            analysis_source_label = _post.analysis_source_label
+            decision = _post.decision
+            candidate_record = _post.candidate_record
+            primary_confidence = _post.primary_confidence
+            linked_resolution = _post.linked_resolution
+            linked_playbook = _post.linked_playbook
+            routed_intents = _post.routed_intents
 
         symptom_cause_for_response = routed_intents.get("symptom_cause_normalization", {}) if isinstance(routed_intents, dict) else {}
-        if symptom_cause_for_response.get("applied"):
-            final_analysis["classification"] = final_classification
-            final_analysis["associated_scenario"] = symptom_cause_for_response.get("associated_scenario")
-            final_analysis["associated_change_type"] = symptom_cause_for_response.get("associated_change_type")
-            final_analysis["drift_type"] = symptom_cause_for_response.get("drift_type")
-            final_analysis["symptom_cause_normalization_applied"] = True
-            final_analysis["symptom_cause_normalization_reason"] = symptom_cause_for_response.get("reason")
+        apply_symptom_cause_metadata(final_analysis, final_classification, symptom_cause_for_response)
 
         domain, final_classification, classification_certainty, final_analysis = apply_shared_post_rca_guards(
             ticket=ticket,

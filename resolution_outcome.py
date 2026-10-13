@@ -176,7 +176,7 @@ def _read_json_outcomes(
                 continue
             if classification and row.get("classification") != classification:
                 continue
-            if tenant_id and row.get("tenant_id") not in (tenant_id, "default"):
+            if tenant_id and (row.get("tenant_id") or "default") != tenant_id:
                 continue
             rows.append(row)
     except Exception as exc:
