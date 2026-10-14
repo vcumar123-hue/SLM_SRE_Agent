@@ -46,4 +46,4 @@ After migration, re-run the same six tickets for both tenants and the same suite
 
 ### Still open
 - The two default-tenant settings differ (`app.py` defaults to `client_c`, `automation_engine.py` to `client_a`); callers that omit a tenant still get the engine default.
-- Contradictory "no approved automation" / "approved automation exists" notices in the Incident Console.
+- (Fixed 2026-10-14) Contradictory "no approved automation" / "approved automation exists" notices in the Incident Console.

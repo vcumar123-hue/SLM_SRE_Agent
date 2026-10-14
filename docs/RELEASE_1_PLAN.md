@@ -221,6 +221,6 @@ The failures reported from the reviewer's sandbox (egress audit rows missing, au
 ### Carried into the next release
 - pgvector migration (code complete and validated on scratch services 2026-10-13, see `docs/baselines/PGVECTOR_MIGRATION_2026-10-13.md`; live cutover pending): PostgreSQL as the single store for historical knowledge and vector search (baseline findings: embedding-model mismatch 768 vs 384 dimensions, 96 of 176 curated classifications without vectors, heavy post-retrieval filtering). Remove references to the `aiops_knowledge` collection from code; leave the collection in Qdrant for now.
 - Default-tenant settings differ (`app.py` `client_c`, `automation_engine.py` `client_a`).
-- Contradictory "no approved automation" / "approved automation exists" notices in the Incident Console.
+- ~~Contradictory "no approved automation" / "approved automation exists" notices in the Incident Console.~~ Fixed 2026-10-14: the top banner now uses the same registry lookup as the panel below it, and the "Validate & Promote" block is hidden when an approved automation exists (`tests/test_incident_console_banner.py`; verified in the running UI).
 - `psycopg2-binary==2.9.11` has no Windows-ARM64 wheel; the project is validated in a Linux container.
 - Release 2 (agent runtime, tool registry, bounded RCA loop) not started.

@@ -492,9 +492,13 @@ def render_evidence_ttl_warning(checked_at_str: str, evidence_type: str, warn_ho
         pass
 
 
-def render_incident_action_banner(result: dict) -> None:
-    """Render a prominent CTA banner: Approved Automation Available vs Runbook Validation Required."""
-    approved_automations = result.get("approved_automations", []) or []
+def render_incident_action_banner(result: dict, approved_mapping: Optional[dict] = None) -> None:
+    """Render a prominent CTA banner: Approved Automation Available vs Runbook Validation Required.
+
+    `approved_mapping` is the registry lookup the rest of the Incident Console uses; passing it keeps this banner and
+    the automation panel below it saying the same thing. Without it, the banner falls back to the analysis result.
+    """
+    approved_automations = [approved_mapping] if approved_mapping else (result.get("approved_automations", []) or [])
     classification = (result.get("analysis") or {}).get("classification", "")
 
     if approved_automations:

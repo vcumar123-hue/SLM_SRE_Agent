@@ -2506,48 +2506,50 @@ def render_engineer_runbook_panel(result: Dict[str, Any], ticket: str, key_suffi
 
     # ── Promote to Automation ─────────────────────────────────────────────────
     st.markdown("---")
-    promote_key = f"promote_confirm_{runtime_key}_{key_suffix}"
-    if not st.session_state.get(promote_key):
-        st.markdown("#### Validate & Promote to Automation")
-        st.caption(
-            "Once you have followed the resolution playbook and confirmed the steps are correct "
-            "for this environment, promote it to the Automation Queue for human-in-loop execution. "
-            "The system will register these steps as a validated playbook for this classification."
-        )
-        if st.button(
-            "✓ I have validated the playbook — Promote to Automation",
-            key=f"promote_btn_{runtime_key}_{key_suffix}",
-            type="primary",
-        ):
-            st.session_state[promote_key] = True
-            st.rerun()
-    else:
-        st.markdown("#### Confirm Promotion")
-        st.warning(
-            "**Before confirming:** You are certifying that you have executed or reviewed each "
-            "step in the playbook above and the resolution steps are correct for this incident "
-            "classification in this environment. This will be recorded as a validated playbook."
-        )
-        col_confirm, col_cancel = st.columns([1, 1])
-        with col_confirm:
+    # An approved automation already covers this classification: promoting would create a duplicate candidate.
+    if not has_approved_automation:
+        promote_key = f"promote_confirm_{runtime_key}_{key_suffix}"
+        if not st.session_state.get(promote_key):
+            st.markdown("#### Validate & Promote to Automation")
+            st.caption(
+                "Once you have followed the resolution playbook and confirmed the steps are correct "
+                "for this environment, promote it to the Automation Queue for human-in-loop execution. "
+                "The system will register these steps as a validated playbook for this classification."
+            )
             if st.button(
-                "Confirm & Send to Automation Queue",
-                key=f"promote_confirm_btn_{runtime_key}_{key_suffix}",
+                "✓ I have validated the playbook — Promote to Automation",
+                key=f"promote_btn_{runtime_key}_{key_suffix}",
                 type="primary",
             ):
-                st.session_state[promote_key] = False
-                persist_last_incident_result(result, ticket)
-                st.session_state.active_page = "Automation Queue"
-                try:
-                    st.query_params["page"] = "Automation Queue"
-                except Exception:
-                    pass
-                save_last_incident_snapshot()
+                st.session_state[promote_key] = True
                 st.rerun()
-        with col_cancel:
-            if st.button("Cancel", key=f"promote_cancel_{runtime_key}_{key_suffix}"):
-                st.session_state[promote_key] = False
-                st.rerun()
+        else:
+            st.markdown("#### Confirm Promotion")
+            st.warning(
+                "**Before confirming:** You are certifying that you have executed or reviewed each "
+                "step in the playbook above and the resolution steps are correct for this incident "
+                "classification in this environment. This will be recorded as a validated playbook."
+            )
+            col_confirm, col_cancel = st.columns([1, 1])
+            with col_confirm:
+                if st.button(
+                    "Confirm & Send to Automation Queue",
+                    key=f"promote_confirm_btn_{runtime_key}_{key_suffix}",
+                    type="primary",
+                ):
+                    st.session_state[promote_key] = False
+                    persist_last_incident_result(result, ticket)
+                    st.session_state.active_page = "Automation Queue"
+                    try:
+                        st.query_params["page"] = "Automation Queue"
+                    except Exception:
+                        pass
+                    save_last_incident_snapshot()
+                    st.rerun()
+            with col_cancel:
+                if st.button("Cancel", key=f"promote_cancel_{runtime_key}_{key_suffix}"):
+                    st.session_state[promote_key] = False
+                    st.rerun()
 
     if has_approved_automation:
         st.markdown("### Approved Automation Available")
@@ -3575,7 +3577,12 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     overall_conf = (result.get("confidence") or {}).get("overall_confidence") or \
                    (result.get("analysis") or {}).get("confidence") or 0.0
     render_confidence_meter(overall_conf)
-    render_incident_action_banner(result)
+    _banner_class = str((result.get("analysis") or {}).get("classification") or "")
+    try:
+        _banner_mapping = get_approved_automation_mapping(_banner_class) if _banner_class else None
+    except Exception:
+        _banner_mapping = None
+    render_incident_action_banner(result, approved_mapping=_banner_mapping)
     render_status_banners(result)
     st.markdown("---")
     render_action_panels(result)
