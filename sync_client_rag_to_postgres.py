@@ -45,6 +45,7 @@ Notes
 
 from __future__ import annotations
 
+import csv
 import argparse
 import hashlib
 import json
@@ -813,7 +814,7 @@ def map_ticket_row(row: Dict[str, Any], tenant_id: str, source_file: str, sheet:
         "source_row": source_row,
         "ticket_id": ticket_id,
         "priority": first_present(row, ["Priority"]),
-        "caller": first_present(row, ["Caller"]),
+        "caller": first_present(row, ["Caller", "Opened by"]),
         "assignment_group": first_present(row, ["Assignment group", "Assigned group", "Support group", "Resolver group"]),
         "opened_at": parse_datetime_or_none(first_present(row, ["Opened", "Opened at", "Created", "Created at"])),
         "resolved_at": parse_datetime_or_none(first_present(row, ["Resolved", "Resolved at", "Closed", "Closed at"])),
@@ -1206,6 +1207,55 @@ def process_excel_file(
     return result
 
 
+# --- ServiceNow-style incident exports (CSV, or CSV saved with a .txt extension) -----------------------------------------
+
+_AUTO_ASSIGN_NOTE = re.compile(
+    r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} - System Administrator \(Work notes\)\s*)?"
+    r"This Incident was not assigned to anyone in the last 24 hours\.?\s*"
+    r"Hence system has auto-assigned this either to the active group manager or an active assignment group member\.?",
+    re.IGNORECASE,
+)
+
+
+def looks_like_ticket_columns(columns: Iterable[Any]) -> bool:
+    """True for an incident export: a ticket number, a summary, a creation date and workflow fields."""
+    n = {normalize_key(c) for c in columns}
+    return (
+        "number" in n
+        and bool(n & {"summary", "short_description"})
+        and bool(n & {"created", "opened"})
+        and bool(n & {"assignment_group", "incident_state", "resolved"})
+    )
+
+
+def looks_like_ticket_csv(path: Path) -> bool:
+    """Peek at the header line of a delimited text file."""
+    try:
+        with path.open("r", encoding="utf-8-sig", errors="replace") as fh:
+            header = fh.readline()
+    except OSError:
+        return False
+    return "," in header and looks_like_ticket_columns(next(csv.reader([header]), []))
+
+
+def ticket_row_content(row: Dict[str, Any]) -> str:
+    """The text a ticket is searched by: what happened, what was found and what was done (no system boilerplate)."""
+    summary = first_present(row, ["Summary", "Short description"])
+    parts = [summary.rstrip(".") + "." if summary else ""]
+    for label, names in (
+        ("", ["Details", "Description"]),
+        ("Executive summary: ", ["Executive Summary"]),
+        ("Findings: ", ["Findings"]),
+        ("Actions taken: ", ["Actions taken"]),
+        ("Work notes: ", ["Work notes"]),
+    ):
+        value = _AUTO_ASSIGN_NOTE.sub("", first_present(row, names))
+        value = re.sub(r"\s+", " ", value).strip()
+        if value and value.lower() not in {"nan", "none", "null"}:
+            parts.append(label + value[:1500])
+    return " ".join(p for p in parts if p)[:4000]
+
+
 def process_csv_file(
     path: Path,
     tenant_id: str,
@@ -1217,6 +1267,10 @@ def process_csv_file(
         raise RuntimeError("pandas is required to process CSV files")
 
     df = pd.read_csv(path)
+    is_ticket_export = looks_like_ticket_columns(df.columns)
+    if is_ticket_export:
+        # keep every field as text: ticket numbers and notes must not be coerced
+        df = pd.read_csv(path, dtype=str, keep_default_na=False)
     if max_rows:
         df = df.head(max_rows)
 
@@ -1240,13 +1294,16 @@ def process_csv_file(
     }
 
     # Simple category inference for CSV.
-    category = classify_excel_workbook(path, [{"sheet": "csv", "columns": list(df.columns)}])
-    if category == "generic_excel":
-        category = "generic_csv"
+    if is_ticket_export:
+        category = "ticket_dump"
+    else:
+        category = classify_excel_workbook(path, [{"sheet": "csv", "columns": list(df.columns)}])
+        if category == "generic_excel":
+            category = "generic_csv"
     result["source_category"] = category
 
     for idx, row in enumerate(rows, start=1):
-        content = build_row_content(row)
+        content = ticket_row_content(row) if is_ticket_export else build_row_content(row)
         if not is_meaningful_content(content):
             continue
 
@@ -1256,7 +1313,7 @@ def process_csv_file(
             knowledge_scope,
             collection_name,
             category,
-            "document" if category == "generic_csv" else category,
+            "incident" if is_ticket_export else ("document" if category == "generic_csv" else category),
             str(path),
             "csv",
             idx,
@@ -1267,7 +1324,11 @@ def process_csv_file(
         if chunk:
             result["source_rows"]["client_knowledge_chunks"].append(chunk)
 
-        if category == "asset_inventory":
+        if is_ticket_export:
+            mapped = map_ticket_row(row, tenant_id, str(path), "csv", idx)
+            if mapped:
+                result["source_rows"]["client_ticket_records"].append(mapped)
+        elif category == "asset_inventory":
             mapped = map_asset_row(row, tenant_id, str(path), "csv", idx)
             if mapped:
                 result["source_rows"]["client_asset_records"].append(mapped)
@@ -1400,7 +1461,7 @@ def process_file(
     if suffix in {".xlsx", ".xls"}:
         return process_excel_file(path, tenant_id, knowledge_scope, collection_name, max_rows_per_sheet)
 
-    if suffix == ".csv":
+    if suffix == ".csv" or (suffix == ".txt" and looks_like_ticket_csv(path)):
         return process_csv_file(path, tenant_id, knowledge_scope, collection_name, max_rows_per_sheet)
 
     if suffix in {".docx", ".pptx", ".txt", ".md", ".json"}:
