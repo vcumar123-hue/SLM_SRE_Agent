@@ -161,6 +161,80 @@ def _build_bias_context(classification: str) -> str:
         return ""
 
 
+def _parse_steps(raw_content: str) -> Optional[List[Dict[str, Any]]]:
+    """Parse a model reply into validated playbook steps (tolerates a markdown code fence)."""
+    raw_content = (raw_content or "").strip()
+    if raw_content.startswith("```"):
+        raw_content = raw_content.split("```")[1]
+        if raw_content.startswith("json"):
+            raw_content = raw_content[4:]
+    steps = json.loads(raw_content)
+    if not isinstance(steps, list):
+        raise ValueError("LLM returned non-list")
+    valid = [s for s in steps if isinstance(s, dict) and s.get("step") and s.get("title") and s.get("action")]
+    return valid or None
+
+
+def _build_user_message(classification: str, ticket: str, rag_context: str) -> str:
+    return _USER_TEMPLATE.format(
+        classification=classification,
+        ticket=(ticket or "")[:800],
+        rag_context=f"Relevant context from knowledge base:\n{rag_context}" if rag_context else "",
+        bias_context=_build_bias_context(classification),
+    )
+
+
+def _call_local_llm(classification: str, ticket: str, rag_context: str, tenant_id: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+    """Generate playbook steps with the local model (LM Studio / Ollama), so no ticket text leaves the machine.
+
+    Used when the external provider is not configured or not permitted. If the configured model endpoint is not local,
+    the tenant's egress policy applies exactly as it does for the external provider.
+    """
+    import settings_portable as settings
+    base_url = str(getattr(settings, "MODEL_BASE_URL", "") or "")
+    model = str(getattr(settings, "PRIMARY_CHAT_MODEL", "") or "")
+    if not base_url or not model:
+        return None
+    try:
+        import requests
+    except ImportError:
+        return None
+
+    from egress_policy import EgressDenied, provider_for_url, redact, require_external_llm
+    user_msg = _build_user_message(classification, ticket, rag_context)
+    _provider, is_local = provider_for_url(base_url)
+    if not is_local:
+        try:
+            decision = require_external_llm(tenant_id, "playbook_generation", base_url)
+        except EgressDenied as denied:
+            logger.warning("PlaybookAgent: model endpoint is not local and egress is denied for '%s': %s", classification, denied)
+            return None
+        user_msg = redact(user_msg, decision.redaction)
+
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}],
+        "temperature": 0.2,
+        "max_tokens": 2048,
+    }
+    headers = {"Authorization": f"Bearer {getattr(settings, 'MODEL_API_KEY', 'lm-studio')}", "Content-Type": "application/json"}
+    try:
+        t0 = time.time()
+        resp = requests.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload,
+                             timeout=float(os.getenv("AIOPS_LOCAL_PLAYBOOK_TIMEOUT_S", "180")))
+        resp.raise_for_status()
+        steps = _parse_steps(resp.json()["choices"][0]["message"]["content"])
+        if steps:
+            for step in steps:
+                step.setdefault("generated_by", model)
+        logger.info("PlaybookAgent: local model %s generated %d steps for '%s' in %.1fs",
+                    model, len(steps or []), classification, time.time() - t0)
+        return steps
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("PlaybookAgent: local model call failed for '%s': %s", classification, exc)
+        return None
+
+
 def _call_llm(classification: str, ticket: str, rag_context: str, tenant_id: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
     """Call Groq (or compatible OpenAI endpoint) to generate playbook steps."""
     api_key = os.getenv("GROQ_API_KEY", "")
@@ -252,14 +326,20 @@ def generate_playbook(
         logger.debug("PlaybookAgent: cache hit for '%s' (%d steps)", classification, len(cached))
         return cached
 
-    if not allow_llm:
-        logger.info("PlaybookAgent: cache miss for '%s' — external generation not permitted for this request", classification)
-        return []
-
-    logger.info("PlaybookAgent: cache miss for '%s' — calling LLM", classification)
-    steps = _call_llm(classification, ticket, rag_context, tenant_id=tenant_id)
-    if steps:
+    steps = None
+    model_used = ""
+    if allow_llm:
+        logger.info("PlaybookAgent: cache miss for '%s' - calling the external model", classification)
+        steps = _call_llm(classification, ticket, rag_context, tenant_id=tenant_id)
         model_used = os.getenv("GROQ_MODEL", "")
+    if not steps:
+        # Not configured, not permitted for this request or tenant, or it failed: the local model keeps data on the machine.
+        logger.info("PlaybookAgent: cache miss for '%s' - using the local model", classification)
+        steps = _call_local_llm(classification, ticket, rag_context, tenant_id=tenant_id)
+        if steps:
+            import settings_portable as _settings
+            model_used = str(getattr(_settings, "PRIMARY_CHAT_MODEL", "local"))
+    if steps:
         set_cached_playbook(classification, steps, model_used=model_used)
         return steps
     return []
