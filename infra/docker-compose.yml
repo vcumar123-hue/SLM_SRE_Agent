@@ -105,7 +105,7 @@ services:
       - REDIS_PORT=6379
 
       # Tenant
-      - AIOPS_DEFAULT_TENANT_ID=client_a
+      - AIOPS_DEFAULT_TENANT_ID=client_c
       - AIOPS_TENANT_CONFIG_DIR=/app/tenant_config
 
     command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -131,7 +131,7 @@ services:
       - ../:/app
     environment:
       - AIOPS_BACKEND_URL=http://aiops-app:8000
-      - AIOPS_DEFAULT_TENANT_ID=client_a
+      - AIOPS_DEFAULT_TENANT_ID=client_c
     env_file:
       - ../.env
     depends_on:

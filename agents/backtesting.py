@@ -1,4 +1,5 @@
 from __future__ import annotations
+from default_tenant import default_tenant_id
 import json
 import os
 from datetime import datetime, timezone
@@ -8,7 +9,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 router = APIRouter(tags=["backtesting"])
 
-DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_a")
+DEFAULT_TENANT_ID = default_tenant_id()
 HISTORY_FILE = Path("data/backtesting/results/backtest_history.jsonl")
 _HISTORY_KEEP = 90  # keep up to 90 daily snapshots
 

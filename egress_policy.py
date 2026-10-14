@@ -22,6 +22,7 @@ ignored (and logged as an error) when AIOPS_ENV=production.
 """
 from __future__ import annotations
 
+from default_tenant import default_tenant_id
 import ipaddress
 import json
 import logging
@@ -107,7 +108,7 @@ def resolve_tenant(tenant_id: Optional[str] = None) -> str:
             return ctx
     except Exception:
         pass
-    return os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_a").strip().lower() or "client_a"
+    return default_tenant_id()
 
 
 def _load_tenant_config(tenant_id: str) -> Dict[str, Any]:

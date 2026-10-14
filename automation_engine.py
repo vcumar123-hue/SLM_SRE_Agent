@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from default_tenant import default_tenant_id
 import hashlib
 import json
 import logging
@@ -34,7 +35,7 @@ _TERMINAL_STATUSES = {"executed", "closed_remediated", "execution_failed", "canc
 _QUEUE_ACTIVE_TERMINAL_KEEP = 10
 
 DEFAULT_EXECUTION_MODE = os.getenv("AUTOMATION_EXECUTION_MODE", "simulation").strip().lower()
-DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_a")
+DEFAULT_TENANT_ID = default_tenant_id()
 
 
 # =========================================================

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from default_tenant import default_tenant_id
 import json
 import os
 import re
@@ -8,7 +9,7 @@ from fastapi import APIRouter
 
 router = APIRouter(tags=["governance"])
 
-DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_a")
+DEFAULT_TENANT_ID = default_tenant_id()
 TENANT_CONFIG_DIR = Path(os.getenv("AIOPS_TENANT_CONFIG_DIR", "tenant_config"))
 
 

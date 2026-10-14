@@ -1,4 +1,5 @@
 from __future__ import annotations
+from default_tenant import default_tenant_id
 import json, os, re, traceback, uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -113,7 +114,7 @@ except Exception:
 
 router = APIRouter(tags=["telemetry"])
 
-DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_a")
+DEFAULT_TENANT_ID = default_tenant_id()
 
 
 def _list_telemetry_events(limit: int = 100) -> List[Dict[str, Any]]:

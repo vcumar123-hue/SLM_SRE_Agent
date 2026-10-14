@@ -1,6 +1,7 @@
 # Hardened build generated from current fixed backend
 from __future__ import annotations
 
+from default_tenant import default_tenant_id
 import json
 from dataclasses import dataclass, replace as _dc_replace
 import os
@@ -415,7 +416,7 @@ SOURCE_PRIORITY = {
 }
 
 
-DEFAULT_TENANT_ID = os.getenv("AIOPS_DEFAULT_TENANT_ID", "client_c")
+DEFAULT_TENANT_ID = default_tenant_id()
 TENANT_CONFIG_DIR = Path(os.getenv("AIOPS_TENANT_CONFIG_DIR", "tenant_config"))
 
 
