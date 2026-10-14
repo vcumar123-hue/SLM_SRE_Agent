@@ -30,9 +30,11 @@ COPY requirements.txt /app/requirements.txt
 
 # Install Python deps — split into two layers to leverage cache
 # Layer 1: heavy ML packages (slow to install, rarely change)
-RUN pip install --no-cache-dir \
-    torch==2.4.1+cpu \
-    --index-url https://download.pytorch.org/whl/cpu
+# The default is the x86_64 CPU wheel used on vast.ai. On arm64 (for example a local test build) override with
+#   --build-arg TORCH_SPEC=torch --build-arg TORCH_INDEX=https://pypi.org/simple
+ARG TORCH_SPEC="torch==2.4.1+cpu"
+ARG TORCH_INDEX="https://download.pytorch.org/whl/cpu"
+RUN pip install --no-cache-dir "${TORCH_SPEC}" --index-url "${TORCH_INDEX}"
 
 # Layer 2: remaining requirements
 RUN pip install --no-cache-dir -r /app/requirements.txt

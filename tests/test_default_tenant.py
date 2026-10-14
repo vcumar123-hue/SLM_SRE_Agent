@@ -56,6 +56,18 @@ class DefaultTenantTests(unittest.TestCase):
                 offenders.append(str(path.relative_to(ROOT)))
         self.assertEqual(offenders, [], "read the default tenant through default_tenant.default_tenant_id()")
 
+    def test_the_ui_has_no_hardcoded_tenant_fallback(self):
+        """The UI must start on the same default tenant as the API (a POC deployment sets poc_client, not PYPL)."""
+        for name in ("ui.py", "page_modules/error_tolerance.py", "page_modules/shared.py", "page_modules/automation_queue.py"):
+            text = (ROOT / name).read_text(encoding="utf-8")
+            self.assertNotIn('"tenant_id", "client_c"', text, name)
+            self.assertNotIn('"tenant_id": "client_c"', text, name)
+
+    def test_the_ui_shows_the_active_tenant_not_a_fixed_client_name(self):
+        text = (ROOT / "ui.py").read_text(encoding="utf-8")
+        self.assertNotIn("PYPL", text)
+        self.assertIn("_active_tenant_label()", text)
+
     def test_local_compose_matches_the_default(self):
         text = (ROOT / "infra" / "docker-compose.yml").read_text(encoding="utf-8")
         self.assertNotIn("AIOPS_DEFAULT_TENANT_ID=client_a", text)

@@ -329,6 +329,12 @@ async def _warm_embedding_model() -> None:
         def _warm_vector_search() -> None:
             try:
                 import pg_vector_store
+                try:
+                    if not pg_vector_store.schema_ready():
+                        pg_vector_store.ensure_schema()
+                        _logger.info("Vector schema added (embedding columns, indexes, trigger)")
+                except Exception as _schema_exc:
+                    _logger.warning("Vector schema check skipped: %s", _schema_exc)
                 tenants = [DEFAULT_TENANT_ID] + sorted(p.stem for p in TENANT_CONFIG_DIR.glob("*.json")
                                                         if p.stem not in {"tenant_config_template"} and "_may" not in p.stem)
                 report = pg_vector_store.warm_up(tenants)

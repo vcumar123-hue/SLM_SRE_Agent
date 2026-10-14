@@ -99,6 +99,16 @@ def ping() -> bool:
         return False
 
 
+def schema_ready() -> bool:
+    """True when the embedding columns exist (the tables may also be missing on a brand-new database)."""
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'embedding' "
+            "AND table_name IN ('incidents', 'client_knowledge_chunks')"
+        )
+        return cur.fetchone()[0] == 2
+
+
 def ensure_schema() -> None:
     with _connect() as conn, conn.cursor() as cur:
         cur.execute(SCHEMA_SQL)

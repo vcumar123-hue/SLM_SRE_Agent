@@ -1,5 +1,6 @@
 """Error Tolerance page module."""
 from __future__ import annotations
+from default_tenant import default_tenant_id
 import json
 from typing import Any, Dict, List, Optional
 import streamlit as st
@@ -493,7 +494,7 @@ def _render_evaluate_incident() -> None:
                 "recommendation": recommendation,
                 "source": "error_tolerance_page",
                 "requested_by": "operator",
-                "tenant_id": st.session_state.get("tenant_id", "client_c"),
+                "tenant_id": st.session_state.get("tenant_id", default_tenant_id()),
             }
             try:
                 r = SESSION.post(

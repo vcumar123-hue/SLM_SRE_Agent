@@ -1,4 +1,6 @@
 import json
+from default_tenant import default_tenant_id
+import html
 import os
 import re
 import uuid
@@ -15,6 +17,8 @@ import streamlit.components.v1 as _st_components
 from dashboard import render_dashboard
 from onboarding_studio import render_client_onboarding_studio
 
+# The tenant the UI starts on; the sidebar selector changes it. Same setting as the API's default tenant.
+DEFAULT_UI_TENANT = default_tenant_id()
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8001").rstrip("/")
 REQUEST_TIMEOUT_SHORT = 30
 REQUEST_TIMEOUT_MEDIUM = 60
@@ -152,7 +156,7 @@ def call_backend_with_text(
             "ticket": ticket_text,
             "use_fallback": str(use_fallback).lower(),
             "force_fallback": str(force_fallback).lower(),
-            "tenant_id": tenant_id or st.session_state.get("tenant_id", "client_c"),
+            "tenant_id": tenant_id or st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
             "knowledge_scope": knowledge_scope or st.session_state.get("knowledge_scope", "client_private"),
         }
         if confirm_local_matches is not None:
@@ -186,7 +190,7 @@ def call_backend_with_text(
         "ticket": ticket_text,
         "use_fallback": use_fallback,
         "force_fallback": force_fallback,
-        "tenant_id": tenant_id or st.session_state.get("tenant_id", "client_c"),
+        "tenant_id": tenant_id or st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
         "knowledge_scope": knowledge_scope or st.session_state.get("knowledge_scope", "client_private"),
     }
     if confirm_local_matches is not None:
@@ -288,7 +292,7 @@ def review_candidate(payload: dict) -> dict:
 def promote_candidate(candidate_id: str) -> dict:
     payload = {
         "candidate_id": candidate_id,
-        "tenant_id": st.session_state.get("tenant_id", "client_c"),
+        "tenant_id": st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
     }
     response = SESSION.post(f"{BACKEND_URL}/promote_candidate", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
@@ -296,14 +300,14 @@ def promote_candidate(candidate_id: str) -> dict:
 
 
 def create_resolution_record(payload: dict) -> dict:
-    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_c"))
+    payload.setdefault("tenant_id", st.session_state.get("tenant_id", DEFAULT_UI_TENANT))
     response = SESSION.post(f"{BACKEND_URL}/create_resolution", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
     return response.json()
 
 
 def create_playbook_record(payload: dict) -> dict:
-    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_c"))
+    payload.setdefault("tenant_id", st.session_state.get("tenant_id", DEFAULT_UI_TENANT))
     response = SESSION.post(f"{BACKEND_URL}/create_playbook", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
     return response.json()
@@ -628,7 +632,7 @@ def build_playbook_improvement_candidate_payload(
 
 def queue_automation(payload: dict) -> dict:
     payload = dict(payload)
-    payload.setdefault("tenant_id", st.session_state.get("tenant_id", "client_c"))
+    payload.setdefault("tenant_id", st.session_state.get("tenant_id", DEFAULT_UI_TENANT))
     response = SESSION.post(f"{BACKEND_URL}/automation/queue", json=payload, timeout=REQUEST_TIMEOUT_MEDIUM)
     response.raise_for_status()
     return response.json()
@@ -1146,7 +1150,7 @@ def init_state():
         "automation_mapping_runtime": {},
         "automation_candidate_runtime": {},
         "automation_learned_actions_text": "",
-        "tenant_id": "client_c",
+        "tenant_id": DEFAULT_UI_TENANT,
         "user_role": "l2",        # default: L2 for demo; resolved from DB on login
         "user_display_name": "Engineer",
         "knowledge_scope": "client_private",
@@ -1332,6 +1336,15 @@ def _load_available_tenants() -> List[Dict[str, Any]]:
         except Exception:
             pass
     return tenants or [{"tenant_id": "client_a", "display_name": "client_a"}]
+
+
+def _active_tenant_label() -> str:
+    """Display name of the tenant selected in the sidebar (falls back to its id)."""
+    tid = st.session_state.get("tenant_id", DEFAULT_UI_TENANT)
+    for tenant in _load_available_tenants():
+        if tenant["tenant_id"] == tid:
+            return html.escape(str(tenant["display_name"]))
+    return html.escape(str(tid))
 
 
 def render_sidebar_nav(current_page: str) -> None:
@@ -1566,7 +1579,7 @@ def render_sidebar_nav(current_page: str) -> None:
         '<div class="sb-avatar">VK</div>'
         "<div>"
         '<div class="sb-user-name">Vijay Kumar</div>'
-        '<div class="sb-user-role">SRE Engineer &nbsp;&middot;&nbsp; PYPL</div>'
+        '<div class="sb-user-role">SRE Engineer &nbsp;&middot;&nbsp; ' + _active_tenant_label() + "</div>"
         "</div></div>"
         '<div class="sb-section">Navigation</div>'
     )
@@ -1624,7 +1637,7 @@ def render_sidebar_nav(current_page: str) -> None:
             unsafe_allow_html=True,
         )
         _tenant_labels = [f"{t['display_name']} ({t['tenant_id']})" for t in _tenants]
-        _current_tid = st.session_state.get("tenant_id", "client_c")
+        _current_tid = st.session_state.get("tenant_id", DEFAULT_UI_TENANT)
         _current_idx = next((i for i, t in enumerate(_tenants) if t["tenant_id"] == _current_tid), 0)
         _selected_label = st.selectbox(
             "Active Tenant",
@@ -1690,7 +1703,7 @@ def render_top_nav(current_page: str = "") -> None:
         '<span class="page-hdr-title">' + current_page + "</span>"
         "</div>"
         '<div class="page-hdr-right">'
-        '<span class="page-hdr-badge">PYPL</span>'
+        '<span class="page-hdr-badge">' + _active_tenant_label() + "</span>"
         '<span class="page-hdr-env">&#x25cf;&nbsp;Live</span>'
         "</div></div>"
     )
@@ -1732,7 +1745,7 @@ def run_analysis_from_submission(submission):
             use_fallback=True,
             force_fallback=bool(st.session_state.force_fallback_for_next_run),
             upload_info=upload_info,
-            tenant_id=st.session_state.get("tenant_id", "client_c"),
+            tenant_id=st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
             knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
         )
         st.session_state.messages.append({"role": "assistant", "result": result, "ticket": text.strip() or display_text})
@@ -1849,7 +1862,7 @@ def render_status_banners(result: dict):
 
     # Inline meta strip — compact, single line
     decision = decision_display_label(routing.get("decision", "unknown"))
-    tenant_id = (tenant_context.get("tenant_id") if tenant_context else None) or st.session_state.get("tenant_id", "client_c")
+    tenant_id = (tenant_context.get("tenant_id") if tenant_context else None) or st.session_state.get("tenant_id", DEFAULT_UI_TENANT)
     if fallback_used:
         source_html = f'<span style="color:#2ecc71;font-weight:600;">🤖 Source: {source_text}</span>'
         st.markdown(
@@ -2778,7 +2791,7 @@ def render_confirmation_panel(result: dict, ticket: str, key_suffix: str):
                     use_fallback=True,
                     force_fallback=False,
                     confirm_local_matches=True,
-                    tenant_id=st.session_state.get("tenant_id", "client_c"),
+                    tenant_id=st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
                     knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
                 )
                 st.session_state.messages.append({"role": "assistant", "result": confirmed_result, "ticket": ticket})
@@ -2794,7 +2807,7 @@ def render_confirmation_panel(result: dict, ticket: str, key_suffix: str):
                     use_fallback=True,
                     force_fallback=True,
                     confirm_local_matches=False,
-                    tenant_id=st.session_state.get("tenant_id", "client_c"),
+                    tenant_id=st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
                     knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
                 )
                 st.session_state.messages.append({"role": "assistant", "result": fallback_result, "ticket": ticket})
@@ -3511,7 +3524,7 @@ def render_candidate_workflow(result: dict, ticket: str, key_suffix: str):
                     ticket,
                     use_fallback=True,
                     force_fallback=True,
-                    tenant_id=st.session_state.get("tenant_id", "client_c"),
+                    tenant_id=st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
                     knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
                 )
                 st.session_state.messages.append({"role": "assistant", "result": rerun_result, "ticket": ticket})
@@ -3587,7 +3600,7 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     st.markdown("---")
     render_action_panels(result)
     _intel_cls = (result.get("analysis") or {}).get("classification", "")
-    _intel_tid = st.session_state.get("tenant_id", "client_c")
+    _intel_tid = st.session_state.get("tenant_id", DEFAULT_UI_TENANT)
     render_agent_timeline(result)
     render_historical_outcome_evidence(_intel_cls, _intel_tid)
     render_pattern_intelligence_card(_intel_cls, _intel_tid)
@@ -3616,7 +3629,7 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
     render_feedback(result, ticket, key_suffix)
     render_peer_insights_panel(
         incident_text=ticket,
-        client_id=st.session_state.get("tenant_id", "client_c"),
+        client_id=st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
         rag_context=result.get("rag_context"),
     )
 
@@ -3657,7 +3670,7 @@ def run_analysis_from_ui(user_input: str):
             user_input,
             use_fallback=True,
             force_fallback=bool(st.session_state.force_fallback_for_next_run),
-            tenant_id=st.session_state.get("tenant_id", "client_c"),
+            tenant_id=st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
             knowledge_scope=st.session_state.get("knowledge_scope", "client_private"),
         )
         st.session_state.messages.append({"role": "assistant", "result": result, "ticket": user_input})
@@ -4597,7 +4610,7 @@ def _render_demo_page():  # noqa: C901
             "incident_id": st.session_state.demo_incident_id or "demo-incident",
             "classification": automation_class,
             "requested_by": "demo",
-            "tenant_id": st.session_state.get("tenant_id", "client_c"),
+            "tenant_id": st.session_state.get("tenant_id", DEFAULT_UI_TENANT),
         })
         if code >= 300:
             return None, d

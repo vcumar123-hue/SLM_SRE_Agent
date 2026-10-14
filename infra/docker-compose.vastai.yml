@@ -82,8 +82,9 @@ services:
       GROQ_MODEL:                 ${GROQ_MODEL:-llama-3.3-70b-versatile}
       LM_STUDIO_BASE_URL:         ""
 
-      # Embeddings (local CPU-based nomic)
-      EMBEDDING_MODEL:            text-embedding-nomic-embed-text-v1.5
+      # Embeddings: 384-dimensional MiniLM, run in-process on CPU (baked into the image); must match the vector(384) columns
+      EMBEDDING_BACKEND:          sentence_transformers
+      EMBEDDING_MODEL:            sentence-transformers/all-MiniLM-L6-v2
       EMBEDDING_DEVICE:           cpu
 
       # Tenant
@@ -123,6 +124,8 @@ services:
       - "8501:8501"
     environment:
       AIOPS_BACKEND_URL:          http://aiops-app:8000
+      BACKEND_URL:                http://aiops-app:8000   # the name ui.py reads; without it the UI looks for 127.0.0.1:8001
+      AIOPS_DEFAULT_TENANT_ID:    poc_client              # the tenant the UI starts on (same setting as the API)
       STREAMLIT_SERVER_PORT:      8501
       STREAMLIT_SERVER_ADDRESS:   0.0.0.0
       STREAMLIT_SERVER_HEADLESS:  "true"
