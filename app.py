@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, replace as _dc_replace
 import os
+import threading
 import re
 import traceback
 import uuid
@@ -321,6 +322,20 @@ async def _warm_embedding_model() -> None:
         _logger.info("Embedding model pre-warm: %s", "OK" if ok else "FAILED — vector search will be slower on first request")
     except Exception as _exc:
         _logger.warning("Embedding model pre-warm skipped: %s", _exc)
+
+    # Warm the vector indexes and each tenant's search path in the background so the first user query is fast.
+    if os.getenv("AIOPS_WARMUP_VECTOR", "true").strip().lower() in {"1", "true", "yes", "on"}:
+        def _warm_vector_search() -> None:
+            try:
+                import pg_vector_store
+                tenants = [DEFAULT_TENANT_ID] + sorted(p.stem for p in TENANT_CONFIG_DIR.glob("*.json")
+                                                        if p.stem not in {"tenant_config_template"} and "_may" not in p.stem)
+                report = pg_vector_store.warm_up(tenants)
+                _logger.info("Vector search warm-up: %s", report)
+            except Exception as _warm_exc:
+                _logger.warning("Vector search warm-up skipped: %s", _warm_exc)
+
+        threading.Thread(target=_warm_vector_search, name="vector-warmup", daemon=True).start()
 
     # Register agents with the A2A dispatcher (Item #15 + Phase 3 agentic conversion)
     try:

@@ -221,6 +221,38 @@ class EmbeddingStoreTests(unittest.TestCase):
         self.assertEqual(len(created), 1)
 
 
+class WarmUpTests(unittest.TestCase):
+    def test_warm_up_prewarms_indexes_and_each_tenant_once(self):
+        cursor = FakeCursor({})
+        searched = []
+        with patch.object(pv, "_connect", return_value=FakeConn(cursor)),                 patch("embedding_store.embed_text", return_value=[0.0] * 384),                 patch.object(pv, "search_multi_scope", side_effect=lambda v, **kw: searched.append(kw["tenant_id"]) or []):
+            report = pv.warm_up(["client_a", "client_c", "client_a", ""])
+        self.assertEqual(searched, ["client_a", "client_c"])
+        self.assertEqual(report["prewarmed"], ["idx_incidents_embedding", "idx_chunks_embedding"])
+        self.assertEqual(report["errors"], [])
+        self.assertIn("seconds", report)
+
+    def test_warm_up_never_raises_and_reports_errors(self):
+        with patch.object(pv, "_connect", side_effect=RuntimeError("db down")),                 patch("embedding_store.embed_text", side_effect=RuntimeError("model down")):
+            report = pv.warm_up(["client_a"])
+        self.assertTrue(any("connect" in e for e in report["errors"]))
+        self.assertTrue(any("search" in e for e in report["errors"]))
+
+    def test_a_missing_pg_prewarm_extension_is_only_an_optimisation(self):
+        class NoPrewarm(FakeCursor):
+            def execute(self, sql, params=None):
+                if "pg_prewarm" in sql:
+                    raise RuntimeError("extension not available")
+                return super().execute(sql, params)
+
+        conn = FakeConn(NoPrewarm({}))
+        conn.rollback = lambda: None
+        with patch.object(pv, "_connect", return_value=conn),                 patch("embedding_store.embed_text", return_value=[0.0] * 384),                 patch.object(pv, "search_multi_scope", return_value=[]):
+            report = pv.warm_up(["client_a"])
+        self.assertEqual(report["prewarmed"], [])
+        self.assertEqual(list(report["tenants"]), ["client_a"])
+
+
 class RepositoryHygieneTests(unittest.TestCase):
     def python_files(self):
         root = pathlib.Path(__file__).resolve().parent.parent

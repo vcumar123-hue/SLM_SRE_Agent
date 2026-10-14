@@ -41,3 +41,9 @@ Nothing here has been applied to the live database yet.
 - Result on the live database: 39,423 incidents and 135,506 chunks, all embedded; both HNSW indexes present; recall at ef_search=200 about 0.97-0.99 (tie-aware `--check-recall`); the six-ticket snapshot returns the correct curated class for all six tickets for both tenants (200-300 ms per ticket once warm; the first query after start-up is slow while the model and index load). `release` now returns `rollback_failure` first on the live index (`deployment_or_release_failure` on the scratch index): both are relevant and the difference is approximate-index ordering between near-identical classes.
 - The Qdrant containers and the `aiops_knowledge` collection are untouched and no longer used by the code.
 - Rollback: stop `aiops-postgres`, rename it, rename `aiops-postgres-pre-pgvector` back to `aiops-postgres` and start it (the previous code on `release-1` expects Qdrant).
+
+## Follow-ups done the same day
+- Start-up warm-up: the API now loads the embedding model, prewarms both HNSW indexes (`pg_prewarm`) and runs one search per configured tenant in a background thread (`AIOPS_WARMUP_VECTOR=false` disables it). Measured against the live database: 2.2 s for all four tenants, so the first user query no longer pays the 10-25 s cold start. This added the `pg_prewarm` extension to the live database.
+- The model cache previously reloaded the embedding model on every call, which made the existing start-up pre-warm ineffective; fixed earlier in this migration.
+- Removed the scratch containers (`aiops-pgvector-scratch`, `aiops-qdrant-scratch`, `aiops-ui-session`, the backfill container). The `aiops_scratch` database inside the old, stopped PostgreSQL container was left in place and goes away when that rollback container is retired (planned no sooner than a week after the cutover).
+

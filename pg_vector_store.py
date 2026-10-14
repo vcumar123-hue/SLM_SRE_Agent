@@ -260,6 +260,39 @@ TABLES = {
 }
 
 
+def warm_up(tenants: Iterable[str] = ()) -> Dict[str, Any]:
+    """Make the first real search fast: load the vector indexes into memory and touch each tenant's search path.
+
+    Never raises; returns what was done and how long each step took (seconds). A cold first query used to take
+    10-25 seconds while the embedding model loaded and the index was read from disk.
+    """
+    report: Dict[str, Any] = {"prewarmed": [], "tenants": {}, "errors": []}
+    started = time.monotonic()
+    try:
+        with _connect() as conn, conn.cursor() as cur:
+            try:
+                cur.execute("CREATE EXTENSION IF NOT EXISTS pg_prewarm")
+                for index in ("idx_incidents_embedding", "idx_chunks_embedding"):
+                    cur.execute("SELECT pg_prewarm(%s::regclass)", (index,))
+                    report["prewarmed"].append(index)
+            except Exception as exc:  # noqa: BLE001 - pg_prewarm is an optimisation only
+                conn.rollback()
+                report["errors"].append(f"pg_prewarm: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        report["errors"].append(f"connect: {exc}")
+    try:
+        from embedding_store import embed_text
+        vector = embed_text("system warm up")
+        for tenant in dict.fromkeys(t for t in tenants if t):
+            t0 = time.monotonic()
+            search_multi_scope(vector, limit=3, tenant_id=tenant)
+            report["tenants"][tenant] = round(time.monotonic() - t0, 3)
+    except Exception as exc:  # noqa: BLE001
+        report["errors"].append(f"search: {exc}")
+    report["seconds"] = round(time.monotonic() - started, 2)
+    return report
+
+
 def check_recall(samples: int = 100, k: int = 10) -> Dict[str, float]:
     """Compare index results with exact results for sample rows; a low value means the HNSW index must be rebuilt.
 
