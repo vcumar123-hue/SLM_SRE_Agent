@@ -21,6 +21,10 @@ services:
     image: pgvector/pgvector:pg16  # PostgreSQL 16 with the pgvector extension (vector search)
     container_name: aiops-postgres
     restart: unless-stopped
+    # Index builds need room: an HNSW graph that does not fit in maintenance_work_mem is built badly (recall collapses),
+    # and parallel builds need more shared memory than a default container has.
+    command: ["postgres", "-c", "maintenance_work_mem=1GB", "-c", "max_parallel_maintenance_workers=0", "-c", "shared_buffers=1GB"]
+    shm_size: 512m
     environment:
       POSTGRES_DB:       aiops
       POSTGRES_USER:     aiops_user

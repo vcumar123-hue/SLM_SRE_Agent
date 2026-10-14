@@ -28,6 +28,8 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 LOGGER = logging.getLogger(__name__)
 
 VECTOR_DIM = int(os.getenv("AIOPS_VECTOR_DIM", "384"))
+# How many candidates the HNSW index examines per search: higher is more accurate and a little slower.
+EF_SEARCH = int(os.getenv("AIOPS_HNSW_EF_SEARCH", "200"))
 LAYERS = ("tenant", "global_learned", "global_base")
 SCOPE_LAYERS = {
     "client_private": ("tenant", "global_learned", "global_base"),
@@ -174,7 +176,7 @@ def search_multi_scope(
         # Tenant and scope filters are applied after the index scan; iterative scans keep scanning until `limit`
         # matching rows are found, so a small tenant is not starved by a large neighbour.
         cur.execute("SET LOCAL hnsw.iterative_scan = 'strict_order'")
-        cur.execute("SET LOCAL hnsw.ef_search = 100")
+        cur.execute(f"SET LOCAL hnsw.ef_search = {EF_SEARCH}")
         for layer in layers:
             for sql, params in _layer_queries(layer, tenant, wanted):
                 cur.execute(sql, [qv, *params, qv, per_layer])
@@ -258,26 +260,35 @@ TABLES = {
 }
 
 
-def check_recall(samples: int = 25, k: int = 10) -> Dict[str, float]:
-    """Compare index results with exact results for sample rows; a low value means the HNSW index must be rebuilt."""
+def check_recall(samples: int = 100, k: int = 10) -> Dict[str, float]:
+    """Compare index results with exact results for sample rows; a low value means the HNSW index must be rebuilt.
+
+    A returned row counts as correct when it is at least as close as the exact k-th neighbour, so ties between
+    near-identical rows (common with templated incident text) do not count against the index.
+    """
     result: Dict[str, float] = {}
     with _connect() as conn, conn.cursor() as cur:
+        cur.execute(f"SET LOCAL hnsw.ef_search = {EF_SEARCH}")
         for table, (key, key_expr, _cols) in TABLES.items():
             cur.execute(f"SELECT embedding::text FROM {table} WHERE embedding IS NOT NULL ORDER BY random() LIMIT %s", (samples,))
             queries = [r[0] for r in cur.fetchall()]
             if not queries:
                 continue
-            overlap = 0
+            good = total = 0
+            sql = f"SELECT embedding <=> %s::vector FROM {table} WHERE embedding IS NOT NULL ORDER BY embedding <=> %s::vector LIMIT %s"
             for q in queries:
-                sets = []
-                for scan in ("on", "off"):
-                    cur.execute(f"SET LOCAL enable_indexscan = {scan}")
-                    cur.execute(f"SET LOCAL enable_bitmapscan = {scan}")
-                    cur.execute(f"SELECT {key_expr} FROM {table} WHERE embedding IS NOT NULL "
-                                f"ORDER BY embedding <=> %s::vector LIMIT %s", (q, k))
-                    sets.append({r[0] for r in cur.fetchall()})
-                overlap += len(sets[0] & sets[1])
-            result[table] = round(overlap / (len(queries) * k), 3)
+                cur.execute("SET LOCAL enable_indexscan = off")
+                cur.execute("SET LOCAL enable_bitmapscan = off")
+                cur.execute(sql, (q, q, k))
+                exact = [r[0] for r in cur.fetchall()]
+                cur.execute("SET LOCAL enable_indexscan = on")
+                cur.execute("SET LOCAL enable_bitmapscan = on")
+                cur.execute(sql, (q, q, k))
+                found = [r[0] for r in cur.fetchall()]
+                limit = exact[-1] + 1e-6
+                good += sum(1 for d in found if d <= limit)
+                total += k
+            result[table] = round(good / total, 3)
     return result
 
 
