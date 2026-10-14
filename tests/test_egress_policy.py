@@ -165,8 +165,10 @@ class PlaybookEgressTests(EgressBase):
         post.assert_not_called()
 
     def test_generate_playbook_with_llm_not_allowed_never_calls_out(self):
-        with patch.object(playbook_agent, "_call_llm", side_effect=AssertionError("must not call")):
+        # The local model (not external egress) may still write the playbook; it is stubbed so the test never reaches a real one.
+        with patch.object(playbook_agent, "_call_llm", side_effect=AssertionError("must not call")),                 patch.object(playbook_agent, "_call_local_llm", return_value=None) as local:
             self.assertEqual(playbook_agent.generate_playbook("zzz_class", "t", "r", allow_llm=False), [])
+        local.assert_called_once()
 
     def test_use_fallback_false_suppresses_playbook_generation_in_analyze(self):
         state = OrchestratorState(
@@ -176,6 +178,7 @@ class PlaybookEgressTests(EgressBase):
             rca=RCAOutput(final_classification="zzz_unmapped_class", domain="general"),
         )
         with patch.object(OrchestratorAgent, "run", return_value=state), \
+             patch.object(playbook_agent, "_call_local_llm", return_value=None), \
              patch.object(playbook_agent, "_call_llm", side_effect=AssertionError("external generation must not run")):
             out = app_module._analyze_core_agentic(AnalyzeRequest(ticket="odd new problem", use_fallback=False))
         self.assertEqual(out["resolution_playbook"], [])
