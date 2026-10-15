@@ -2,6 +2,7 @@
 Command line for the preparation steps that need the live ticket data (see steps.py for the order and the rules each step enforces).
 
     python -m planner_experiment.cli reviewers --names "A B" "C D" --hours 40 40 --recorded-by "owner name"
+    python -m planner_experiment.cli init-key                                              (once, before the first experiment draw)
     python -m planner_experiment.cli seed --artifact <40-character git commit id>               (partition seed, recorded once)
     python -m planner_experiment.cli select-development --artifact <40-character git commit id>
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
@@ -53,6 +54,7 @@ def main(argv=None) -> int:
     r.add_argument("--names", nargs=2, required=True)
     r.add_argument("--hours", nargs=2, type=float, required=True)
     r.add_argument("--recorded-by", required=True)
+    sub.add_parser("init-key")
     d = sub.add_parser("seed")
     d.add_argument("--artifact", required=True)
     dev = sub.add_parser("select-development")
@@ -72,6 +74,13 @@ def main(argv=None) -> int:
     try:
         if args.cmd == "reviewers":
             print(json.dumps(steps.record_reviewers(base, args.names, dict(zip(args.names, args.hours)), args.recorded_by), indent=1))
+        elif args.cmd == "init-key":
+            from planner_experiment import secrecy
+            try:
+                print("experiment key created at", secrecy.KEY_FILE, "- check value", secrecy.create_key(), "- keep it out of the repository and back it up")
+            except secrecy.KeyError_ as exc:
+                print("refused:", exc)
+                return 2
         elif args.cmd == "seed":
             print(json.dumps(seed_mod.write_record(steps.paths(base)["partition_seed"], args.artifact, "calibration-selection"), indent=1))
         elif args.cmd == "select-development":

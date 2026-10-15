@@ -23,6 +23,8 @@ import re
 from collections import Counter, defaultdict
 from typing import Any, Dict, FrozenSet, Iterable, List, Optional
 
+from planner_experiment import secrecy
+
 SELECTION_VERSION = "2"
 CALIBRATION_BUCKETS = range(0, 40)
 ACCEPTANCE_BUCKETS = range(40, 80)          # reserved; never read by this module
@@ -67,15 +69,27 @@ def month_of(ticket: Dict[str, Any]) -> str:
     return str(ticket.get("opened_at") or "")[:7] or "unknown"
 
 
-def content_hash(ticket: Dict[str, Any]) -> str:
-    """Binds a case to the exact ticket it was drawn from (id, text, host, opened_at)."""
+def content_hash(ticket: Dict[str, Any], key: Optional[bytes] = None) -> str:
+    """Binds a case to the exact ticket it was drawn from (id, text, host, opened_at). With a key it is an HMAC, so the recorded value cannot
+    be attacked with a dictionary; without one (the development subset, whose tickets developers see anyway) it is a plain hash."""
     payload = json.dumps([str(ticket.get("pool") or ticket.get("tenant_id")), str(ticket.get("ticket_id")), str(ticket.get("text") or ""),
                           str(ticket.get("host") or ""), str(ticket.get("opened_at") or "")], separators=(",", ":"))
+    if key is not None:
+        return secrecy.keyed(key, "content", payload)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def keyed_cluster(key: bytes, cluster: str) -> str:
+    return secrecy.keyed(key, "cluster", cluster)[:16]
+
+
+def keyed_type(key: bytes, kind: str) -> str:
+    return secrecy.keyed(key, "type", kind)[:16]
+
+
 def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, draw_seed: int, quotas: Optional[Dict[str, int]] = None,
-                       exclude_clusters: FrozenSet[str] = frozenset()) -> Dict[str, Any]:
+                       exclude_clusters: FrozenSet[str] = frozenset(), exclude_keyed: FrozenSet[str] = frozenset(),
+                       key: Optional[bytes] = None) -> Dict[str, Any]:
     """Pick tickets from the calibration buckets. `tickets` need: pool (or tenant_id), ticket_id, text, host, opened_at.
 
     `partition_seed` decides which clusters are calibration clusters; `draw_seed` drives the sampling; `exclude_clusters` holds the clusters
@@ -91,8 +105,8 @@ def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, d
         if str(t.get("pool") or t.get("tenant_id")) != "golden" and bucket(partition_seed, cid) not in CALIBRATION_BUCKETS:
             skipped_other_buckets += 1                      # not examined further
             continue
-        if cid in exclude_clusters:
-            continue
+        if cid in exclude_clusters or (key is not None and keyed_cluster(key, cid) in exclude_keyed):
+            continue                                        # `exclude_keyed`: clusters of earlier planner-experiment sets, recorded keyed
         pools[str(t.get("pool") or t.get("tenant_id"))][cid].append(t)
 
     rng = random.Random(draw_seed)
@@ -139,12 +153,16 @@ def _tokens(text: str) -> set:
     return set(words) | {f"{a} {b}" for a, b in zip(words, words[1:])}          # so same-template tickets on other hosts stay distinct
 
 
-def text_sketch(text: str, k: int = SKETCH_K) -> List[int]:
+def text_sketch(text: str, k: int = SKETCH_K, key: Optional[bytes] = None) -> List[int]:
     """A bottom-k sketch of the ticket text: the k smallest 48-bit hashes of its words and word pairs (lower-cased, punctuation ignored). It
     lets a ticket be recognised later even if it was re-id'd, lost its fields, was re-cased or re-spaced, or had a few words added or removed,
-    and it does not store or reveal the text. Host names and numbers are kept on purpose: normalising them would make every ticket of the same
+    and it does not store or reveal the text. Recorded draws use a keyed sketch (HMAC under the experiment key): an unkeyed one would let anyone
+    hash a dictionary of words and word pairs and read the ticket's vocabulary out of it. Host names and numbers are kept on purpose: normalising them would make every ticket of the same
     template identical and wrongly block the development subset. For short texts the sketch is the complete set, so similarity is exact."""
-    hashes = sorted({int(hashlib.sha256(t.encode("utf-8")).hexdigest()[:12], 16) for t in _tokens(text)})
+    if key is not None:
+        hashes = sorted({int(secrecy.keyed(key, "token", t)[:12], 16) for t in _tokens(text)})
+    else:
+        hashes = sorted({int(hashlib.sha256(t.encode("utf-8")).hexdigest()[:12], 16) for t in _tokens(text)})
     return hashes[:k]
 
 
@@ -165,8 +183,17 @@ def case_ids(selection: Dict[str, Any]) -> List[str]:
     return [case_id_for(s) for s in selection["selected"]]
 
 
-def selection_entries(selection: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """The recordable form of a draw: ids, clusters, types and content hashes, never ticket text."""
-    return [{"case_id": case_id_for(t), "pool": t["pool"], "ticket_id": str(t["ticket_id"]), "cluster_id": t["cluster_id"],
-             "ticket_type": ticket_type(t), "content_hash": content_hash(t), "text_sketch": text_sketch(str(t.get("text") or ""))}
-            for t in selection["selected"]]
+def selection_entries(selection: Dict[str, Any], key: Optional[bytes] = None) -> List[Dict[str, Any]]:
+    """The recordable form of a draw. Ticket ids are recorded as they are (they identify a ticket, they are not its content). Everything
+    derived from ticket content (cluster, type, content hash, text sketch) is keyed when a key is given (planner-experiment sets), so the
+    committed file reveals nothing about the tickets; without a key (the development subset) it is plain and carries no sketch."""
+    out = []
+    for t in selection["selected"]:
+        entry = {"case_id": case_id_for(t), "pool": t["pool"], "ticket_id": str(t["ticket_id"])}
+        if key is not None:
+            entry.update({"cluster_id": keyed_cluster(key, t["cluster_id"]), "ticket_type": keyed_type(key, ticket_type(t)),
+                          "content_hash": content_hash(t, key), "text_sketch": text_sketch(str(t.get("text") or ""), key=key)})
+        else:
+            entry.update({"cluster_id": t["cluster_id"], "ticket_type": ticket_type(t), "content_hash": content_hash(t)})
+        out.append(entry)
+    return out

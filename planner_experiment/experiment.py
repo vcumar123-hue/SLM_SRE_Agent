@@ -303,40 +303,62 @@ def _drawn_base() -> Path:
     return Path(_DRAWN_BASE) if _DRAWN_BASE is not None else steps.BASE
 
 
-def _drawn_experiment_entries() -> List[Dict[str, Any]]:
-    """Every ticket recorded in any planner-experiment draw (ids, hashes and text sketches; never text)."""
-    out: List[Dict[str, Any]] = []
-    for p in sorted(_drawn_base().glob("experiment_selection_round*.json")):
-        out.extend(json.loads(p.read_text(encoding="utf-8")).get("cases", []))
-    return out
+def _load_drawn_sets() -> List[Dict[str, Any]]:
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(_drawn_base().glob("experiment_selection_round*.json"))]
 
 
 def _refuse_unclaimed_drawn_cases(cases: List[Dict[str, Any]]) -> None:
-    """Refuse to execute, outside the run claim, any case that IS a drawn experiment ticket. A case is matched by any of: its case id; its
-    pool and ticket id; its content hash; or a text similarity to a drawn ticket of at least SKETCH_REFUSE_AT. The last needs none of the
-    other fields, so leaving out ids, renaming, re-casing, re-spacing, punctuation, or adding or dropping a few words does not hide a ticket.
+    """Refuse to execute, outside the run claim, any case that IS a drawn experiment ticket.
 
-    What this is, and is not: it stops the harness being used (by mistake or by a lazy disguise) to run planners on the drawn tickets before
-    the run of record. It cannot stop someone who holds a ticket's text from rewording it heavily, or from calling the Runner directly with their
-    own code; a reworded ticket is a different ticket, and the control that matters is that no result of record exists except through the claim."""
+    Recorded draws are keyed (secrecy.py), so this needs the experiment key to recognise a ticket by content. Two situations:
+    * the machine holds the key: a case is matched by its case id; its pool and ticket id; its keyed content hash; or a keyed text
+      similarity of at least SKETCH_REFUSE_AT to a drawn ticket (needs none of the other fields, so omitting ids, renaming, re-casing,
+      re-spacing, punctuation, or adding or dropping a few words does not hide a ticket);
+    * the machine does not hold the key (a developer's): content cannot be checked at all, so it fails closed. Only members of the
+      development subset, verified exactly against its plain record, may run outside the claim.
+
+    What this is, and is not: it stops the harness being used (by mistake or by a lazy disguise) to run planners on the drawn tickets before the
+    run of record. It cannot stop someone who holds a ticket's text from rewording it heavily, or from calling the Runner directly with their own
+    code; a reworded ticket is a different ticket, and the control that matters is that no result of record exists except through the claim.
+    """
+    from planner_experiment import secrecy
     from planner_experiment import select_cases as sc
 
-    entries = _drawn_experiment_entries()
-    if not entries:
+    sets = _load_drawn_sets()
+    if not sets:
         return
+    key = secrecy.load_key()
+    usable = key is not None and all(not st.get("keyed") or secrecy.key_check(key) == st.get("key_check") for st in sets)
+    if any(st.get("keyed") for st in sets) and not usable:
+        dev_path = _drawn_base() / "development_selection.json"
+        dev = {e["case_id"]: e for e in json.loads(dev_path.read_text(encoding="utf-8")).get("cases", [])} if dev_path.is_file() else {}
+        for c in cases:
+            ticket = {"pool": c.get("pool"), "tenant_id": c.get("tenant_id"), "ticket_id": c.get("ticket_id"), "text": c.get("ticket_text"),
+                      "host": c.get("host"), "opened_at": c.get("opened_at")}
+            entry = dev.get(c.get("case_id"))
+            if entry is None or c.get("ticket_id") is None or sc.content_hash(ticket) != entry["content_hash"]:
+                raise ExperimentInputError(
+                    f"{c.get('case_id')}: planner-experiment tickets have been drawn and this machine does not hold the experiment key, so only the "
+                    f"development subset can be executed outside the run claim")
+        return
+    entries = [e for st in sets for e in st.get("cases", [])]
+    use_key = {id(e): (key if st.get("keyed") else None) for st in sets for e in st.get("cases", [])}
     ids = {e["case_id"] for e in entries}
     pairs = {(e["pool"], str(e["ticket_id"])) for e in entries}
-    hashes = {e["content_hash"] for e in entries}
-    sketches = [e["text_sketch"] for e in entries if e.get("text_sketch")]
     for c in cases:
         text = str(c.get("ticket_text") or "")
         ticket = {"pool": c.get("pool"), "tenant_id": c.get("tenant_id"), "ticket_id": c.get("ticket_id"), "text": text,
                   "host": c.get("host"), "opened_at": c.get("opened_at")}
-        mine = sc.text_sketch(text)
-        matched = (c.get("case_id") in ids
-                   or (c.get("pool"), str(c.get("ticket_id"))) in pairs
-                   or (c.get("ticket_id") is not None and sc.content_hash(ticket) in hashes)
-                   or any(sc.sketch_similarity(mine, other) >= SKETCH_REFUSE_AT for other in sketches))
+        matched = c.get("case_id") in ids or (c.get("pool"), str(c.get("ticket_id"))) in pairs
+        if not matched:
+            for e in entries:
+                k = use_key[id(e)]
+                if c.get("ticket_id") is not None and sc.content_hash(ticket, k) == e["content_hash"]:
+                    matched = True
+                    break
+                if e.get("text_sketch") and sc.sketch_similarity(sc.text_sketch(text, key=k), e["text_sketch"]) >= SKETCH_REFUSE_AT:
+                    matched = True
+                    break
         if matched:
             raise ExperimentInputError(f"{c.get('case_id')} is (or is indistinguishable from) a ticket drawn into a planner-experiment set: "
                                        f"it can only be executed under the run claim of run_once, never as a dry run")

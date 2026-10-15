@@ -15,7 +15,7 @@ from planner_experiment import composition, freeze, golden, metrics, planner_fre
 from planner_experiment import select_cases as sc
 from planner_experiment.experiment import ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
-from tests.pe_world import (DEVELOPMENT_ARTIFACT, ENTRYPOINTS, NAMES, PARTITION_ARTIFACT, TESTS_DIR, build_world, golden_raw, make_tickets)
+from tests.pe_world import (DEVELOPMENT_ARTIFACT, ENTRYPOINTS, NAMES, PARTITION_ARTIFACT, TEST_KEY, TESTS_DIR, build_world, golden_raw, make_tickets)
 
 
 def planners_here():
@@ -188,7 +188,8 @@ class HeldOutDesignTests(unittest.TestCase):
         dev = self.develop()
         steps.freeze_planners(self.base, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
         sel = steps.draw_experiment(self.base, 1, self.tickets)
-        self.assertFalse({c["cluster_id"] for c in dev["cases"]} & {c["cluster_id"] for c in sel["cases"]})
+        dev_keyed = {sc.keyed_cluster(TEST_KEY, c["cluster_id"]) for c in dev["cases"]}                      # the draw is keyed, the subset is plain
+        self.assertFalse(dev_keyed & {c["cluster_id"] for c in sel["cases"]})
         self.assertFalse({c["case_id"] for c in dev["cases"]} & {c["case_id"] for c in sel["cases"]})
 
     def test_a_set_is_drawn_once_and_cannot_be_redrawn_after_it_has_been_seen(self):
@@ -224,7 +225,7 @@ class HeldOutDesignTests(unittest.TestCase):
         (root / "agentruntime" / "planners" / "p.py").write_text("RULES = 2\n", encoding="utf-8")         # revised on the development subset
         pf2 = steps.freeze_planners(self.base, 2, ENTRYPOINTS, root=root, planners_dir=TESTS_DIR)
         second = steps.draw_experiment(self.base, 2, self.tickets, root=root)
-        used = {c["cluster_id"] for c in dev["cases"]} | {c["cluster_id"] for c in first["cases"]}
+        used = {sc.keyed_cluster(TEST_KEY, c["cluster_id"]) for c in dev["cases"]} | {c["cluster_id"] for c in first["cases"]}
         self.assertFalse(used & {c["cluster_id"] for c in second["cases"]})
         self.assertNotEqual(first["draw_seed"], second["draw_seed"])
         self.assertEqual(second["draw_seed"], seed_mod.derive_seed(pf2["record_hash"], "planner-experiment-2"))
@@ -304,14 +305,15 @@ class CompositionTests(unittest.TestCase):
                 golden.parse_golden(w.read("golden"), list(NAMES)), copy.deepcopy(w.read("development_selection")))
 
     def problems(self, cases, selection, partition, golden_items, dev):
-        return composition.problems(cases, selection, partition, golden_items, dev)
+        return composition.problems(cases, selection, partition, golden_items, dev, key=TEST_KEY)
 
     def entries_for(self, cases):
         out = []
         for c in cases:
             t = composition._as_ticket(c)
-            out.append({"case_id": c["case_id"], "pool": c["pool"], "ticket_id": c["ticket_id"], "cluster_id": sc.cluster_id(t),
-                        "ticket_type": sc.ticket_type(t), "content_hash": sc.content_hash(t)})
+            out.append({"case_id": c["case_id"], "pool": c["pool"], "ticket_id": c["ticket_id"],
+                        "cluster_id": sc.keyed_cluster(TEST_KEY, sc.cluster_id(t)), "ticket_type": sc.keyed_type(TEST_KEY, sc.ticket_type(t)),
+                        "content_hash": sc.content_hash(t, TEST_KEY)})
         return out
 
     def test_a_correct_draw_has_no_problems(self):
@@ -380,7 +382,7 @@ class CompositionTests(unittest.TestCase):
 
     def test_nothing_may_be_shared_with_the_development_subset(self):
         cases, sel, part, gold, dev = self.parts()
-        dev["cases"].append({"case_id": "x", "cluster_id": sel["cases"][0]["cluster_id"]})
+        dev["cases"].append({"case_id": "x", "cluster_id": sc.cluster_id(composition._as_ticket(cases[0]))})
         self.assertTrue(any("development subset" in p for p in self.problems(cases, sel, part, gold, dev)))
         cases, sel, part, gold, dev = self.parts()
         dev["cases"].append({"case_id": cases[0]["case_id"], "cluster_id": "unrelated"})
@@ -390,7 +392,7 @@ class CompositionTests(unittest.TestCase):
         cases, sel, part, gold, dev = self.parts()
         cases[0]["ticket_text"] += "x"
         with self.assertRaises(composition.CompositionError):
-            composition.validate(cases, sel, part, gold, dev)
+            composition.validate(cases, sel, part, gold, dev, key=TEST_KEY)
 
     def test_the_freeze_refuses_a_bad_composition(self):
         w = build_world()

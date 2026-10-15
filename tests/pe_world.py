@@ -4,13 +4,14 @@ folder: reviewers, partition seed, development subset, planner freeze, experimen
 config and golden tickets. Tests then mutate one thing and check the freeze or the run refuses it. Synthetic tickets only.
 """
 import json
+import os
 import pathlib
 import tempfile
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
 from planner_experiment import golden as golden_mod
-from planner_experiment import injection, metrics, planner_freeze, steps
+from planner_experiment import injection, metrics, planner_freeze, secrecy, steps
 from planner_experiment import seed as seed_mod
 from planner_experiment.experiment import MODES
 from planner_experiment.freeze import ROOT
@@ -18,6 +19,9 @@ from planner_experiment.scripted_env import Recording
 from tests.test_planner_experiment import annotation, drafts_for
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
+TEST_KEY_HEX = "ab" * 32                          # the experiment key used by every test world (a throwaway, never a real key)
+TEST_KEY = bytes.fromhex(TEST_KEY_HEX)
+os.environ[secrecy.KEY_ENV] = TEST_KEY_HEX        # worlds are drawn, frozen and run in this process, which therefore "holds the key"
 ENTRYPOINTS = {"rules_only": "tests.pe_fake_planners:GiveUpPlanner", "rules_then_model": "tests.pe_fake_planners:GoodPlanner",
                "model": "tests.pe_fake_planners:GoodPlanner"}
 KINDS = ["disk", "login", "service", "cert", "cpu", "queue", "memory", "network", "backup", "batch", "print", "mail"]

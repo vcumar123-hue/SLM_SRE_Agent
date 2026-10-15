@@ -22,7 +22,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from planner_experiment import planner_freeze, reviewers as reviewer_mod
+from planner_experiment import planner_freeze, reviewers as reviewer_mod, secrecy
 from planner_experiment import seed as seed_mod
 from planner_experiment import select_cases as sc
 from planner_experiment.freeze import ROOT
@@ -71,17 +71,22 @@ def _partition_seed(base: Path) -> int:
     return seed_mod.load_record(p, "calibration-selection")["seed"]
 
 
-def _used_clusters(base: Path) -> frozenset:
-    used = set()
+def _used_clusters(base: Path):
+    """(plain, keyed) cluster ids already used: the development subset is recorded plain, earlier experiment sets keyed."""
+    plain, keyed = set(), set()
     for p in [paths(base)["development"], *sorted(base.glob("experiment_selection_round*.json"))]:
         if p.is_file():
-            used.update(e["cluster_id"] for e in json.loads(p.read_text(encoding="utf-8"))["cases"])
-    return frozenset(used)
+            record = json.loads(p.read_text(encoding="utf-8"))
+            (keyed if record.get("keyed") else plain).update(e["cluster_id"] for e in record["cases"])
+    return frozenset(plain), frozenset(keyed)
 
 
-def _write_selection(path: Path, kind: str, selection: Dict[str, Any], extra: Dict[str, Any]) -> Dict[str, Any]:
+def _write_selection(path: Path, kind: str, selection: Dict[str, Any], extra: Dict[str, Any], key: Optional[bytes] = None) -> Dict[str, Any]:
+    counts = ({sc.keyed_type(key, k): v for k, v in selection["type_counts"].items()} if key is not None else selection["type_counts"])
     record = {"kind": kind, "selection_version": selection["selection_version"], "partition_seed": selection["partition_seed"],
-              "draw_seed": selection["draw_seed"], "type_counts": selection["type_counts"], "cases": sc.selection_entries(selection), **extra}
+              "draw_seed": selection["draw_seed"], "type_counts": counts, "cases": sc.selection_entries(selection, key), **extra}
+    if key is not None:
+        record.update({"keyed": True, "key_check": secrecy.key_check(key)})
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record, indent=1, sort_keys=True), encoding="utf-8")
     return record
@@ -95,7 +100,7 @@ def select_development(base: Path, tickets: List[Dict[str, Any]], artifact: str)
         raise StepError("the development subset is drawn once")
     partition = _partition_seed(base)
     draw = seed_mod.derive_seed(artifact, "development-selection")
-    selection = sc.select_calibration(tickets, partition, draw, sc.DEVELOPMENT_QUOTAS, exclude_clusters=frozenset())
+    selection = sc.select_calibration(tickets, partition, draw, sc.DEVELOPMENT_QUOTAS)
     if selection["shortfall"]:
         raise StepError(f"not enough eligible tickets for the development subset: {selection['shortfall']} (nothing was recorded)")
     seed_mod.write_record(p["development_seed"], artifact, "development-selection")
@@ -133,24 +138,34 @@ def draw_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], root: P
     partition = _partition_seed(base)
     purpose = f"planner-experiment-{rnd}"
     draw = seed_mod.derive_seed(pf["record_hash"], purpose)
-    selection = sc.select_calibration(tickets, partition, draw, sc.EXPERIMENT_QUOTAS, exclude_clusters=_used_clusters(base))
+    key = secrecy.load_key()
+    if key is None:
+        raise StepError("the experiment key is required before a planner-experiment set is drawn: everything recorded about the drawn tickets is keyed "
+                        "(cli init-key creates it once, outside the repository)")
+    plain_used, keyed_used = _used_clusters(base)
+    selection = sc.select_calibration(tickets, partition, draw, sc.EXPERIMENT_QUOTAS, exclude_clusters=plain_used, exclude_keyed=keyed_used, key=key)
     if selection["shortfall"]:
         raise StepError(f"not enough unused eligible tickets for a fresh set: {selection['shortfall']} (nothing was recorded)")
     seed_mod.write_record(rp["seed"], pf["record_hash"], purpose)
-    return _write_selection(rp["selection"], "experiment", selection, {"round": rnd, "planner_freeze_hash": pf["record_hash"]})
+    return _write_selection(rp["selection"], "experiment", selection, {"round": rnd, "planner_freeze_hash": pf["record_hash"]}, key)
 
 
 def build_cases(selection_path: Path, tickets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The case list for a drawn set, with ticket text for the reviewers. Every case is checked against the content hash recorded at the draw,
     so a source that changed since the draw is refused instead of silently producing different cases."""
     selection = json.loads(Path(selection_path).read_text(encoding="utf-8"))
+    key = None
+    if selection.get("keyed"):
+        key = secrecy.load_key()
+        if key is None or secrecy.key_check(key) != selection.get("key_check"):
+            raise StepError("this set is keyed: the experiment key it was drawn with is needed to build its cases")
     by_key = {(str(t.get("pool") or t.get("tenant_id")), str(t["ticket_id"])): t for t in tickets}
     cases: List[Dict[str, Any]] = []
     for entry in selection["cases"]:
         ticket = by_key.get((entry["pool"], entry["ticket_id"]))
         if ticket is None:
             raise StepError(f"{entry['case_id']}: the ticket is no longer in the source")
-        if sc.content_hash({**ticket, "pool": entry["pool"]}) != entry["content_hash"]:
+        if sc.content_hash({**ticket, "pool": entry["pool"]}, key) != entry["content_hash"]:
             raise StepError(f"{entry['case_id']}: the ticket changed since it was drawn")
         cases.append({"case_id": entry["case_id"], "pool": entry["pool"], "tenant_id": ticket["tenant_id"], "ticket_id": entry["ticket_id"],
                       "ticket_text": ticket["text"], "host": ticket.get("host", ""), "opened_at": ticket.get("opened_at", "")})

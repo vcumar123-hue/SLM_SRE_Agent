@@ -75,3 +75,6 @@ data/egress_audit.jsonl
 data/automation_gate_runs.json
 data/automation_queue.lock
 data/evidence/_generated/
+
+# ── Planner experiment key (makes the recorded draw non-reversible; never commit) ──
+data/planner_experiment.key

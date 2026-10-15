@@ -5,6 +5,7 @@ claim, reviewer capacity has a floor, and calibration goldens are kept apart fro
 import copy
 import inspect
 import json
+import os
 import pathlib
 import re
 import tempfile
@@ -16,7 +17,7 @@ from planner_experiment import experiment as exp_mod
 from planner_experiment import freeze, golden, metrics, reviewers as reviewer_mod, steps
 from planner_experiment.experiment import ExperimentAborted, ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
-from tests.pe_world import TESTS_DIR, build_world, golden_raw
+from tests.pe_world import TEST_KEY, TEST_KEY_HEX, TESTS_DIR, build_world, golden_raw
 from planner_experiment import planner_freeze
 
 
@@ -382,6 +383,18 @@ class DrawnCaseProtectionBypassTests(unittest.TestCase):
         for t in others:
             self.assertEqual(self.run_unfrozen([{"case_id": "o-" + t["ticket_id"], "tenant_id": t["tenant_id"], "ticket_text": t["text"]}])[0], "ran", t["text"])
 
+    def test_a_few_added_words_on_a_longer_ticket_do_not_hide_it(self):
+        long_text = "disk space on the database host sapdb01 dropped below five percent overnight and the nightly backup job failed twice"
+        from planner_experiment import select_cases as sc
+        path = steps.round_paths(self.w.base, 1)["selection"]
+        selection = json.loads(path.read_text(encoding="utf-8"))
+        selection["cases"][0]["text_sketch"] = sc.text_sketch(long_text, key=TEST_KEY)           # a longer ticket in the recorded (keyed) draw
+        path.write_text(json.dumps(selection), encoding="utf-8")
+        for variant in (long_text + " please check", "URGENT: " + long_text, long_text.replace("overnight", "overnight!"),
+                        " ".join(long_text.split()[:-2])):
+            self.assertEqual(self.run_unfrozen([self.minimal(variant)])[:2], ("refused", 0), variant)
+        self.assertEqual(self.run_unfrozen([self.minimal("tape library offline after the firmware update on the backup server")])[0], "ran")
+
     def test_the_id_pair_and_hash_routes_still_match_on_their_own(self):
         keep = {k: self.drawn[k] for k in ("pool", "ticket_id")}
         self.assertEqual(self.run_unfrozen([{**self.minimal("completely different words about printers", "y1"), **keep}])[:2], ("refused", 0))
@@ -434,6 +447,192 @@ class LineEndingTests(unittest.TestCase):
         target.write_bytes(raw + b" ")
         with self.assertRaises(FreezeError):
             freeze.read_frozen(record, "config")                               # a real change is still caught
+
+
+class KeyedDrawTests(unittest.TestCase):
+    """The committed draw must reveal nothing about the drawn tickets: everything derived from content is keyed, and a machine without the
+    key fails closed. These tests attack the recorded values the way a reader of the repository would."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.w = build_world()
+        cls.path = steps.round_paths(cls.w.base, 1)["selection"]
+        cls.text = cls.path.read_text(encoding="utf-8")
+        cls.sel = json.loads(cls.text)
+
+    def vocabulary(self):
+        from planner_experiment import select_cases as sc
+        vocab = set()
+        for c in self.w.cases:
+            vocab |= sc._tokens(c["ticket_text"])                          # the attacker's best case: the exact vocabulary of the drawn tickets
+        vocab |= {"disk", "login", "service", "cert", "cpu", "queue", "memory", "network", "backup", "batch", "print", "mail", "problem",
+                  "reported", "on", "fault", "noted", "against", "golden", "incident", "issue", "error", "failed", "the", "server", "host"}
+        return vocab
+
+    def test_the_selection_is_marked_keyed_and_carries_only_a_key_check(self):
+        from planner_experiment import secrecy
+        self.assertTrue(self.sel["keyed"])
+        self.assertEqual(self.sel["key_check"], secrecy.key_check(TEST_KEY))
+        self.assertNotIn(TEST_KEY_HEX, self.text)
+        self.assertNotIn(self.sel["key_check"], TEST_KEY_HEX)             # the check value is not the key or a slice of it
+
+    def test_an_unkeyed_dictionary_attack_on_the_sketches_finds_nothing(self):
+        import hashlib
+        stored = {h for e in self.sel["cases"] for h in e["text_sketch"]}
+        unkeyed = {int(hashlib.sha256(t.encode("utf-8")).hexdigest()[:12], 16) for t in self.vocabulary()}
+        self.assertTrue(stored)
+        self.assertEqual(stored & unkeyed, set())                          # the previous (unkeyed) scheme would have matched every one
+
+    def test_nothing_in_the_file_is_a_plain_hash_cluster_type_or_word_of_a_drawn_ticket(self):
+        from planner_experiment import select_cases as sc
+        for c in self.w.cases:
+            ticket = {"pool": c["pool"], "tenant_id": c["tenant_id"], "ticket_id": c["ticket_id"], "text": c["ticket_text"], "host": c["host"],
+                      "opened_at": c["opened_at"]}
+            for plain in (sc.content_hash(ticket), sc.cluster_id(ticket), sc.ticket_type(ticket)):
+                self.assertNotIn(plain, self.text, plain)
+        words = {w for w in re.findall(r"[a-z]{4,}", " ".join(c["ticket_text"].lower() for c in self.w.cases))} - {"client", "golden"}
+        lowered = self.text.lower()
+        for word in words:
+            self.assertIsNone(re.search(rf"\b{re.escape(word)}\b", lowered), word)       # no word of any drawn ticket appears in the committed file
+
+    def test_the_type_counts_are_keyed_too(self):
+        self.assertTrue(self.sel["type_counts"])
+        for name in self.sel["type_counts"]:
+            self.assertRegex(name, r"^[0-9a-f]{16}$")
+        self.assertEqual(sum(self.sel["type_counts"].values()), 50)
+
+    def test_a_different_key_shares_nothing_with_the_recorded_values(self):
+        from planner_experiment import select_cases as sc
+        other = bytes.fromhex("cd" * 32)
+        stored = {h for e in self.sel["cases"] for h in e["text_sketch"]}
+        theirs = {h for c in self.w.cases for h in sc.text_sketch(c["ticket_text"], key=other)}
+        self.assertEqual(stored & theirs, set())
+        mine = {h for c in self.w.cases for h in sc.text_sketch(c["ticket_text"], key=TEST_KEY)}
+        self.assertTrue(stored <= mine)                                     # the right key reproduces them exactly
+
+    def test_sketch_length_is_bounded_and_values_are_integers(self):
+        for e in self.sel["cases"]:
+            self.assertLessEqual(len(e["text_sketch"]), 32)
+            self.assertTrue(all(isinstance(h, int) and 0 <= h < 2 ** 48 for h in e["text_sketch"]))
+
+    def test_the_development_subset_stays_plain_because_developers_see_those_tickets(self):
+        dev = json.loads(steps.paths(self.w.base)["development"].read_text(encoding="utf-8"))
+        self.assertNotIn("keyed", dev)
+        for e in dev["cases"]:
+            self.assertNotIn("text_sketch", e)
+            self.assertRegex(e["content_hash"], r"^[0-9a-f]{64}$")
+
+    def test_the_key_appears_in_no_recorded_file(self):
+        hits = [p.name for p in list(self.w.base.glob("*.json")) + list(self.w.dir.glob("*.json")) if TEST_KEY_HEX in p.read_text(encoding="utf-8")]
+        self.assertEqual(hits, [])
+
+    # -- fail closed without the key --------------------------------------------------------------------------------------------------------
+    def test_without_the_key_the_freeze_and_the_case_builder_refuse(self):
+        w = build_world()
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+            with self.assertRaisesRegex(FreezeError, "does not hold the experiment key"):
+                w.freeze()
+            with self.assertRaisesRegex(steps.StepError, "experiment key"):
+                steps.build_cases(steps.round_paths(w.base, 1)["selection"], w.tickets)
+
+    def test_a_wrong_key_is_detected(self):
+        w = build_world()
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": "cd" * 32}):
+            with self.assertRaisesRegex(FreezeError, "does not match"):
+                w.freeze()
+            with self.assertRaisesRegex(steps.StepError, "experiment key"):
+                steps.build_cases(steps.round_paths(w.base, 1)["selection"], w.tickets)
+
+    def test_no_experiment_set_can_be_drawn_without_the_key(self):
+        base = pathlib.Path(tempfile.mkdtemp())
+        w = build_world(directory=base)
+        # a second round would need a revised freeze; the key check comes first on a fresh base instead
+        fresh = pathlib.Path(tempfile.mkdtemp(prefix="pe-nokey-"))
+        steps.record_reviewers(fresh, ["Ann", "Bob"], {"Ann": 40, "Bob": 40}, "owner")
+        from planner_experiment import seed as seed_mod
+        seed_mod.write_record(steps.paths(fresh)["partition_seed"], "a" * 40, "calibration-selection")
+        from tests.pe_world import DEVELOPMENT_ARTIFACT, ENTRYPOINTS
+        steps.select_development(fresh, w.tickets, DEVELOPMENT_ARTIFACT)
+        steps.freeze_planners(fresh, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+            with self.assertRaisesRegex(steps.StepError, "experiment key is required"):
+                steps.draw_experiment(fresh, 1, w.tickets)
+        self.assertFalse(steps.round_paths(fresh, 1)["selection"].exists())
+        self.assertFalse(steps.round_paths(fresh, 1)["seed"].exists())
+
+    def run_guard(self, cases):
+        with patch.object(exp_mod, "_DRAWN_BASE", self.w.base):
+            try:
+                exp_mod._refuse_unclaimed_drawn_cases(cases)
+            except ExperimentInputError as exc:
+                return str(exc)
+        return None
+
+    def test_a_machine_without_the_key_may_run_only_the_development_subset(self):
+        dev = json.loads(steps.paths(self.w.base)["development"].read_text(encoding="utf-8"))["cases"]
+        by_key = {(t["pool"], t["ticket_id"]): t for t in self.w.tickets}
+        dev_cases = []
+        for d in dev:
+            t = by_key[(d["pool"], d["ticket_id"])]
+            dev_cases.append({"case_id": d["case_id"], "pool": d["pool"], "tenant_id": t["tenant_id"], "ticket_id": d["ticket_id"],
+                              "ticket_text": t["text"], "host": t["host"], "opened_at": t["opened_at"]})
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+            self.assertIsNone(self.run_guard(dev_cases))                                       # the development subset runs
+            self.assertIn("does not hold the experiment key", self.run_guard([dict(self.w.cases[0])]))       # a drawn ticket does not
+            unrelated = {"case_id": "z1", "tenant_id": "t", "ticket_text": "tape library offline after the firmware update"}
+            self.assertIn("does not hold the experiment key", self.run_guard([unrelated]))     # nor anything unverifiable: fail closed
+            edited = {**dev_cases[0], "ticket_text": dev_cases[0]["ticket_text"] + " extra"}
+            self.assertIn("does not hold the experiment key", self.run_guard([edited]))        # nor an edited development ticket
+
+    def test_a_machine_with_the_wrong_key_is_treated_as_keyless(self):
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": "cd" * 32}):
+            self.assertIn("does not hold the experiment key", self.run_guard([{"case_id": "z1", "tenant_id": "t", "ticket_text": "anything at all"}]))
+
+    def test_with_the_key_the_guard_recognises_every_drawn_ticket_from_its_text_alone(self):
+        for c in self.w.cases:
+            self.assertIn("drawn into a planner-experiment set", self.run_guard([{"case_id": "p1", "tenant_id": c["tenant_id"], "ticket_text": c["ticket_text"]}]) or "", c["case_id"])
+        self.assertIsNone(self.run_guard([{"case_id": "p2", "tenant_id": "t", "ticket_text": "tape library offline after the firmware update on the backup server"}]))
+
+
+class KeyCustodyTests(unittest.TestCase):
+    def test_the_key_is_created_once_never_replaced_and_never_returned(self):
+        from planner_experiment import secrecy
+        path = pathlib.Path(tempfile.mkdtemp()) / "k" / "planner_experiment.key"
+        check = secrecy.create_key(path)
+        raw = path.read_text(encoding="utf-8")
+        self.assertRegex(raw, r"^[0-9a-f]{64}$")
+        self.assertNotIn(raw, check)
+        self.assertEqual(len(check), 16)
+        with self.assertRaises(secrecy.KeyError_):
+            secrecy.create_key(path)
+        self.assertEqual(path.read_text(encoding="utf-8"), raw)                    # the first key survived
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):                           # (the tests set a key in the environment, which takes priority)
+            self.assertEqual(secrecy.key_check(secrecy.load_key(path)), check)
+
+    def test_the_environment_takes_priority_and_bad_keys_are_refused(self):
+        from planner_experiment import secrecy
+        path = pathlib.Path(tempfile.mkdtemp()) / "k.key"
+        secrecy.create_key(path)
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": "ef" * 32}):
+            self.assertEqual(secrecy.load_key(path), bytes.fromhex("ef" * 32))
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+            self.assertEqual(secrecy.load_key(path), bytes.fromhex(path.read_text(encoding="utf-8")))
+            self.assertIsNone(secrecy.load_key(path.with_name("missing.key")))
+        for bad in ("zz" * 32, "ab" * 31, "ab" * 33, "not hex"):
+            with patch.dict(os.environ, {"AIOPS_PE_KEY": bad}), self.assertRaises(secrecy.KeyError_):
+                secrecy.load_key(path)
+
+    def test_the_key_file_is_git_ignored_and_labels_separate_the_uses(self):
+        from planner_experiment import secrecy
+        ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("data/planner_experiment.key", ignore)
+        self.assertEqual(secrecy.KEY_FILE, ROOT / "data" / "planner_experiment.key")
+        key = bytes.fromhex("ab" * 32)
+        self.assertNotEqual(secrecy.keyed(key, "content", "x"), secrecy.keyed(key, "token", "x"))        # domain separation
+        self.assertNotEqual(secrecy.keyed(key, "content", "x"), secrecy.keyed(bytes.fromhex("cd" * 32), "content", "x"))
+
+    def test_the_repository_holds_no_key_file(self):
+        self.assertFalse((ROOT / "data" / "planner_experiment.key").exists())
 
 
 class ReviewerCapacityTests(unittest.TestCase):

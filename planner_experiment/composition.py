@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any, Dict, Iterable, List, Optional
 
+from planner_experiment import secrecy
 from planner_experiment import select_cases as sc
 
 
@@ -29,9 +30,15 @@ def _as_ticket(case: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def problems(cases: List[Dict[str, Any]], selection: Dict[str, Any], partition_seed: int, golden_items: Iterable[Dict[str, Any]],
-             development_selection: Dict[str, Any], quotas: Optional[Dict[str, int]] = None) -> List[str]:
+             development_selection: Dict[str, Any], quotas: Optional[Dict[str, int]] = None, key: Optional[bytes] = None) -> List[str]:
     quotas = dict(quotas or sc.EXPERIMENT_QUOTAS)
     out: List[str] = []
+    keyed = bool(selection.get("keyed"))
+    if keyed:
+        if key is None:
+            return ["the experiment set is keyed and this machine does not hold the experiment key (freeze and run where the key is kept)"]
+        if secrecy.key_check(key) != selection.get("key_check"):
+            return ["the experiment key does not match the one the set was drawn with"]
     ids = [c.get("case_id") for c in cases]
     if len(set(ids)) != len(ids):
         out.append("duplicate case ids")
@@ -56,11 +63,13 @@ def problems(cases: List[Dict[str, Any]], selection: Dict[str, Any], partition_s
         types[sc.ticket_type(ticket)] += 1
         entry = recorded.get(cid_label)
         if entry is not None:
-            if entry["cluster_id"] != cluster:
-                out.append(f"{cid_label}: cluster differs from the draw (recomputed {cluster}, drawn {entry['cluster_id']})")
-            if entry["content_hash"] != sc.content_hash(ticket):
+            want_cluster = sc.keyed_cluster(key, cluster) if keyed else cluster
+            want_type = sc.keyed_type(key, sc.ticket_type(ticket)) if keyed else sc.ticket_type(ticket)
+            if entry["cluster_id"] != want_cluster:
+                out.append(f"{cid_label}: cluster differs from the draw")
+            if entry["content_hash"] != sc.content_hash(ticket, key if keyed else None):
                 out.append(f"{cid_label}: content does not match the drawn ticket")
-            if entry["ticket_type"] != sc.ticket_type(ticket):
+            if entry["ticket_type"] != want_type:
                 out.append(f"{cid_label}: ticket type differs from the draw")
         if c.get("pool") != "golden" and sc.bucket(partition_seed, cluster) not in sc.CALIBRATION_BUCKETS:
             out.append(f"{cid_label}: cluster is not in a calibration bucket")    # golden tickets are calibration-only by rule, not by bucket
@@ -79,7 +88,7 @@ def problems(cases: List[Dict[str, Any]], selection: Dict[str, Any], partition_s
     return out
 
 
-def validate(cases, selection, partition_seed, golden_items, development_selection, quotas=None) -> None:
-    found = problems(cases, selection, partition_seed, golden_items, development_selection, quotas)
+def validate(cases, selection, partition_seed, golden_items, development_selection, quotas=None, key=None) -> None:
+    found = problems(cases, selection, partition_seed, golden_items, development_selection, quotas, key)
     if found:
         raise CompositionError("; ".join(found))

@@ -926,3 +926,35 @@ converts line endings. `sha256_bytes` now reads CRLF as LF before hashing, so on
 Seeded draws were checked to be identical on Windows and Linux.
 
 **Verification:** 157 harness tests in four files (28 core, 18 integrity, 69 design, 42 sign-off); full suite 650 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 337 tests, pass against a throwaway PostgreSQL.
+
+### 20.6 Sixth review (2026-10-15): the text sketch could reveal ticket contents
+
+**P1.** The fingerprint added in 20.5 was a plain SHA-256 of each word and word pair. IT-ticket vocabulary is small, so anyone holding the repository
+could hash a dictionary and read out which words and phrases a drawn ticket contains. In a run against the previous scheme, a ten-word dictionary
+recovered 9 of 9 stored values. That would have defeated the blinding of the drawn set. A look at what else the draw file held found the same
+class of leak elsewhere: `ticket_type` was the ticket's first two words in clear, the `type_counts` keys were those words, and `cluster_id` was
+an unkeyed hash of host and opening words.
+
+| Change | Effect |
+|---|---|
+| **Everything derived from ticket content is an HMAC-SHA256 under a secret experiment key** | content hash, cluster id, ticket type, type-count keys and the text sketch of a planner-experiment draw are keyed (domain-separated labels). Without the key the recorded values are indistinguishable from random: no dictionary helps. Ticket ids are recorded as they are (they identify a ticket, they are not its content) |
+| **The key is created once, kept out of the repository** | `cli init-key` writes `data/planner_experiment.key` (git-ignored; or the environment variable `AIOPS_PE_KEY`), refuses to overwrite it, and prints only a check value. The draw records `keyed: true` and the check value, which detects a wrong key and reveals nothing about the right one. A draw cannot be made without the key |
+| **Machines without the key fail closed** | freeze, case building and the run need the key. The self-test route, once any set is drawn, runs only exact members of the development subset (verified against its plain record) on a machine without the key; anything else, including an edited development ticket and anything it cannot verify, is refused. A wrong key is treated as no key |
+| **The development subset stays plain** | developers see and tune on those tickets, so there is nothing to hide, and it carries no sketch |
+
+**What the key does and does not protect.** It stops a reader of the repository learning anything about the drawn tickets. It does **not** protect
+against whoever holds it: with the key, hashing candidate words and checking a sketch is the same dictionary attack as before. So the key must be
+held only by the machine that draws, freezes and runs the experiment (the owner's, or a gated CI), never by developers or reviewers. Two residual
+disclosures remain and are accepted: the number of distinct words and word pairs in a ticket (the sketch length, capped at 32) and the ticket ids.
+A lost key means the draw cannot be re-verified and ends that round (it is never regenerated).
+
+Tests (`KeyedDrawTests`, `KeyCustodyTests`): an unkeyed dictionary of the drawn tickets' own vocabulary matches none of the stored sketches; no
+plain content hash, cluster id or ticket type, and no word of any drawn ticket, appears anywhere in the committed draw file; type-count keys are
+keyed; a different key shares nothing, the right key reproduces the values exactly; the key appears in no recorded file; the development subset is
+plain; without the key the freeze, the case builder and the draw refuse and the guard fails closed (with the development subset still running); a
+wrong key is detected; the key is created once, never replaced, git-ignored, domain-separated, and absent from the repository.
+
+**Practical consequence for the owner:** create the key (`cli init-key`) on the machine that will draw, freeze and run, back it up somewhere other
+than the repository, and do not copy it to developers' or reviewers' machines.
+
+**Verification:** 176 harness tests in four files (28 core, 18 integrity, 69 design, 61 sign-off); full suite 669 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 356 tests, pass against a throwaway PostgreSQL.

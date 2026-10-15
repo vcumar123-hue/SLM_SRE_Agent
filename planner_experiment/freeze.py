@@ -190,7 +190,8 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
             rnd, pf["record_hash"], draw["seed"], partition):
         raise FreezeError("the experiment selection was not drawn with this round, planner freeze and these seeds")
     try:
-        composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"))
+        from planner_experiment import secrecy
+        composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"), key=secrecy.load_key())
     except composition.CompositionError as exc:
         raise FreezeError(f"composition: {exc}") from exc
     return {"reviewers": names, "agreement": report, "round": rnd, "seed": draw["seed"], "partition_seed": partition,
