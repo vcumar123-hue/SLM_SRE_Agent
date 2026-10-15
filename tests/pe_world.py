@@ -67,7 +67,7 @@ class World:
 
     def freeze(self):
         from planner_experiment import freeze
-        return freeze.create_freeze(self.files, self.reviewer_files, metrics.DECISION_RULE, self.out)
+        return freeze.create_freeze(self.files, self.reviewer_files, self.out)
 
 
 def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=NAMES, n_tickets: int = 400, directory=None) -> World:

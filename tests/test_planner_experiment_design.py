@@ -37,7 +37,7 @@ def fake_root():
 
 class ReviewerRecordTests(unittest.TestCase):
     def good(self, **kw):
-        rec = {"reviewers": ["Ann", "Bob"], "capacity_hours": {"Ann": 40, "Bob": 35.5}, "recorded_by": "owner"}
+        rec = {"reviewers": ["Ann", "Bob"], "capacity_hours": {"Ann": 50, "Bob": 45.5}, "recorded_by": "owner"}
         rec.update(kw)
         return rec
 
@@ -426,7 +426,8 @@ class FrozenPlannerTests(unittest.TestCase):
         with planners_here():
             out = run_experiment_frozen(w.out)
         self.assertTrue(out["frozen"])
-        self.assertFalse(out["not_a_result"])
+        self.assertTrue(out["not_a_result"])                        # a dry run on the frozen inputs is not claimed: only run_once makes a result
+        self.assertFalse(out["claimed"])
         self.assertEqual(out["cases"], 50)
         # rules_only is GiveUpPlanner (escalates, never succeeds) and the others GoodPlanner, exactly as named in the frozen config
         self.assertEqual(out["modes"]["rules_only"]["summary"]["trajectory_success_rate"]["estimate"], 0.0)
@@ -453,7 +454,7 @@ class FrozenPlannerTests(unittest.TestCase):
         w = build_world(root=root)                                                 # planners frozen against this code
         (root / "agentruntime" / "planners" / "p.py").write_text("RULES = 99\n", encoding="utf-8")       # tuned afterwards
         with self.assertRaisesRegex(FreezeError, "differs from the planner freeze"):
-            freeze.create_freeze(w.files, w.reviewer_files, metrics.DECISION_RULE, w.out, root=root)
+            freeze.create_freeze(w.files, w.reviewer_files, w.out, root=root)
 
     def test_the_draw_seed_must_come_from_the_planner_freeze(self):
         w = build_world()
@@ -487,10 +488,13 @@ class FrozenPlannerTests(unittest.TestCase):
         results = w.dir / "results"
         with planners_here():
             first = run_once(w.out, results)
-            self.assertEqual(len(list(results.glob("results_*.json"))), 1)
-            with self.assertRaisesRegex(ExperimentInputError, "already been run"):
+            self.assertEqual(len([p for p in results.glob("results_*.json") if ".claim." not in p.name]), 1)
+            self.assertEqual(len(list(results.glob("results_*.claim.json"))), 1)
+            with self.assertRaisesRegex(ExperimentInputError, "already been claimed"):
                 run_once(w.out, results)
         self.assertEqual(first["record_hash"], json.loads(w.out.read_text(encoding="utf-8"))["record_hash"])
+        self.assertFalse(first["not_a_result"])
+        self.assertTrue(first["claimed"])
 
 
 class FrozenInputTamperTests(unittest.TestCase):
@@ -517,7 +521,7 @@ class FrozenInputTamperTests(unittest.TestCase):
     def test_adding_removing_or_changing_a_code_file_after_the_freeze_is_detected(self):
         root = fake_root()
         w = build_world(root=root)
-        record = freeze.create_freeze(w.files, w.reviewer_files, metrics.DECISION_RULE, w.out, root=root)
+        record = freeze.create_freeze(w.files, w.reviewer_files, w.out, root=root)
         freeze.verify_code(record, root)
         (root / "agentruntime" / "planners" / "new_planner.py").write_text("y = 2\n", encoding="utf-8")
         with self.assertRaisesRegex(FreezeError, "set of code files changed"):
@@ -547,9 +551,9 @@ class FrozenInputTamperTests(unittest.TestCase):
         w = build_world()
         for name in freeze.REQUIRED_FILES:
             with self.assertRaises(FreezeError, msg=name):
-                freeze.create_freeze({k: v for k, v in w.files.items() if k != name}, w.reviewer_files, metrics.DECISION_RULE, w.out)
+                freeze.create_freeze({k: v for k, v in w.files.items() if k != name}, w.reviewer_files, w.out)
         with self.assertRaises(FreezeError):
-            freeze.create_freeze({**w.files, "extra": w.files["cases"]}, w.reviewer_files, metrics.DECISION_RULE, w.out)
+            freeze.create_freeze({**w.files, "extra": w.files["cases"]}, w.reviewer_files, w.out)
 
 
 class ReviewerAgreementFreezeTests(unittest.TestCase):

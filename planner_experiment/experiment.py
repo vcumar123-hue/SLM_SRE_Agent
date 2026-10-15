@@ -33,7 +33,7 @@ from agentruntime.runner import BATCH_ENV, Runner
 from agentruntime.tools import TOOL_NAMES
 from planner_experiment import HARNESS_VERSION, planner_freeze
 from planner_experiment.annotations import Annotation
-from planner_experiment.freeze import RecordReader, load_record, validate_set, verify_code
+from planner_experiment.freeze import RecordReader, check_decision_rule, load_record, validate_set, verify_code
 from planner_experiment.injection import InjectionCase, apply_to_recording, apply_to_task, build_injection_cases, injection_succeeded
 from planner_experiment.metrics import decide, score_run, summarise_mode
 from planner_experiment.scripted_env import Recording, ScriptedEnv
@@ -76,6 +76,7 @@ class ExperimentInputs:
     frozen: bool = False
     record_hash: Optional[str] = None
     planners: Optional[Dict[str, str]] = None            # mode -> "module:Class", from the frozen config
+    decision_rule: Optional[Dict[str, Any]] = None       # the frozen rule from the record; None only for self-tests (the code's own rule)
 
 
 # -- inputs ---------------------------------------------------------------------------------------------------------------------------
@@ -121,6 +122,7 @@ def load_frozen_inputs(record_path: Path) -> ExperimentInputs:
     """Verify the freeze record and read every input from it. The caller supplies no experiment data."""
     record = load_record(record_path)
     verify_code(record)
+    rule = check_decision_rule(record)               # the rule to apply is the frozen one, verified equal to the one this code defines
     reader = RecordReader(record)
     validate_set(reader, record["code"])             # reviewers, composition, seeds, planner freeze: the same checks as at the freeze
     j = reader.json                                   # verified bytes -> parsed value
@@ -139,7 +141,7 @@ def load_frozen_inputs(record_path: Path) -> ExperimentInputs:
     inputs = ExperimentInputs(
         cases=cases, annotations=annotations, recording=Recording(j("recording")), injection_cases=injection_cases,
         budgets=Budgets(**config.get("budgets", {})), seed=int(config["seed"]), modes=tuple(config["modes"]),
-        strict=True, frozen=True, record_hash=record["record_hash"], planners=dict(config["planners"]))
+        strict=True, frozen=True, record_hash=record["record_hash"], planners=dict(config["planners"]), decision_rule=rule)
     validate_inputs(inputs)
     return inputs
 
@@ -217,19 +219,54 @@ def _tenant_dir(tenants) -> Path:
 
 
 def run_experiment_frozen(record_path: Path) -> Dict[str, Any]:
+    """Run the frozen experiment WITHOUT claiming it: for dry runs on the frozen inputs. The result is marked `not_a_result` and
+    `claimed: false`; only `run_once` produces a result of record."""
     inputs = load_frozen_inputs(record_path)
-    return _execute(inputs, resolve_planners(inputs), None)
+    return _execute(inputs, resolve_planners(inputs), None, claimed=False)
+
+
+def _write_json_atomic(path: Path, value: Any) -> None:
+    tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(value, indent=1, sort_keys=True, default=str), encoding="utf-8")
+    os.replace(tmp, path)                                    # all or nothing: a reader never sees a half-written result
 
 
 def run_once(record_path: Path, results_dir: Path) -> Dict[str, Any]:
-    """Run the frozen experiment and store its result. The experiment is run once per freeze record: a second run is refused."""
-    record = load_record(record_path)
-    out = Path(results_dir) / f"results_{record['record_hash'][:16]}.json"
-    if out.exists():
-        raise ExperimentInputError(f"this freeze record has already been run ({out.name}); a new round needs revised planners and a fresh set")
-    result = run_experiment_frozen(record_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(result, indent=1, sort_keys=True, default=str), encoding="utf-8")
+    """Run the frozen experiment once and store its result.
+
+    The inputs are loaded and verified first (a bad freeze consumes nothing). Then the run is **claimed atomically**: a claim file is
+    created with O_CREAT|O_EXCL, so of any number of concurrent or repeated calls exactly one proceeds and the rest are refused. The claim
+    stays whatever happens: a run that fails or aborts has still been attempted, and trying again until the result is acceptable is exactly
+    what run-once forbids, so a second attempt needs a new freeze (revised planners, fresh set) or a recorded owner decision that removes the
+    claim by hand. The result is written atomically (temp file then rename).
+    """
+    inputs = load_frozen_inputs(record_path)
+    planners = resolve_planners(inputs)
+    results_dir = Path(results_dir)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    stem = f"results_{inputs.record_hash[:16]}"
+    claim, out = results_dir / f"{stem}.claim.json", results_dir / f"{stem}.json"
+    try:
+        fd = os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        try:
+            state = json.loads(claim.read_text(encoding="utf-8")).get("status")
+        except (OSError, ValueError):
+            state = "unknown"
+        raise ExperimentInputError(f"this freeze record has already been claimed (status: {state}); a new round needs revised planners and a fresh "
+                                   f"set, or a recorded owner decision to remove {claim.name}") from None
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        json.dump({"status": "running", "record_hash": inputs.record_hash, "pid": os.getpid(), "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, handle)
+    if out.exists():                                         # a result without a claim (claim removed by hand): never overwrite it
+        _write_json_atomic(claim, {"status": "refused", "reason": "a result already exists", "record_hash": inputs.record_hash})
+        raise ExperimentInputError(f"{out.name} already exists")
+    try:
+        result = _execute(inputs, planners, None, claimed=True)
+    except BaseException as exc:                             # noqa: BLE001 - recorded, then re-raised
+        _write_json_atomic(claim, {"status": "failed", "error": f"{type(exc).__name__}: {exc}", "record_hash": inputs.record_hash})
+        raise
+    _write_json_atomic(out, result)
+    _write_json_atomic(claim, {"status": "completed", "result_file": out.name, "record_hash": inputs.record_hash})
     return result
 
 
@@ -246,7 +283,8 @@ def run_experiment_unfrozen(cases, annotations: Dict[str, Annotation], recording
     return _execute(inputs, planner_factories, ctx_factory)
 
 
-def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[Callable[[Dict[str, Any]], TrustedContext]]) -> Dict[str, Any]:
+def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[Callable[[Dict[str, Any]], TrustedContext]],
+             claimed: bool = False) -> Dict[str, Any]:
     cases, recording, budgets = inputs.cases, inputs.recording, inputs.budgets
     if ctx_factory is None:
         tenants = _tenant_dir(c["tenant_id"] for c in cases)
@@ -255,7 +293,7 @@ def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[
             return build_context(case["tenant_id"], case["case_id"], _Principal(), "batch", config_dir=tenants)
     by_id = {c["case_id"]: c for c in cases}
     original = json.loads(json.dumps(recording.data))                       # a deep, private copy of the recording
-    results: Dict[str, Any] = {"harness_version": HARNESS_VERSION, "frozen": inputs.frozen, "not_a_result": not inputs.frozen,
+    results: Dict[str, Any] = {"harness_version": HARNESS_VERSION, "frozen": inputs.frozen, "claimed": claimed, "not_a_result": not (inputs.frozen and claimed),
                                "record_hash": inputs.record_hash, "seed": inputs.seed, "cases": len(cases),
                                "injection_cases": len(inputs.injection_cases), "modes": {}}
     success_by_case: Dict[str, Dict[str, float]] = {}
@@ -311,5 +349,5 @@ def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[
         results["stuck_calls_at_end"] = executors.live_stuck()
     finally:
         executors.close()
-    results["decision"] = decide(summaries, success_by_case, budgets.deadline_s, inputs.seed)
+    results["decision"] = decide(summaries, success_by_case, budgets.deadline_s, inputs.seed, inputs.decision_rule)
     return results

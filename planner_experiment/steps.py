@@ -58,7 +58,8 @@ def reviewer_names(base: Path = BASE) -> List[str]:
 
 def record_reviewers(base: Path, names: List[str], capacity_hours: Dict[str, float], recorded_by: str, note: str = "") -> Dict[str, Any]:
     try:
-        return reviewer_mod.write_record(paths(base)["reviewers"], names, capacity_hours, recorded_by, note)
+        record = reviewer_mod.write_record(paths(base)["reviewers"], names, capacity_hours, recorded_by, note)
+        return {**record, "warnings": reviewer_mod.capacity_warnings(record)}
     except (reviewer_mod.ReviewerRecordError, FileExistsError) as exc:
         raise StepError(str(exc)) from exc
 

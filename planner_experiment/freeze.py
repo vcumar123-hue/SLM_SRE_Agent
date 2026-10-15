@@ -16,7 +16,9 @@ what is checked at run time:
   * composition (composition.py): 20 PYPL / 20 PFG / 10 golden, one case per cluster, calibration buckets, type cap, content hashes tied
     to the draw, disjoint from the development subset;
   * seeds: the draw seed is derived from the planner-freeze hash, the partition seed from its own record; the draw selection records both;
-  * planners: the config's planner entry points are the planner freeze's, and the planner and runtime code is unchanged since that freeze.
+  * planners: the config's planner entry points are the planner freeze's, and the planner and runtime code is unchanged since that freeze;
+  * the decision rule: derived from the code that executes it (`metrics.frozen_rule()`), never supplied by a caller, and verified against the
+    record when the experiment loads; the run applies the record's copy.
 """
 from __future__ import annotations
 
@@ -193,8 +195,17 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
             "planner_freeze_hash": pf["record_hash"]}
 
 
-def create_freeze(files: Dict[str, Path], reviewer_files: Dict[str, Path], decision: Dict[str, Any], out_path: Path,
-                  root: Path = ROOT) -> Dict[str, Any]:
+def check_decision_rule(record: Dict[str, Any]) -> Dict[str, Any]:
+    """The rule in the record must be exactly the rule this code executes (metrics.frozen_rule()). Returns the rule to apply."""
+    from planner_experiment import metrics
+    if record.get("decision_rule") != metrics.frozen_rule():
+        raise FreezeError("the frozen decision rule differs from the rule this code executes")
+    return metrics.check_rule(record["decision_rule"]["rule"])
+
+
+def create_freeze(files: Dict[str, Path], reviewer_files: Dict[str, Path], out_path: Path, root: Path = ROOT) -> Dict[str, Any]:
+    """Create the freeze record. The decision rule is not a parameter: it is derived from the code that will execute it."""
+    from planner_experiment import metrics
     every = {**files, **{f"reviewer:{n}": p for n, p in reviewer_files.items()}}
     for k, p in every.items():
         if not Path(p).is_file():
@@ -206,7 +217,7 @@ def create_freeze(files: Dict[str, Path], reviewer_files: Dict[str, Path], decis
         "frozen_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "reviewers": info["reviewers"],
         "files": {k: sha256_bytes(Path(p).read_bytes()) for k, p in sorted(every.items())},
         "paths": {k: _stored(p) for k, p in every.items()}, "code": code_hashes,
-        "agreement": info["agreement"], "decision_rule": decision,
+        "agreement": info["agreement"], "decision_rule": metrics.frozen_rule(),
     }
     record["record_hash"] = _record_hash(record)
     Path(out_path).write_text(json.dumps(record, indent=1, sort_keys=True), encoding="utf-8")
@@ -249,5 +260,6 @@ def read_frozen(record: Dict[str, Any], name: str) -> bytes:
 def verify_freeze(record_path: Path, root: Path = ROOT) -> Dict[str, Any]:
     record = load_record(record_path)
     verify_code(record, root)
+    check_decision_rule(record)
     validate_set(RecordReader(record), record["code"], root)
     return record

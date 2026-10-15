@@ -12,6 +12,10 @@ from typing import Any, Dict, List, Mapping
 from planner_experiment.freeze_names import PLACEHOLDER_NAMES
 
 
+MIN_CAPACITY_HOURS = 40.0         # each reviewer handles ~150 labels plus calibration, blinding checks and corrections
+PREFERRED_CAPACITY_HOURS = 50.0   # below this the record is accepted with a warning
+
+
 class ReviewerRecordError(Exception):
     pass
 
@@ -26,6 +30,9 @@ def validate(record: Dict[str, Any]) -> List[str]:
     for name, hours in capacity.items():
         if isinstance(hours, bool) or not isinstance(hours, (int, float)) or hours <= 0:
             raise ReviewerRecordError(f"capacity for {name} must be a positive number of hours")
+        if hours < MIN_CAPACITY_HOURS:
+            raise ReviewerRecordError(f"capacity for {name} is {hours} hours: at least {MIN_CAPACITY_HOURS:g} committed hours per reviewer are required "
+                                      f"({PREFERRED_CAPACITY_HOURS:g} preferred)")
     if not str(record.get("recorded_by") or "").strip():
         raise ReviewerRecordError("who recorded this (the owner) is required")
     return names
@@ -48,6 +55,11 @@ def load_record(path: Path) -> Dict[str, Any]:
     record = json.loads(Path(path).read_text(encoding="utf-8"))
     validate(record)
     return record
+
+
+def capacity_warnings(record: Dict[str, Any]) -> List[str]:
+    return [f"{name}: {hours:g} hours committed; {PREFERRED_CAPACITY_HOURS:g} is preferred" for name, hours in record["capacity_hours"].items()
+            if hours < PREFERRED_CAPACITY_HOURS]
 
 
 def names_of(record: Dict[str, Any]) -> List[str]:

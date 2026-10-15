@@ -513,7 +513,12 @@ freeze. The acceptance set is run **once**.
 | Calibration | 60 tickets | tune the rule table, prompts, grounding constants and the planner experiment; may be reused | one reviewer for all; two for a 30-ticket subset to estimate agreement |
 | Acceptance | 100 tickets | the one-time promotion decision | **two independent reviewers on all 100**, owner adjudicates disagreements |
 
-Composition (both sets): PYPL 40%, PFG 40%, golden/synthetic 20%; no single ticket type above 20% of a set (host-alert tickets would
+Composition (both sets): PYPL 40%, PFG 40%, golden/synthetic 20%; **the golden/synthetic part of the two sets is different in kind (owner decision, 2026-10-15):**
+*calibration goldens* (10 of the 50 planner-experiment tickets, plus 2 in the development subset) are approved by the two reviewers, are
+calibration-only and skip the real-ticket bucket partition because they can never enter acceptance; the acceptance set's own 20 goldens are a
+separately held, **acceptance-only** component, independently prepared, with ids `golden-acc-*`, disjoint from every calibration golden (no shared
+id, host or text pattern; `golden.check_separation`), and unavailable during planner development (the reserved file
+`data/acceptance_golden_tickets.json` is never read by the development tooling and must not exist while planners are built). no single ticket type above 20% of a set (host-alert tickets would
 otherwise dominate); stratified by time period. **Leave-cluster-out:** tickets are grouped into near-duplicate clusters (same host or same
 alert text pattern); a cluster is wholly in one set or excluded, and **every held-out ticket and its cluster are removed from the retrievable
 index** for evaluation runs, so the loop cannot find the answer by finding the ticket itself. A sample of 100 detects roughly a 10–12
@@ -859,3 +864,16 @@ Workflow commands (`planner_experiment.cli`): `reviewers`, `seed` (partition), `
 **Still required before anything is drawn:** the two reviewer names and committed capacity (`cli reviewers`), and enough approved golden tickets. Golden tickets are no longer lost to buckets, so 12 approved ones are the minimum (2 development, 10 experiment); a few more are advisable because the type cap (2 per type in the development subset, 10 in the experiment) can reject some.
 
 **Verification:** 115 harness tests in three files (28 core, 18 integrity, 69 design); full suite 608 pass (55 skipped in the Windows venv, 24 in the container); the runtime, tool and harness suites, 295 tests, pass against a throwaway PostgreSQL.
+
+### 20.3 Third review (2026-10-15): decision rule, run-once, capacity, golden separation
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | **P1: the frozen decision rule could disagree with the executed rule.** `create_freeze` took the rule from its caller, while the run applied constants in `metrics.py` | The rule is not a parameter any more: the freeze derives it from `metrics.frozen_rule()` (the rule, the bootstrap resamples and a rule version). When the experiment loads, `check_decision_rule` requires the record's copy to equal what this code defines, **even if the record's own hash was repaired after editing**, and the run applies the record's copy (`decide(..., rule)` takes the rule as an argument rather than reading module constants). A malformed rule (wrong keys, a latency criterion other than p95) is refused |
+| 2 | **P2: run-once was not atomic** (an `exists()` check, then a run, then a write) | `run_once` first loads and verifies the inputs (a bad freeze consumes nothing), then **claims the run atomically** with `O_CREAT\|O_EXCL`: of any number of concurrent or repeated calls exactly one proceeds (a test starts eight at a barrier). The claim stays even if the run fails or aborts, because retrying until the outcome is acceptable is what run-once forbids; a second attempt needs a new freeze or a recorded owner decision that removes the claim by hand. The result is written to a temp file and renamed, and an existing result is never overwritten. `run_experiment_frozen` (unclaimed) is for dry runs: its output is marked `not_a_result`, `claimed: false` |
+| R | **Reviewer capacity** accepted any positive number | At least **40 committed hours per reviewer** are required (refused below); **50 is preferred** (40 to 49 is accepted and the record command prints a warning). Checked when recording, when loading and at the freeze |
+| G | **Golden-ticket decision** (approved) | Calibration goldens may skip the real-ticket bucket partition. The distinction from the acceptance set's own goldens is recorded in 13.2 and enforced where it can be: calibration loading rejects `golden-acc-*` ids and `set: acceptance`; `parse_acceptance_golden` and `check_separation` define the acceptance form and the disjointness; a structural test confirms no development tooling reads the reserved acceptance file |
+
+**Candidate-planner work may begin only after:** the two reviewers are recorded (with at least 40 hours each), approved calibration goldens exist (at least 12), and the 10-ticket development subset is drawn. Do not draw the 50-ticket set, freeze, or run before then.
+
+**Verification:** 135 harness tests in four files (28 core, 18 integrity, 69 design, 20 sign-off); full suite 628 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 315 tests, pass against a throwaway PostgreSQL.
