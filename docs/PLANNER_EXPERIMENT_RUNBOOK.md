@@ -56,6 +56,14 @@ approved file: `data/golden_tickets.json` does not exist and the draw tooling wi
 5. Calibration goldens are calibration-only. The acceptance set's own 20 goldens are prepared separately (`data/acceptance_golden_tickets.json`, ids
    `golden-acc-*`), disjoint from these, and **must not exist while planners are being developed**.
 
+## Eligibility and voiding the development draw
+
+* Only real tickets whose id is `INC` followed by digits can be drawn. Changes, catalog tasks and problem records are excluded in every draw and re-checked
+  at the freeze (design 20.11).
+* The development subset is drawn once. If a defect is found **before any planner is frozen**, `python -m planner_experiment.cli void-development
+  --reason "..." --authorised-by "..."` keeps the old draw (renamed), logs the void and permits a redraw with the same seed record. It is refused once
+  planners are frozen. Tell the reviewers whenever it is used.
+
 ## What not to do
 
 * Do not copy the key to a developer or reviewer machine, paste it into chat, or put it in the repository. With the key, the recorded draw can be

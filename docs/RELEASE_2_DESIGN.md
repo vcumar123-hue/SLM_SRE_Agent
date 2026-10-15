@@ -1062,3 +1062,34 @@ real key should move to a separate key-holder machine before the 50-ticket draw.
 
 **Verification:** 223 harness tests in five files (28 core, 18 integrity, 69 design, 87 sign-off, 21 commands); the full Windows suite, 716 tests,
 passes (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.
+
+### 20.11 Departure from the recorded process: incident-only eligibility and a redraw of the development subset (2026-10-15)
+
+**Finding.** The first development draw (seed derived from commit `f89f317`) took four PFG **Change** records (`CHG…`) as its four PFG tickets. A change
+request has no failure to root-cause, so it cannot be used to evaluate an investigation agent. The cause was a gap in the harness, not in the data
+handling: the draw took every record of a tenant and had no rule for what counts as an incident. PFG's 4,029 records are 2,029 incidents (`INC…`),
+1,000 changes, 855 service-catalog tasks (`SCTASK…`) and 145 problem records (`PRB…`). The `record_type` column cannot be used to filter them (it labels
+500 changes "Incident"). All 337 PYPL records are incidents. The same gap would have affected the 50-ticket planner-selection set and the 100-ticket acceptance set.
+
+**Decision (project owner, in the working session on 2026-10-15):** approved an incident-only eligibility rule and a redraw of the development subset;
+the reviewers are to be told, because it changes a recorded step. Problem records (`PRB…`) are not eligible.
+
+| Change | Effect |
+|---|---|
+| **`select_cases.is_eligible`** | real tickets must have an id that is exactly `INC` followed by ASCII digits (full match: `inc1`, `INC12A`, `INC 1`, full-width digits, a trailing newline and the other shapes are not incidents). Golden tickets are synthetic incidents approved by the reviewers and are exempt. Applied inside `select_calibration`, so it governs the development draw, every planner-experiment draw and the acceptance draw; ineligible tickets are dropped before their text is examined and counted (`ineligible_skipped`). Too few incidents is a shortfall, never filled with changes |
+| **Checked again at the freeze** | `composition.problems` reports any non-golden case that is not an incident, so a frozen set cannot contain one even if a draw were tampered with |
+| **Loader** | the ticket query selects only `^INC[0-9]+$` ids (the rule is also enforced in the core, so a different loader cannot bring the problem back) |
+| **`void-development`** | the development draw is "drawn once"; voiding is the one recorded way out. It requires a reason and who authorised it (placeholders refused), keeps the old file renamed and byte-for-byte (`development_selection_VOID_<n>.json`), logs every void with its hash in `development_voids.json`, and is **refused once any planner freeze exists**, because planners are built on the draw and can no longer be moved off it |
+| **Seed record** | the seed derivation (`seed_development.json`) is unchanged: same commit, same seed value. A redraw accepts an existing record only if it is exactly the same derivation; a different artifact is refused |
+
+**Why a redraw is defensible here.** The defect is systematic and independent of which tickets were drawn (every PFG ticket in the first draw was a
+change, and a quarter of the pool is); no planner, recording, annotation or freeze depended on the draw; the void is logged and visible; and the old draw
+is retained. It is still a departure from the pre-registered process and is recorded as one. **Reviewers must be informed** (their sign-off covered the
+process as recorded).
+
+**Result of the redraw** (same seeds, incident-only pool): 4 PYPL (the same four as before; the PYPL pool was unaffected), 4 PFG incidents (replacing the
+four changes) and 2 golden (`golden-2`, `golden-4`; before `golden-1`, `golden-5`); 10 distinct clusters; no ticket type above 2. `development_selection.json` and
+the voided file stay local (they record plain ticket-type words from real client tickets).
+
+**Verification:** 238 harness tests in five files (28 core, 18 integrity, 69 design, 87 sign-off, 36 commands); the full Windows suite, 731 tests, passes
+(55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.

@@ -37,6 +37,7 @@ _HOST = re.compile(r"\b[a-z]{2,}[a-z0-9]*\d{1,}[a-z0-9._-]*\b", re.I)
 _DIGITS = re.compile(r"\d+")
 _SPACE = re.compile(r"\s+")
 _WORD = re.compile(r"[a-z0-9#]+")
+INCIDENT_ID = re.compile(r"INC[0-9]+", re.ASCII)
 
 
 def normalise(text: str) -> str:
@@ -55,6 +56,16 @@ def cluster_id(ticket: Dict[str, Any]) -> str:
 
 def ticket_type(ticket: Dict[str, Any]) -> str:
     return " ".join(normalise(ticket.get("text") or "").split()[:2]) or "unknown"
+
+
+def is_eligible(ticket: Dict[str, Any]) -> bool:
+    """Only incident records can be root-caused. Real tickets must have an id that is exactly `INC` followed by digits; changes (CHG), service-catalog
+    tasks (SCTASK), problem records (PRB) and anything else are not eligible. Golden tickets are synthetic incidents approved by the reviewers and are
+    not checked here. (Found 2026-10-15: PFG's 4,029 records are 2,029 incidents, 1,000 changes, 855 catalog tasks and 145 problem records, and the
+    first development draw took four changes. The `record_type` column cannot be used: it labels 500 changes 'Incident'.)"""
+    if str(ticket.get("pool") or ticket.get("tenant_id")) == "golden":
+        return True
+    return INCIDENT_ID.fullmatch(str(ticket.get("ticket_id") or "")) is not None
 
 
 def type_cap(total: int) -> int:
@@ -98,8 +109,12 @@ def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, d
     """
     quotas = dict(quotas or EXPERIMENT_QUOTAS)
     skipped_other_buckets = 0
+    ineligible_skipped = 0
     pools: Dict[str, Dict[str, List[Dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for t in tickets:
+        if not is_eligible(t):
+            ineligible_skipped += 1                         # not an incident: dropped before its text is looked at
+            continue
         cid = cluster_id(t)
         # golden tickets are calibration-only by rule (approved by the reviewers, never in acceptance), so they skip the partition
         if str(t.get("pool") or t.get("tenant_id")) != "golden" and bucket(partition_seed, cid) not in CALIBRATION_BUCKETS:
@@ -144,7 +159,8 @@ def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, d
         if picked < want:
             shortfall[pool] = want - picked
     return {"selection_version": SELECTION_VERSION, "partition_seed": partition_seed, "draw_seed": draw_seed, "selected": selected,
-            "shortfall": shortfall, "type_counts": dict(type_counts), "other_bucket_tickets_skipped_unread": skipped_other_buckets}
+            "shortfall": shortfall, "type_counts": dict(type_counts), "other_bucket_tickets_skipped_unread": skipped_other_buckets,
+            "ineligible_skipped": ineligible_skipped}
 
 
 SKETCH_K = 32

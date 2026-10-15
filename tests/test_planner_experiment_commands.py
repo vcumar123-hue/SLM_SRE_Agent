@@ -16,7 +16,7 @@ from planner_experiment import cli, freeze, golden, injection, planner_freeze, s
 from planner_experiment import select_cases as sc
 from planner_experiment.experiment import run_once
 from planner_experiment.freeze import ROOT
-from tests.pe_world import TESTS_DIR, build_world
+from tests.pe_world import KINDS, TESTS_DIR, build_world, golden_raw
 
 DRAFT = ROOT / "docs" / "drafts" / "golden_tickets_DRAFT.json"
 
@@ -43,9 +43,19 @@ class DraftGoldenTicketTests(unittest.TestCase):
             for field in ("text", "host", "opened_at"):
                 self.assertTrue(str(i[field]).strip(), (i["ticket_id"], field))
 
-    def test_nothing_is_approved_yet_and_no_approved_file_exists(self):
-        self.assertTrue(all(i["approved_by"] == [] for i in self.items))                    # names are added only after genuine review
-        self.assertFalse((ROOT / "data" / "golden_tickets.json").exists())
+    def test_the_draft_itself_is_never_edited_to_carry_approvals(self):
+        self.assertTrue(all(i["approved_by"] == [] for i in self.items))                    # approvals live only in the approved file
+
+    def test_an_approved_file_if_present_is_a_faithful_copy_of_reviewed_draft_tickets(self):
+        approved_path = ROOT / "data" / "golden_tickets.json"
+        if not approved_path.exists():
+            self.skipTest("no approved golden file on this checkout")
+        draft = {i["ticket_id"]: i for i in self.items}
+        for item in json.loads(approved_path.read_text(encoding="utf-8")):
+            source = draft[item["ticket_id"]]                                                # only tickets that were drafted
+            for field in ("text", "host", "opened_at", "set", "tenant_id"):
+                self.assertEqual(item[field], source[field], (item["ticket_id"], field))
+            self.assertEqual(len({a.lower() for a in item["approved_by"]}), 2)               # two distinct reviewers
 
     def test_the_draft_cannot_be_loaded_as_approved(self):
         with self.assertRaises(golden.GoldenError):
@@ -62,6 +72,144 @@ class DraftGoldenTicketTests(unittest.TestCase):
         second = sc.select_calibration(loaded, 1, 3, {"golden": 10}, exclude_clusters=used)
         self.assertEqual((len(first["selected"]), len(second["selected"])), (2, 10))
         self.assertFalse(first["shortfall"] or second["shortfall"])
+
+
+class IncidentEligibilityTests(unittest.TestCase):
+    """Only incident records can be root-caused. The first development draw took four Change requests; eligibility is now part of every draw."""
+
+    def test_only_inc_followed_by_digits_is_an_incident(self):
+        ok = ["INC0000001", "INC1", "INC2560555"]
+        bad = ["CHG0466232", "SCTASK0891795", "PRB0043750", "RITM0001", "inc123", "INC", "INC12A", "INC 123", " INC123", "INC123 ", "XINC123", "INC-123",
+               "INC\uff11\uff12", "INC\u0661\u0662", "", None, "INC123\n"]
+        for tid in ok:
+            self.assertTrue(sc.is_eligible({"pool": "client_a", "ticket_id": tid}), tid)
+        for tid in bad:
+            self.assertFalse(sc.is_eligible({"pool": "client_a", "ticket_id": tid}), repr(tid))
+        self.assertFalse(sc.is_eligible({"tenant_id": "client_c", "ticket_id": "CHG1"}))          # falls back to tenant_id when there is no pool
+
+    def test_golden_tickets_are_exempt_because_they_are_synthetic_incidents_approved_by_the_reviewers(self):
+        self.assertTrue(sc.is_eligible({"pool": "golden", "ticket_id": "golden-7"}))
+
+    def pool(self, n_inc=60, n_other=300):
+        out = []
+        for pool in ("client_c", "client_a"):
+            for i in range(n_inc):
+                out.append({"pool": pool, "tenant_id": pool, "ticket_id": f"INC{i:07d}", "text": f"{KINDS[i % len(KINDS)]} fault noted against server{i}",
+                            "host": f"server{i}", "opened_at": f"2026-0{1 + i % 6}-10 08:00:00"})
+            for prefix in ("CHG", "SCTASK", "PRB"):
+                for i in range(n_other // 3):
+                    out.append({"pool": pool, "tenant_id": pool, "ticket_id": f"{prefix}{i:07d}", "text": f"{prefix} request {i} for node{i}",
+                                "host": f"node{i}", "opened_at": f"2026-0{1 + i % 6}-11 08:00:00"})
+        return out
+
+    def test_a_draw_never_selects_a_non_incident_even_when_they_dominate_the_pool(self):
+        tickets = self.pool()
+        sel = sc.select_calibration(tickets, 1, 2, {"client_c": 6, "client_a": 6})
+        self.assertEqual(len(sel["selected"]), 12)
+        self.assertTrue(all(sc.INCIDENT_ID.fullmatch(s["ticket_id"]) for s in sel["selected"]))
+        self.assertEqual(sel["ineligible_skipped"], 600)
+
+    def test_too_few_incidents_is_a_shortfall_not_filled_with_changes(self):
+        tickets = self.pool(n_inc=2)
+        sel = sc.select_calibration(tickets, 1, 2, {"client_c": 6, "client_a": 6})
+        self.assertLessEqual(len(sel["selected"]), 4)
+        self.assertEqual(sel["shortfall"], {"client_c": 6 - sum(1 for s in sel["selected"] if s["pool"] == "client_c"),
+                                            "client_a": 6 - sum(1 for s in sel["selected"] if s["pool"] == "client_a")})
+        self.assertTrue(all(s["ticket_id"].startswith("INC") for s in sel["selected"]))
+
+    def test_the_development_and_experiment_steps_apply_it(self):
+        from planner_experiment import golden as golden_mod, seed as seed_mod
+        base = pathlib.Path(tempfile.mkdtemp())
+        steps.record_reviewers(base, ["Ann", "Bob"], {"Ann": 50, "Bob": 50}, "owner")
+        seed_mod.write_record(steps.paths(base)["partition_seed"], "a" * 40, "calibration-selection")
+        gpath = base / "g.json"
+        gpath.write_text(json.dumps(golden_raw()), encoding="utf-8")
+        tickets = self.pool(n_inc=400) + golden_mod.load_golden(gpath, ["Ann", "Bob"])
+        record = steps.select_development(base, tickets, "b" * 40)
+        real = [c for c in record["cases"] if c["pool"] != "golden"]
+        self.assertEqual(len(real), 8)
+        self.assertTrue(all(c["ticket_id"].startswith("INC") for c in real))
+
+    def test_a_frozen_set_may_not_contain_a_non_incident(self):
+        from planner_experiment import composition
+        w = build_world()
+        cases = json.loads(w.files["cases"].read_text(encoding="utf-8"))
+        cases[0]["ticket_id"] = "CHG0466232"
+        selection = json.loads(w.files["experiment_selection"].read_text(encoding="utf-8"))
+        from tests.pe_world import TEST_KEY
+        partition = json.loads(w.files["partition_seed_record"].read_text(encoding="utf-8"))["seed"]
+        gold = golden.parse_golden(json.loads(w.files["golden"].read_text(encoding="utf-8")), ["Ann", "Bob"])
+        found = composition.problems(cases, selection, partition, gold, json.loads(w.files["development_selection"].read_text(encoding="utf-8")), key=TEST_KEY)
+        self.assertTrue(any("not an incident record" in p for p in found), found)
+
+    def test_the_loader_query_selects_only_incident_ids(self):
+        source = (ROOT / "planner_experiment" / "cli.py").read_text(encoding="utf-8")
+        self.assertIn("ticket_id ~ '^INC[0-9]+$'", source)
+
+
+class VoidDevelopmentTests(unittest.TestCase):
+    """Redrawing the development subset is a departure from 'drawn once': deliberate, recorded, and impossible once planners are frozen."""
+
+    def setUp(self):
+        from planner_experiment import golden as golden_mod, seed as seed_mod
+        from tests.pe_world import make_tickets
+        self.base = pathlib.Path(tempfile.mkdtemp(prefix="pe-void-"))
+        steps.record_reviewers(self.base, ["Ann", "Bob"], {"Ann": 50, "Bob": 50}, "owner")
+        seed_mod.write_record(steps.paths(self.base)["partition_seed"], "a" * 40, "calibration-selection")
+        gpath = self.base / "g.json"
+        gpath.write_text(json.dumps(golden_raw()), encoding="utf-8")
+        self.tickets = make_tickets() + golden_mod.load_golden(gpath, ["Ann", "Bob"])
+        self.first = steps.select_development(self.base, self.tickets, "b" * 40)
+
+    def test_a_void_keeps_the_old_file_logs_it_and_allows_a_redraw_with_the_same_seed_record(self):
+        before = steps.paths(self.base)["development"].read_bytes()
+        entry = steps.void_development(self.base, "ticket pool included change requests", "project owner")
+        self.assertFalse(steps.paths(self.base)["development"].exists())
+        voided = self.base / "development_selection_VOID_1.json"
+        self.assertEqual(voided.read_bytes(), before)                                        # kept, byte for byte
+        log = json.loads((self.base / "development_voids.json").read_text(encoding="utf-8"))
+        self.assertEqual([e["void"] for e in log], [1])
+        self.assertEqual(log[0]["reason"], "ticket pool included change requests")
+        self.assertEqual(log[0]["authorised_by"], "project owner")
+        self.assertEqual(log[0]["sha256"], entry["sha256"])
+        again = steps.select_development(self.base, self.tickets, "b" * 40)                  # the seed record is reused, not rewritten
+        self.assertEqual(again["draw_seed"], self.first["draw_seed"])
+
+    def test_each_void_is_numbered_and_logged(self):
+        steps.void_development(self.base, "first problem", "project owner")
+        steps.select_development(self.base, self.tickets, "b" * 40)
+        steps.void_development(self.base, "second problem", "project owner")
+        self.assertTrue((self.base / "development_selection_VOID_2.json").exists())
+        self.assertEqual([e["void"] for e in json.loads((self.base / "development_voids.json").read_text(encoding="utf-8"))], [1, 2])
+
+    def test_a_reason_and_an_authoriser_are_required(self):
+        for reason, who in (("", "owner"), ("why", ""), ("  ", "owner"), ("why", "TBD"), ("why", "  ")):
+            with self.assertRaises(steps.StepError, msg=(reason, who)):
+                steps.void_development(self.base, reason, who)
+        self.assertTrue(steps.paths(self.base)["development"].exists())                      # nothing happened
+
+    def test_there_must_be_a_draw_to_void(self):
+        steps.void_development(self.base, "reason", "project owner")
+        with self.assertRaisesRegex(steps.StepError, "no development draw"):
+            steps.void_development(self.base, "reason", "project owner")
+
+    def test_it_is_refused_once_planners_are_frozen_against_the_draw(self):
+        from tests.pe_world import ENTRYPOINTS
+        steps.freeze_planners(self.base, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
+        with self.assertRaisesRegex(steps.StepError, "already frozen"):
+            steps.void_development(self.base, "too late", "project owner")
+        self.assertTrue(steps.paths(self.base)["development"].exists())
+
+    def test_a_redraw_with_a_different_artifact_is_refused_the_seed_is_recorded_once(self):
+        steps.void_development(self.base, "reason", "project owner")
+        with self.assertRaisesRegex(steps.StepError, "different artifact"):
+            steps.select_development(self.base, self.tickets, "c" * 40)
+        self.assertFalse(steps.paths(self.base)["development"].exists())
+
+    def test_the_command_line(self):
+        with patch.object(steps, "BASE", self.base):
+            self.assertEqual(cli.main(["void-development", "--reason", "pool had changes", "--authorised-by", "project owner"]), 0)
+            self.assertEqual(cli.main(["void-development", "--reason", "again", "--authorised-by", "project owner"]), 2)       # nothing left to void
 
 
 class ApproveGoldenTests(unittest.TestCase):

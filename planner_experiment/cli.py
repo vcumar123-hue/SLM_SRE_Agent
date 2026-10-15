@@ -5,6 +5,7 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli init-key                                              (once, before the first experiment draw)
     python -m planner_experiment.cli seed --artifact <40-character git commit id>               (partition seed, recorded once)
     python -m planner_experiment.cli select-development --artifact <40-character git commit id>
+    python -m planner_experiment.cli void-development --reason "..." --authorised-by "..."     (a recorded departure; refused once planners are frozen)
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
     python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>
@@ -38,7 +39,7 @@ def load_tickets(reviewer_names: List[str]) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     with postgres_store.db_cursor(dict_rows=True) as (_c, cur):
         cur.execute("SELECT tenant_id, ticket_id, short_description, opened_at, service FROM client_ticket_records "
-                    "WHERE tenant_id IN ('client_a','client_c') AND ticket_id IS NOT NULL AND short_description IS NOT NULL")
+                    "WHERE tenant_id IN ('client_a','client_c') AND ticket_id ~ '^INC[0-9]+$' AND short_description IS NOT NULL")
         for r in cur.fetchall():
             text = r["short_description"] or ""
             m = HOST.search(text)
@@ -61,6 +62,9 @@ def main(argv=None) -> int:
     d.add_argument("--artifact", required=True)
     dev = sub.add_parser("select-development")
     dev.add_argument("--artifact", required=True)
+    vd = sub.add_parser("void-development")
+    vd.add_argument("--reason", required=True)
+    vd.add_argument("--authorised-by", required=True)
     fp = sub.add_parser("freeze-planners")
     fp.add_argument("--round", type=int, required=True)
     fp.add_argument("--planner", action="append", required=True, help="mode=module:Class (rules_only, rules_then_model, model)")
@@ -100,6 +104,8 @@ def main(argv=None) -> int:
         elif args.cmd == "select-development":
             rec = steps.select_development(base, load_tickets(steps.reviewer_names(base)), args.artifact)
             print(json.dumps({"cases": len(rec["cases"]), "draw_seed": rec["draw_seed"]}, indent=1))
+        elif args.cmd == "void-development":
+            print(json.dumps(steps.void_development(base, args.reason, args.authorised_by), indent=1))
         elif args.cmd == "freeze-planners":
             entry = dict(item.split("=", 1) for item in args.planner)
             rec = steps.freeze_planners(base, args.round, entry)

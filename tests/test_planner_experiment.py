@@ -23,7 +23,7 @@ def tickets(n_per_pool=60, pools=("client_c", "client_a", "golden")):
     out = []
     for pool in pools:
         for i in range(n_per_pool):
-            out.append({"pool": pool, "tenant_id": pool, "ticket_id": f"{pool}-{i}", "host": f"host{i}", "opened_at": f"2026-0{1 + i % 6}-10",
+            out.append({"pool": pool, "tenant_id": pool, "ticket_id": f"INC{i:07d}", "host": f"host{i}", "opened_at": f"2026-0{1 + i % 6}-10",
                         "text": f"{['disk full', 'login failure', 'service down', 'cert expired', 'high cpu', 'queue stuck'][i % 6]} pattern{i % 9} on host{i}"})
     return out
 

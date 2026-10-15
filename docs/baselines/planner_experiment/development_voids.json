@@ -1,0 +1,10 @@
+[
+ {
+  "void": 1,
+  "file": "development_selection_VOID_1.json",
+  "sha256": "447d2bdd2822a509002530a0cd10450e6d5af347c3f1f4a1cf41eaba3d1eb5af",
+  "reason": "The first development draw took four PFG Change (CHG) records: the ticket pool had no incident-only eligibility rule (PFG: 2029 INC, 1000 CHG, 855 SCTASK, 145 PRB). No planner, recording or freeze existed. Redrawn under the INC-only rule.",
+  "authorised_by": "project owner, approved in the working session on 2026-10-15",
+  "date": "2026-10-15"
+ }
+]

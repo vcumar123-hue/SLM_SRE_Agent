@@ -78,3 +78,6 @@ data/evidence/_generated/
 
 # ── Planner experiment key (makes the recorded draw non-reversible; never commit) ──
 data/planner_experiment.key
+
+# Planner development working files (ticket text from the development subset; never commit)
+data/planner_dev/

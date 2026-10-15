@@ -19,6 +19,7 @@ development subset and every earlier round's clusters.
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -106,6 +107,43 @@ def _write_selection(path: Path, kind: str, selection: Dict[str, Any], extra: Di
     return record
 
 
+def _ensure_seed_record(path: Path, artifact: str, purpose: str) -> None:
+    """Write the seed derivation, or accept an existing one only if it is exactly this derivation (so a void-and-redraw reuses the record)."""
+    if path.exists():
+        record = seed_mod.load_record(path, purpose)
+        if record["artifact"] != artifact.strip().lower():
+            raise StepError(f"{path.name} records a different artifact ({record['artifact']}); a seed derivation is recorded once")
+        return
+    seed_mod.write_record(path, artifact, purpose)
+
+
+def void_development(base: Path, reason: str, authorised_by: str) -> Dict[str, Any]:
+    """Void the development draw so it can be drawn again. A departure from "drawn once", so it is deliberate and recorded:
+    a reason and who authorised it are required, the voided file is kept (renamed, never deleted) and every void is logged.
+    Refused once any planner freeze exists, because planners are built on the draw and it can no longer be replaced."""
+    for label, value in (("a reason", reason), ("who authorised it", authorised_by)):
+        if not str(value or "").strip() or str(value).strip().lower() in freeze_mod.PLACEHOLDER_NAMES:
+            raise StepError(f"voiding the development draw needs {label}")
+    p = paths(base)
+    if not p["development"].is_file():
+        raise StepError("there is no development draw to void")
+    if list(Path(base).glob("planner_freeze_round*.json")):
+        raise StepError("planners are already frozen against this development draw: it can no longer be voided")
+    n = 1
+    while (Path(base) / f"development_selection_VOID_{n}.json").exists():
+        n += 1
+    voided = Path(base) / f"development_selection_VOID_{n}.json"
+    raw = p["development"].read_bytes()
+    p["development"].replace(voided)
+    log_path = Path(base) / "development_voids.json"
+    log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.is_file() else []
+    entry = {"void": n, "file": voided.name, "sha256": freeze_mod.sha256_bytes(raw), "reason": reason.strip(), "authorised_by": authorised_by.strip(),
+             "date": time.strftime("%Y-%m-%d", time.gmtime())}
+    log.append(entry)
+    log_path.write_text(json.dumps(log, indent=1), encoding="utf-8")
+    return entry
+
+
 def select_development(base: Path, tickets: List[Dict[str, Any]], artifact: str) -> Dict[str, Any]:
     """Draw the 10-ticket development subset (4 PYPL, 4 PFG, 2 golden). `tickets` must already include golden tickets approved by the reviewers."""
     _reviewers(base)
@@ -117,7 +155,7 @@ def select_development(base: Path, tickets: List[Dict[str, Any]], artifact: str)
     selection = sc.select_calibration(tickets, partition, draw, sc.DEVELOPMENT_QUOTAS)
     if selection["shortfall"]:
         raise StepError(f"not enough eligible tickets for the development subset: {selection['shortfall']} (nothing was recorded)")
-    seed_mod.write_record(p["development_seed"], artifact, "development-selection")
+    _ensure_seed_record(p["development_seed"], artifact, "development-selection")
     return _write_selection(p["development"], "development", selection, {})
 
 

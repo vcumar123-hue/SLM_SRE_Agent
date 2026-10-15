@@ -71,6 +71,8 @@ def problems(cases: List[Dict[str, Any]], selection: Dict[str, Any], partition_s
                 out.append(f"{cid_label}: content does not match the drawn ticket")
             if entry["ticket_type"] != want_type:
                 out.append(f"{cid_label}: ticket type differs from the draw")
+        if not sc.is_eligible(ticket):
+            out.append(f"{cid_label}: not an incident record (only INC tickets are eligible)")
         if c.get("pool") != "golden" and sc.bucket(partition_seed, cluster) not in sc.CALIBRATION_BUCKETS:
             out.append(f"{cid_label}: cluster is not in a calibration bucket")    # golden tickets are calibration-only by rule, not by bucket
         if cid_label in dev_ids or cluster in dev_clusters:
