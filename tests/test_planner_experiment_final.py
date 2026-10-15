@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from planner_experiment import experiment as exp_mod
 from planner_experiment import freeze, golden, metrics, reviewers as reviewer_mod, steps
-from planner_experiment.experiment import ExperimentAborted, ExperimentInputError, run_experiment_frozen, run_once
+from planner_experiment.experiment import ExperimentAborted, ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
 from tests.pe_world import TESTS_DIR, build_world, golden_raw
 from planner_experiment import planner_freeze
@@ -40,7 +40,7 @@ class FrozenDecisionRuleTests(unittest.TestCase):
         record["record_hash"] = freeze._record_hash(record)                   # ...and the record's own hash repaired
         w.out.write_text(json.dumps(record), encoding="utf-8")
         with planners_here(), self.assertRaisesRegex(FreezeError, "differs from the rule this code executes"):
-            run_experiment_frozen(w.out)
+            run_once(w.out, w.dir / "results")
         with self.assertRaisesRegex(FreezeError, "differs from the rule this code executes"):
             freeze.verify_freeze(w.out)
 
@@ -78,7 +78,7 @@ class FrozenDecisionRuleTests(unittest.TestCase):
         w = build_world()
         record = w.freeze()
         with planners_here():
-            out = run_experiment_frozen(w.out)
+            out = run_once(w.out, w.dir / "results")
         self.assertEqual(out["decision"]["rule"], record["decision_rule"]["rule"])
 
 
@@ -92,13 +92,13 @@ class RunOnceAtomicityTests(unittest.TestCase):
         calls = {"n": 0}
         lock = threading.Lock()
 
-        def fake(inputs, planners, ctx_factory, claimed=False):
+        def fake(inputs, planners, ctx_factory, claim=None, drawn_base=None):
             with lock:
                 calls["n"] += 1
             threading.Event().wait(delay)
             if fail:
                 raise fail
-            return {"ok": True, "claimed": claimed, "not_a_result": not claimed, "record_hash": inputs.record_hash}
+            return {"ok": True, "claimed": claim is not None, "not_a_result": claim is None, "record_hash": inputs.record_hash}
         return patch.object(exp_mod, "_execute", fake), calls
 
     def claim_state(self):
@@ -169,11 +169,132 @@ class RunOnceAtomicityTests(unittest.TestCase):
         self.assertEqual(result.read_text(encoding="utf-8"), before)
         self.assertEqual(calls["n"], 1)
 
-    def test_the_unclaimed_entry_point_never_makes_a_result_of_record(self):
-        with planners_here():
-            out = run_experiment_frozen(self.w.out)
+
+class NoUnclaimedPathTests(unittest.TestCase):
+    """There is no callable path that executes the frozen cases without consuming the run claim."""
+
+    def setUp(self):
+        self.w = build_world()
+        self.w.freeze()
+        self.results = self.w.dir / "results"
+
+    def spy_runs(self):
+        """Patch Runner.run_batch to record, at each executed case, whether the claim file already existed."""
+        seen = []
+        original = exp_mod.Runner.run_batch
+        results = self.results
+
+        def spy(runner, *args, **kwargs):
+            seen.append(any(results.glob("*.claim.json")))
+            return original(runner, *args, **kwargs)
+
+        return patch.object(exp_mod.Runner, "run_batch", spy), seen
+
+    def unfrozen_args(self, cases, recording=None):
+        from planner_experiment import annotations as ann_mod
+        from planner_experiment import injection
+        from planner_experiment.scripted_env import Recording
+        from tests.pe_fake_planners import GiveUpPlanner, GoodPlanner
+        from tests.test_planner_experiment import ctx_for
+
+        notes = {a.case_id: a for a in ann_mod.parse(self.w.read("annotations"))}
+        return (cases, notes, recording or Recording(self.w.read("recording")),
+                {"rules_only": GiveUpPlanner, "rules_then_model": GoodPlanner, "model": GoodPlanner}, ctx_for,
+                injection.build_injection_cases([c["case_id"] for c in cases[:4]]))
+
+    def test_the_public_surface_has_exactly_two_ways_to_run(self):
+        public = sorted(n for n, v in vars(exp_mod).items() if not n.startswith("_") and callable(v) and getattr(v, "__module__", "") == exp_mod.__name__
+                        and n.startswith(("run", "execute", "load_frozen")))
+        self.assertEqual(public, ["run_experiment_unfrozen", "run_once"])
+        self.assertFalse(hasattr(exp_mod, "run_experiment_frozen"))
+        self.assertFalse(hasattr(exp_mod, "load_frozen_inputs"))           # nothing public hands out the frozen cases either
+
+    def test_every_executed_frozen_case_ran_after_the_claim_existed(self):
+        patcher, seen = self.spy_runs()
+        with planners_here(), patcher:
+            run_once(self.w.out, self.results)
+        self.assertGreater(len(seen), 50 * 3)                              # all cases in all modes, plus the injection runs
+        self.assertTrue(all(seen))                                         # none ran before the claim file existed
+
+    def test_the_engine_refuses_frozen_inputs_without_the_claim_object(self):
+        inputs = exp_mod._load_frozen_inputs(self.w.out)
+        planners = {m: object for m in exp_mod.MODES}
+        patcher, seen = self.spy_runs()
+        with patcher:
+            with self.assertRaisesRegex(ExperimentInputError, "under the run claim"):
+                exp_mod._execute(inputs, planners, None)
+            with self.assertRaisesRegex(ExperimentInputError, "under the run claim"):
+                exp_mod._execute(inputs, planners, None, claim=object())
+            other = exp_mod._RunClaim(exp_mod._CLAIM_KEY, "0" * 64)               # a claim for a different freeze record
+            with self.assertRaisesRegex(ExperimentInputError, "own freeze record"):
+                exp_mod._execute(inputs, planners, None, claim=other)
+        self.assertEqual(seen, [])
+        self.assertFalse(self.results.exists() and list(self.results.iterdir()))   # and none of it created a claim
+
+    def test_a_run_claim_cannot_be_built_outside_run_once(self):
+        with self.assertRaises(PermissionError):
+            exp_mod._RunClaim(object(), "x")
+        with self.assertRaises(PermissionError):
+            exp_mod._RunClaim(None, "x")
+
+    def test_the_unfrozen_route_refuses_the_drawn_cases_by_id(self):
+        patcher, seen = self.spy_runs()
+        with patcher, self.assertRaisesRegex(ExperimentInputError, "drawn into a planner-experiment set"):
+            exp_mod.run_experiment_unfrozen(*self.unfrozen_args(self.w.cases), seed=1, drawn_base=self.w.base)
+        self.assertEqual(seen, [])
+
+    def test_renaming_the_cases_does_not_get_around_it_the_content_hash_matches(self):
+        renamed = [{**c, "case_id": f"preview-{i}"} for i, c in enumerate(self.w.cases)]
+        from planner_experiment.scripted_env import Recording
+        rec = Recording({c["case_id"]: self.w.read("recording")[old["case_id"]] for c, old in zip(renamed, self.w.cases)})
+        patcher, seen = self.spy_runs()
+        with patcher, self.assertRaisesRegex(ExperimentInputError, "drawn into a planner-experiment set"):
+            from planner_experiment import annotations as ann_mod
+            notes = {f"preview-{i}": ann_mod.parse([{**a.model_dump(), "case_id": f"preview-{i}"}])[0]
+                     for i, a in enumerate(ann_mod.parse(self.w.read("annotations")))}
+            args = list(self.unfrozen_args(renamed, rec))
+            args[1] = notes
+            exp_mod.run_experiment_unfrozen(*args, seed=1, drawn_base=self.w.base)
+        self.assertEqual(seen, [])
+
+    def test_calling_the_engine_directly_on_unfrozen_inputs_holding_drawn_cases_is_refused_too(self):
+        from planner_experiment import annotations as ann_mod
+        from planner_experiment.scripted_env import Recording
+        inputs = exp_mod.ExperimentInputs(
+            cases=self.w.cases, annotations={a.case_id: a for a in ann_mod.parse(self.w.read("annotations"))},
+            recording=Recording(self.w.read("recording")), injection_cases=[], budgets=exp_mod.Budgets(), seed=1, strict=False, frozen=False)
+        with self.assertRaisesRegex(ExperimentInputError, "drawn into a planner-experiment set"):
+            exp_mod._execute(inputs, {m: object for m in exp_mod.MODES}, None, None, self.w.base)
+
+    def test_a_claim_cannot_be_given_to_unfrozen_inputs(self):
+        cases, notes, rec, _f, _c, _i = self.unfrozen_args([{"case_id": "x1", "tenant_id": "t", "ticket_text": "disk full"}])
+        inputs = exp_mod.ExperimentInputs(cases=cases, annotations={}, recording=rec, injection_cases=[], budgets=exp_mod.Budgets(), seed=1,
+                                          strict=False, frozen=False)
+        with self.assertRaisesRegex(ExperimentInputError, "belongs to frozen inputs"):
+            exp_mod._execute(inputs, {}, None, exp_mod._RunClaim(exp_mod._CLAIM_KEY, "a"), self.w.base)
+
+    def test_cases_that_were_not_drawn_still_run_unfrozen_for_the_harness_self_tests(self):
+        from tests.test_planner_experiment import annotation, drafts_for
+        from planner_experiment import injection
+        from planner_experiment.scripted_env import Recording
+        from tests.pe_fake_planners import GiveUpPlanner, GoodPlanner
+        from tests.test_planner_experiment import ctx_for
+
+        cases = [{"case_id": f"synthetic-{i}", "tenant_id": "t", "ticket_text": f"disk full on host{i}"} for i in range(4)]
+        rec = Recording()
+        for c in cases:
+            rec.add(c["case_id"], "incident_kb_search", {"query": c["ticket_text"], "top_k": 5}, drafts_for("t", ("incident", "I1", "disk full")))
+        out = exp_mod.run_experiment_unfrozen(cases, {c["case_id"]: annotation(c["case_id"]) for c in cases}, rec,
+                                              {m: GoodPlanner for m in exp_mod.MODES}, ctx_for,
+                                              injection.build_injection_cases([c["case_id"] for c in cases]), seed=1, drawn_base=self.w.base)
         self.assertTrue(out["not_a_result"])
-        self.assertFalse(self.results.exists())
+        self.assertFalse(out["claimed"])
+
+    def test_the_cli_can_only_reach_the_claimed_route(self):
+        text = (ROOT / "planner_experiment" / "cli.py").read_text(encoding="utf-8")
+        self.assertIn("run_once", text)
+        for forbidden in ("run_experiment_unfrozen", "_execute", "_load_frozen_inputs"):
+            self.assertNotIn(forbidden, text)
 
 
 class ReviewerCapacityTests(unittest.TestCase):

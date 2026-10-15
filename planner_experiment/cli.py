@@ -7,6 +7,7 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
     python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>
+    python -m planner_experiment.cli run-experiment --record <freeze record>        (the one-shot run: claimed, never a dry run)
 
 There is no way to pass a seed: every seed is derived from an immutable artifact (seed.py). Golden tickets are read from
 data/golden_tickets.json and must be approved by exactly the two reviewers of the reviewer record. Ticket text is written only by
@@ -61,6 +62,8 @@ def main(argv=None) -> int:
     fp.add_argument("--planner", action="append", required=True, help="mode=module:Class (rules_only, rules_then_model, model)")
     de = sub.add_parser("draw-experiment")
     de.add_argument("--round", type=int, required=True)
+    rx = sub.add_parser("run-experiment")
+    rx.add_argument("--record", required=True)
     bc = sub.add_parser("build-cases")
     bc.add_argument("--round", type=int, required=True)
     bc.add_argument("--out", required=True)
@@ -81,6 +84,14 @@ def main(argv=None) -> int:
         elif args.cmd == "draw-experiment":
             rec = steps.draw_experiment(base, args.round, load_tickets(steps.reviewer_names(base)))
             print(json.dumps({"round": rec["round"], "cases": len(rec["cases"]), "draw_seed": rec["draw_seed"], "type_counts": rec["type_counts"]}, indent=1))
+        elif args.cmd == "run-experiment":
+            from planner_experiment.experiment import ExperimentInputError, run_once
+            try:
+                out = run_once(Path(args.record), steps.BASE / "results")
+            except ExperimentInputError as exc:
+                print("refused:", exc)
+                return 2
+            print(json.dumps({"verdict": out["decision"]["verdict"], "conditions": out["decision"]["conditions"]}, indent=1))
         elif args.cmd == "build-cases":
             cases = steps.build_cases(steps.round_paths(base, args.round)["selection"], load_tickets(steps.reviewer_names(base)))
             Path(args.out).write_text(json.dumps(cases, indent=1), encoding="utf-8")

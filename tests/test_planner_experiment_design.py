@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from planner_experiment import composition, freeze, golden, metrics, planner_freeze, reviewers as reviewer_mod, seed as seed_mod, steps
 from planner_experiment import select_cases as sc
-from planner_experiment.experiment import ExperimentInputError, run_experiment_frozen, run_once
+from planner_experiment.experiment import ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
 from tests.pe_world import (DEVELOPMENT_ARTIFACT, ENTRYPOINTS, NAMES, PARTITION_ARTIFACT, TESTS_DIR, build_world, golden_raw, make_tickets)
 
@@ -414,20 +414,20 @@ class CompositionTests(unittest.TestCase):
 
 class FrozenPlannerTests(unittest.TestCase):
     def test_the_frozen_run_takes_no_planners_or_data_from_the_caller(self):
-        self.assertEqual(list(inspect.signature(run_experiment_frozen).parameters), ["record_path"])
+        self.assertEqual(list(inspect.signature(run_once).parameters), ["record_path", "results_dir"])
         w = build_world()
         w.freeze()
         with self.assertRaises(TypeError):
-            run_experiment_frozen(w.out, {"rules_only": object})              # a caller cannot hand in planners
+            run_once(w.out, w.dir / "results", {"rules_only": object})        # a caller cannot hand in planners
 
     def test_the_planners_run_are_the_ones_the_frozen_config_names(self):
         w = build_world()
         w.freeze()
         with planners_here():
-            out = run_experiment_frozen(w.out)
+            out = run_once(w.out, w.dir / "results")
         self.assertTrue(out["frozen"])
-        self.assertTrue(out["not_a_result"])                        # a dry run on the frozen inputs is not claimed: only run_once makes a result
-        self.assertFalse(out["claimed"])
+        self.assertFalse(out["not_a_result"])
+        self.assertTrue(out["claimed"])
         self.assertEqual(out["cases"], 50)
         # rules_only is GiveUpPlanner (escalates, never succeeds) and the others GoodPlanner, exactly as named in the frozen config
         self.assertEqual(out["modes"]["rules_only"]["summary"]["trajectory_success_rate"]["estimate"], 0.0)
@@ -447,7 +447,7 @@ class FrozenPlannerTests(unittest.TestCase):
         w.freeze()
         with patch.object(planner_freeze, "PLANNERS_DIR", TESTS_DIR / "subfolder_that_does_not_hold_them"):
             with self.assertRaises(planner_freeze.PlannerFreezeError):
-                run_experiment_frozen(w.out)
+                run_once(w.out, w.dir / "results")
 
     def test_planner_or_runtime_code_changed_between_the_planner_freeze_and_the_experiment_freeze_is_refused(self):
         root = fake_root()
@@ -507,7 +507,7 @@ class FrozenInputTamperTests(unittest.TestCase):
             target = w.files[name] if name in w.files else w.reviewer_files[name.split(":", 1)[1]]
             target.write_text(target.read_text(encoding="utf-8") + " ", encoding="utf-8")
             with planners_here(), self.assertRaises(FreezeError, msg=name):
-                run_experiment_frozen(w.out)
+                run_once(w.out, w.dir / "results")
 
     def test_a_later_read_can_never_silently_return_different_content(self):
         w = build_world()

@@ -1,15 +1,19 @@
 """
 Runs every planner mode over every case through the real agentruntime.Runner against the scripted environment (design 12).
 
-Two entry points, deliberately different:
+Two public entry points, deliberately different, and no third:
 
-* `run_experiment_frozen(record_path)` is the only way to produce a result. It takes **nothing** from the caller: cases, annotations,
-  recording, injection cases, budgets, modes and seed are read from the freeze record's files, each checked against its recorded hash from
-  the same bytes that are then parsed, and the planners are not passed in either: the record names their entry points ("module:Class" in
-  the frozen `agentruntime/planners/` folder, the same ones the planner freeze recorded) and the harness imports and constructs them
-  itself, `Class(case)`, with no caller-supplied arguments. All code (runtime, tools, planners, harness) is verified against the record.
-  `run_once` additionally refuses a second run of the same freeze record.
-* `run_experiment_unfrozen(...)` exists for the harness's own self-tests; its output carries `"not_a_result": true`.
+* `run_once(record_path, results_dir)` is the ONLY way to execute the frozen cases. It takes **nothing** from the caller but the two paths:
+  cases, annotations, recording, injection cases, budgets, modes, seed and the decision rule are read from the freeze record's files, each
+  checked against its recorded hash from the same bytes that are then parsed, and the planners are not passed in either: the record names
+  their entry points ("module:Class" in the frozen `agentruntime/planners/` folder, the same ones the planner freeze recorded) and the
+  harness imports and constructs them itself, `Class(case)`. All code is verified against the record. The run is claimed atomically before
+  anything executes, a failed run keeps its claim, and the engine (`_execute`) refuses frozen inputs unless it is handed the claim object that
+  only `run_once` can create. There is no dry run of the frozen experiment: a dry run would show how the planners do on the 50 tickets, which
+  is exactly what the one-shot design forbids.
+* `run_experiment_unfrozen(...)` exists for the harness's own self-tests; its output carries `"not_a_result": true`, and the engine refuses
+  to execute any ticket that was drawn into a planner-experiment set (matched by case id or by content hash) without the run claim, so it
+  cannot be used to preview the frozen cases either.
 
 Both validate the inputs first and **fail** rather than shrink: a case without an annotation or a recording, an annotation without a case,
 an injection case whose base case is missing, or a missing mode is an error, never a silently smaller experiment.
@@ -54,6 +58,19 @@ class ExperimentAborted(Exception):
 
 MAX_REPLACEMENTS = 3          # executor sets that may be replaced in one experiment
 MAX_STUCK_CALLS = 4           # stuck (abandoned or leaked) calls still running, counted across EVERY executor the experiment ever created
+
+
+_CLAIM_KEY = object()          # known only to this module: the run claim cannot be built anywhere else
+
+
+class _RunClaim:
+    """Proof that the atomic claim file for one freeze record was created. Only `run_once` constructs it."""
+    __slots__ = ("record_hash",)
+
+    def __init__(self, key: object, record_hash: str) -> None:
+        if key is not _CLAIM_KEY:
+            raise PermissionError("a run claim can only be created by run_once")
+        self.record_hash = record_hash
 
 
 class _Principal:
@@ -118,7 +135,7 @@ def validate_inputs(inputs: ExperimentInputs) -> None:
         raise ExperimentInputError("; ".join(problems))
 
 
-def load_frozen_inputs(record_path: Path) -> ExperimentInputs:
+def _load_frozen_inputs(record_path: Path) -> ExperimentInputs:
     """Verify the freeze record and read every input from it. The caller supplies no experiment data."""
     record = load_record(record_path)
     verify_code(record)
@@ -218,13 +235,6 @@ def _tenant_dir(tenants) -> Path:
     return root
 
 
-def run_experiment_frozen(record_path: Path) -> Dict[str, Any]:
-    """Run the frozen experiment WITHOUT claiming it: for dry runs on the frozen inputs. The result is marked `not_a_result` and
-    `claimed: false`; only `run_once` produces a result of record."""
-    inputs = load_frozen_inputs(record_path)
-    return _execute(inputs, resolve_planners(inputs), None, claimed=False)
-
-
 def _write_json_atomic(path: Path, value: Any) -> None:
     tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
     tmp.write_text(json.dumps(value, indent=1, sort_keys=True, default=str), encoding="utf-8")
@@ -240,7 +250,7 @@ def run_once(record_path: Path, results_dir: Path) -> Dict[str, Any]:
     what run-once forbids, so a second attempt needs a new freeze (revised planners, fresh set) or a recorded owner decision that removes the
     claim by hand. The result is written atomically (temp file then rename).
     """
-    inputs = load_frozen_inputs(record_path)
+    inputs = _load_frozen_inputs(record_path)
     planners = resolve_planners(inputs)
     results_dir = Path(results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -261,7 +271,7 @@ def run_once(record_path: Path, results_dir: Path) -> Dict[str, Any]:
         _write_json_atomic(claim, {"status": "refused", "reason": "a result already exists", "record_hash": inputs.record_hash})
         raise ExperimentInputError(f"{out.name} already exists")
     try:
-        result = _execute(inputs, planners, None, claimed=True)
+        result = _execute(inputs, planners, None, _RunClaim(_CLAIM_KEY, inputs.record_hash))
     except BaseException as exc:                             # noqa: BLE001 - recorded, then re-raised
         _write_json_atomic(claim, {"status": "failed", "error": f"{type(exc).__name__}: {exc}", "record_hash": inputs.record_hash})
         raise
@@ -272,19 +282,52 @@ def run_once(record_path: Path, results_dir: Path) -> Dict[str, Any]:
 
 def run_experiment_unfrozen(cases, annotations: Dict[str, Annotation], recording: Recording, planner_factories, ctx_factory,
                             injection_cases: List[InjectionCase], seed: int, budgets: Optional[Budgets] = None, modes: tuple = MODES,
-                            strict: bool = False) -> Dict[str, Any]:
-    """For the harness's self-tests only. The result is marked `not_a_result`."""
+                            strict: bool = False, drawn_base: Optional[Path] = None) -> Dict[str, Any]:
+    """For the harness's self-tests only. The result is marked `not_a_result`. Refuses any ticket drawn into a planner-experiment set
+    (`drawn_base` is the folder holding the recorded draws; default: the repository's)."""
     inputs = ExperimentInputs(cases=cases, annotations=annotations, recording=recording, injection_cases=injection_cases,
                               budgets=budgets or Budgets(), seed=seed, modes=modes, strict=strict, frozen=False)
     validate_inputs(inputs)
     missing = [m for m in modes if m not in planner_factories]
     if missing:
         raise ExperimentInputError(f"no planner supplied for mode(s) {missing}")
-    return _execute(inputs, planner_factories, ctx_factory)
+    return _execute(inputs, planner_factories, ctx_factory, None, drawn_base)
+
+
+def _drawn_experiment_cases(base: Path):
+    """(case ids, content hashes) of every ticket recorded in a planner-experiment draw under `base`."""
+    ids, hashes = set(), set()
+    for p in sorted(Path(base).glob("experiment_selection_round*.json")):
+        for entry in json.loads(p.read_text(encoding="utf-8")).get("cases", []):
+            ids.add(entry["case_id"])
+            hashes.add(entry["content_hash"])
+    return ids, hashes
+
+
+def _refuse_unclaimed_drawn_cases(cases: List[Dict[str, Any]], base: Optional[Path]) -> None:
+    from planner_experiment import select_cases as sc
+    from planner_experiment import steps
+
+    ids, hashes = _drawn_experiment_cases(base if base is not None else steps.BASE)
+    for c in cases:
+        ticket = {"pool": c.get("pool"), "tenant_id": c.get("tenant_id"), "ticket_id": c.get("ticket_id"), "text": c.get("ticket_text"),
+                  "host": c.get("host"), "opened_at": c.get("opened_at")}
+        if c.get("case_id") in ids or (c.get("ticket_id") is not None and sc.content_hash(ticket) in hashes):
+            raise ExperimentInputError(f"{c.get('case_id')} was drawn into a planner-experiment set: it can only be executed under the run "
+                                       f"claim of run_once, never as a dry run")
 
 
 def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[Callable[[Dict[str, Any]], TrustedContext]],
-             claimed: bool = False) -> Dict[str, Any]:
+             claim: Optional[_RunClaim] = None, drawn_base: Optional[Path] = None) -> Dict[str, Any]:
+    """The only place cases are executed. Frozen inputs need the run claim; anything else may not contain a drawn experiment ticket."""
+    if inputs.frozen:
+        if not isinstance(claim, _RunClaim) or claim.record_hash != inputs.record_hash:
+            raise ExperimentInputError("frozen cases can only be executed under the run claim for their own freeze record")
+    else:
+        if claim is not None:
+            raise ExperimentInputError("a run claim belongs to frozen inputs")
+        _refuse_unclaimed_drawn_cases(inputs.cases, drawn_base)
+    claimed = claim is not None
     cases, recording, budgets = inputs.cases, inputs.recording, inputs.budgets
     if ctx_factory is None:
         tenants = _tenant_dir(c["tenant_id"] for c in cases)
