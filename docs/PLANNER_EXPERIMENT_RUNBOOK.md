@@ -64,6 +64,19 @@ approved file: `data/golden_tickets.json` does not exist and the draw tooling wi
   --reason "..." --authorised-by "..."` keeps the old draw (renamed), logs the void and permits a redraw with the same seed record. It is refused once
   planners are frozen. Tell the reviewers whenever it is used.
 
+## Key custody correction (2026-10-15)
+
+The key first created on the development machine is **retired** (check value `1160a0b798c63a8b`): treat it as seen by the development session. Draws, case
+building, freezes and runs refuse it. To put a proper key in custody:
+
+1. On the **separate key-holder machine** (the owner's, or gated CI), with a checkout of this repository: `python -m planner_experiment.cli init-key`, back the key up
+   outside the repository, then `python -m planner_experiment.cli key-check`. It prints only a 16-character check value. **Do not copy the key to the
+   development machine or paste it anywhere.**
+2. On the development machine: `python -m planner_experiment.cli register-custody --check <value> --custodian "Person, machine"`; commit `key_custody.json`
+   (check value only).
+3. The key-holder machine also needs access to the ticket database and the approved golden file: it runs `draw-experiment`, `build-cases`, `create-freeze`
+   and `run-experiment`. Delete the retired key file on the development machine when convenient.
+
 ## Voids, acknowledgements and the model manifest
 
 * Every void of the development draw must be acknowledged by **both** reviewers before `freeze-planners` will run: send them

@@ -19,7 +19,7 @@ from agentruntime.planners import model_manifest as mm
 from planner_experiment import cli, freeze, planner_freeze, steps
 from planner_experiment import select_cases as sc
 from planner_experiment.freeze import FreezeError, ROOT
-from tests.pe_world import ENTRYPOINTS, TESTS_DIR, build_world, golden_raw, make_tickets
+from tests.pe_world import ENTRYPOINTS, TESTS_DIR, build_world, golden_raw, make_tickets, register_test_custody
 
 ALGORITHM_FUNCTIONS = ["normalise", "cluster_id", "ticket_type", "type_cap", "bucket", "month_of", "content_hash", "keyed_cluster", "keyed_type",
                        "is_eligible", "select_calibration", "_tokens", "text_sketch", "sketch_similarity", "selection_entries", "case_id_for"]
@@ -79,7 +79,8 @@ class SelectionVersionTests(unittest.TestCase):
         steps.freeze_planners(base, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
         record["selection_version"] = "2"
         dev.write_text(json.dumps(record), encoding="utf-8")
-        with self.assertRaisesRegex(steps.StepError, "version '2'"):
+        # once the planners are frozen the file's hash is checked first, so an edited file is refused for that reason (stronger than the label check)
+        with self.assertRaisesRegex(steps.StepError, "(version '2'|not the one the planners were frozen against)"):
             steps.draw_experiment(base, 1, make_tickets())
 
     @staticmethod
@@ -87,6 +88,7 @@ class SelectionVersionTests(unittest.TestCase):
         from planner_experiment import golden as golden_mod, seed as seed_mod
         from tests.pe_world import DEVELOPMENT_ARTIFACT, PARTITION_ARTIFACT
         steps.record_reviewers(base, ["Ann", "Bob"], {"Ann": 50, "Bob": 50}, "owner")
+        register_test_custody(base)
         seed_mod.write_record(steps.paths(base)["partition_seed"], PARTITION_ARTIFACT, "calibration-selection")
         gpath = base / "g.json"
         gpath.write_text(json.dumps(golden_raw()), encoding="utf-8")
@@ -245,6 +247,305 @@ def good_opener(url, timeout_s):
         return FakeResponse({"data": [{"id": mm.MODEL["served_id"]}, {"id": "other"}]})
     return FakeResponse({"id": mm.MODEL["served_id"], "publisher": mm.MODEL["publisher"], "arch": mm.MODEL["architecture"],
                          "quantization": mm.MODEL["quantization"], "state": "loaded", "loaded_context_length": 8192, "max_context_length": 131072})
+
+
+class KeyRetirementAndCustodyTests(unittest.TestCase):
+    """A key that has been on a machine a development session can read is development-accessible. It is retired by its check value, and a draw,
+    freeze or run uses only the replacement registered as being in custody (created on the key-holder machine, never shown to the development session)."""
+
+    OTHER = bytes.fromhex("cd" * 32)
+
+    def setUp(self):
+        self.dir = pathlib.Path(tempfile.mkdtemp(prefix="pe-custody-"))
+        self.retired = self.dir / "retired_keys.json"
+        self.custody = self.dir / "key_custody.json"
+
+    def test_retiring_records_only_the_check_value_and_never_the_key(self):
+        from planner_experiment import secrecy
+        from tests.pe_world import TEST_KEY, TEST_KEY_HEX
+        entry = secrecy.retire(TEST_KEY, "was on the development machine", "project owner", self.retired)
+        self.assertEqual(entry["key_check"], secrecy.key_check(TEST_KEY))
+        text = self.retired.read_text(encoding="utf-8")
+        self.assertNotIn(TEST_KEY_HEX, text)
+        self.assertNotRegex(text, r"[0-9a-f]{32,}")                                          # nothing key-sized is written
+        self.assertTrue(secrecy.is_retired(entry["key_check"], self.retired))
+        self.assertFalse(secrecy.is_retired(secrecy.key_check(self.OTHER), self.retired))
+
+    def test_retiring_needs_a_reason_and_a_named_person_and_is_append_only(self):
+        from planner_experiment import secrecy
+        from tests.pe_world import TEST_KEY
+        for reason, who in (("", "project owner"), ("why", ""), ("why", "TBD"), ("  ", "project owner")):
+            with self.assertRaises(secrecy.KeyError_, msg=(reason, who)):
+                secrecy.retire(TEST_KEY, reason, who, self.retired)
+        secrecy.retire(TEST_KEY, "first", "project owner", self.retired)
+        with self.assertRaisesRegex(secrecy.KeyError_, "already retired"):
+            secrecy.retire(TEST_KEY, "again", "project owner", self.retired)
+        secrecy.retire(self.OTHER, "second key", "project owner", self.retired)
+        self.assertEqual(len(json.loads(self.retired.read_text(encoding="utf-8"))), 2)
+
+    def test_custody_registration_is_validated(self):
+        from planner_experiment import secrecy
+        good = secrecy.key_check(self.OTHER)
+        for check in ("", "abc", "g" * 16, good + "0", good.upper() + "x"):
+            with self.assertRaises(secrecy.KeyError_, msg=check):
+                secrecy.register_custody(check, "owner machine", self.custody, self.retired)
+        for who in ("", "  ", "TBD", "owner"):
+            with self.assertRaises(secrecy.KeyError_, msg=who):
+                secrecy.register_custody(good, who, self.custody, self.retired)
+        record = secrecy.register_custody(good, "Project owner, separate key-holder machine", self.custody, self.retired)
+        self.assertEqual(record["key_check"], good)
+        self.assertIn("never present on a machine a development session can read", record["statement"])
+
+    def test_a_retired_key_cannot_be_registered_and_a_registration_is_replaced_only_after_retirement(self):
+        from planner_experiment import secrecy
+        from tests.pe_world import TEST_KEY
+        secrecy.retire(TEST_KEY, "development-accessible", "project owner", self.retired)
+        with self.assertRaisesRegex(secrecy.KeyError_, "retired"):
+            secrecy.register_custody(secrecy.key_check(TEST_KEY), "owner machine", self.custody, self.retired)
+        secrecy.register_custody(secrecy.key_check(self.OTHER), "owner machine", self.custody, self.retired)
+        third = secrecy.key_check(bytes.fromhex("ef" * 32))
+        with self.assertRaisesRegex(secrecy.KeyError_, "already registered"):
+            secrecy.register_custody(third, "owner machine", self.custody, self.retired)
+        secrecy.retire(self.OTHER, "replaced", "project owner", self.retired)
+        secrecy.register_custody(third, "owner machine", self.custody, self.retired)                 # allowed once the registered key is retired
+        self.assertEqual(secrecy.custody(self.custody)["key_check"], third)
+
+    def test_the_active_key_must_be_present_not_retired_and_the_registered_one(self):
+        from planner_experiment import secrecy
+        from tests.pe_world import TEST_KEY, no_key
+        with no_key():
+            with self.assertRaisesRegex(secrecy.KeyError_, "experiment key is required"):
+                secrecy.active_key(self.custody, self.retired)
+        with self.assertRaisesRegex(secrecy.KeyError_, "no key is registered"):
+            secrecy.active_key(self.custody, self.retired)                                            # the test key is loaded, nothing is registered
+        secrecy.register_custody(secrecy.key_check(self.OTHER), "owner machine", self.custody, self.retired)
+        with self.assertRaisesRegex(secrecy.KeyError_, "not the key registered"):
+            secrecy.active_key(self.custody, self.retired)                                            # a different key is registered
+        pathlib.Path(self.custody).unlink()
+        secrecy.register_custody(secrecy.key_check(TEST_KEY), "owner machine", self.custody, self.retired)
+        self.assertEqual(secrecy.active_key(self.custody, self.retired), TEST_KEY)                    # the registered key is accepted
+        secrecy.retire(TEST_KEY, "now development-accessible", "project owner", self.retired)
+        with self.assertRaisesRegex(secrecy.KeyError_, "retired"):
+            secrecy.active_key(self.custody, self.retired)
+
+    def draw_ready_base(self):
+        base = pathlib.Path(tempfile.mkdtemp(prefix="pe-draw-"))
+        SelectionVersionTests.setup_base(base)                                                        # registers the test key in custody
+        from planner_experiment import golden as golden_mod
+        steps.freeze_planners(base, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
+        return base, make_tickets() + golden_mod.load_golden(base / "g.json", ["Ann", "Bob"])
+
+    def test_a_draw_is_refused_with_a_retired_unregistered_or_unknown_key(self):
+        from planner_experiment import secrecy
+        from tests.pe_world import TEST_KEY
+        base, tickets = self.draw_ready_base()
+        (base / "key_custody.json").unlink()
+        with self.assertRaisesRegex(steps.StepError, "no key is registered"):
+            steps.draw_experiment(base, 1, tickets)
+        secrecy.register_custody(secrecy.key_check(self.OTHER), "owner machine", base / "key_custody.json", base / "retired_keys.json")
+        with self.assertRaisesRegex(steps.StepError, "not the key registered"):
+            steps.draw_experiment(base, 1, tickets)
+        (base / "key_custody.json").unlink()
+        secrecy.register_custody(secrecy.key_check(TEST_KEY), "owner machine", base / "key_custody.json", base / "retired_keys.json")
+        secrecy.retire(TEST_KEY, "development-accessible", "project owner", base / "retired_keys.json")
+        with self.assertRaisesRegex(steps.StepError, "retired"):
+            steps.draw_experiment(base, 1, tickets)
+        self.assertFalse(steps.round_paths(base, 1)["selection"].exists())                            # nothing recorded
+        self.assertFalse(steps.round_paths(base, 1)["seed"].exists())
+
+    def test_cases_cannot_be_built_with_a_retired_key(self):
+        from planner_experiment import secrecy
+        w = build_world()
+        secrecy.retire(secrecy.load_key(), "development-accessible", "project owner", w.base / "retired_keys.json")
+        with self.assertRaisesRegex(steps.StepError, "retired"):
+            steps.build_cases(steps.round_paths(w.base, 1)["selection"], w.tickets)
+
+    def test_the_freeze_refuses_a_set_not_drawn_with_the_registered_key_or_drawn_with_a_retired_one(self):
+        from planner_experiment import secrecy
+        w = build_world()
+        custody = w.read("key_custody")
+        custody["key_check"] = secrecy.key_check(self.OTHER)
+        w.write("key_custody", custody)
+        with self.assertRaisesRegex(FreezeError, "not drawn with the key registered"):
+            w.freeze()
+        w = build_world()
+        w.write("retired_keys", [{"key_check": w.read("experiment_selection")["key_check"], "reason": "r", "retired_by": "p", "date": "2026-10-15"}])
+        with self.assertRaisesRegex(FreezeError, "retired key"):
+            w.freeze()
+
+    def test_a_machine_holding_a_retired_or_unregistered_key_cannot_freeze_or_run(self):
+        from planner_experiment import secrecy
+        w = build_world()
+        with patch.dict("os.environ", {secrecy.KEY_ENV: "cd" * 32}):                               # a different key is on this machine
+            with self.assertRaises(FreezeError):
+                w.freeze()
+        w.freeze()                                                                                  # with the registered key it works
+        w.write("retired_keys", [{"key_check": secrecy.key_check(secrecy.load_key()), "reason": "r", "retired_by": "p", "date": "2026-10-15"}])
+        w2 = build_world()
+        w2.write("retired_keys", [{"key_check": secrecy.key_check(secrecy.load_key()), "reason": "r", "retired_by": "p", "date": "2026-10-15"}])
+        with self.assertRaises(FreezeError):
+            w2.freeze()
+
+    def test_the_assembled_freeze_carries_custody_and_an_empty_retired_list_when_nothing_is_retired(self):
+        w = build_world()
+        (w.base / "retired_keys.json").unlink()
+        record = steps.create_freeze_for_round(w.base, 1, w.files["cases"], w.files["recording"], w.files["annotations"], dict(w.reviewer_files),
+                                               w.extra["golden_path"], out_path=w.dir / "f.json")
+        self.assertIn("key_custody", record["files"])
+        self.assertIn("retired_keys", record["files"])
+        self.assertEqual(json.loads((w.base / "retired_keys.json").read_text(encoding="utf-8")), [])
+
+    def run_cli(self, argv, base):
+        import contextlib
+        import io
+        out = io.StringIO()
+        with patch.object(steps, "BASE", base), contextlib.redirect_stdout(out):
+            code = cli.main(argv)
+        return code, out.getvalue()
+
+    def test_the_commands_print_check_values_never_the_key(self):
+        from planner_experiment import secrecy
+        from tests.pe_world import TEST_KEY, TEST_KEY_HEX, no_key
+        base = pathlib.Path(tempfile.mkdtemp())
+        code, out = self.run_cli(["key-check"], base)
+        self.assertEqual(code, 0)
+        self.assertIn(secrecy.key_check(TEST_KEY), out)
+        self.assertNotIn(TEST_KEY_HEX, out)
+        with no_key():
+            code, out = self.run_cli(["key-check"], base)
+            self.assertIn("no key on this machine", out)
+            self.assertEqual(self.run_cli(["retire-key", "--reason", "r", "--by", "project owner"], base)[0], 2)      # nothing to retire
+        code, out = self.run_cli(["retire-key", "--reason", "was on the development machine", "--by", "project owner"], base)
+        self.assertEqual(code, 0)
+        self.assertNotIn(TEST_KEY_HEX, out)
+        self.assertNotIn(TEST_KEY_HEX, (base / "retired_keys.json").read_text(encoding="utf-8"))
+        self.assertEqual(self.run_cli(["retire-key", "--reason", "again", "--by", "project owner"], base)[0], 2)       # already retired
+        check = secrecy.key_check(self.OTHER)
+        self.assertEqual(self.run_cli(["register-custody", "--check", check, "--custodian", "Project owner, key-holder machine"], base)[0], 0)
+        self.assertEqual(self.run_cli(["register-custody", "--check", "nonsense", "--custodian", "x y"], base)[0], 2)
+
+    def test_the_repository_record_of_retired_keys_holds_only_check_values_when_present(self):
+        path = ROOT / "docs" / "baselines" / "planner_experiment" / "retired_keys.json"
+        if not path.exists():
+            self.skipTest("no retired keys are recorded on this checkout")
+        text = path.read_text(encoding="utf-8")
+        self.assertNotRegex(text, r"[0-9a-f]{32,}")
+        for entry in json.loads(text):
+            self.assertRegex(entry["key_check"], r"^[0-9a-f]{16}$")
+            self.assertTrue(entry["reason"] and entry["retired_by"])
+
+
+class VoidLogVerificationTests(unittest.TestCase):
+    """The void-log hash recorded in the planner freeze is a claim until it is compared with the file. It is compared at the draw and at the freeze."""
+
+    def frozen_world(self):
+        return build_world(with_void=True)
+
+    def test_a_genuine_freeze_with_an_acknowledged_void_log_verifies_and_carries_the_log(self):
+        w = self.frozen_world()
+        record = w.freeze()
+        self.assertIn("development_voids", record["files"])
+        pf = json.loads(w.files["planner_freeze"].read_text(encoding="utf-8"))
+        self.assertEqual(pf["void_log_hash"], freeze.sha256_bytes(w.files["development_voids"].read_bytes()))
+        freeze.verify_freeze(w.out)
+
+    def test_the_log_changed_after_the_planner_freeze_is_refused(self):
+        for change in (lambda log: log[0].update(reason="a different story"), lambda log: log[0]["acknowledged_by"][0].update(note="edited"),
+                       lambda log: log.append({"void": 2, "file": "x", "sha256": "0" * 64, "reason": "r", "authorised_by": "a", "date": "2026-10-15"}),
+                       lambda log: log.clear()):
+            w = self.frozen_world()
+            log = w.read("development_voids")
+            change(log)
+            w.write("development_voids", log)
+            with self.assertRaisesRegex(FreezeError, "does not match the hash recorded in the planner freeze"):
+                w.freeze()
+
+    def test_a_plausible_but_incorrect_recorded_hash_is_refused(self):
+        """Tested on the check itself (the rest of the freeze would fail first for other reasons if the planner freeze were edited)."""
+        w = self.frozen_world()
+        log_bytes = w.files["development_voids"].read_bytes()
+        real = freeze.sha256_bytes(log_bytes)
+        pf = {"void_log_hash": real}
+        freeze.check_void_log(pf, log_bytes, ["Ann", "Bob"])                                       # the right hash passes
+        for wrong in ("a" * 64, "0" * 64, real[::-1], real[:-1] + ("0" if real[-1] != "0" else "1"), real.upper(), "x"):
+            with self.assertRaisesRegex(FreezeError, "does not match the hash recorded", msg=wrong):
+                freeze.check_void_log({"void_log_hash": wrong}, log_bytes, ["Ann", "Bob"])
+        for wrong in ("a" * 64, real[::-1]):
+            record = {"development_selection_hash": freeze.sha256_bytes(w.files["development_selection"].read_bytes()), "void_log_hash": wrong}
+            with self.assertRaisesRegex(planner_freeze.PlannerFreezeError, "does not match the hash recorded"):
+                planner_freeze.verify_provenance(record, w.files["development_selection"], w.files["development_voids"])
+
+    def test_the_log_is_required_when_the_planners_were_frozen_under_one(self):
+        w = self.frozen_world()
+        del w.files["development_voids"]
+        with self.assertRaisesRegex(FreezeError, "must be a frozen input"):
+            w.freeze()
+
+    def test_a_log_may_not_be_supplied_when_the_planners_were_frozen_without_one(self):
+        w = build_world()
+        log = w.dir / "forged_voids.json"
+        log.write_text("[]", encoding="utf-8")
+        w.files["development_voids"] = log
+        with self.assertRaisesRegex(FreezeError, "frozen without one"):
+            w.freeze()
+
+    def test_every_void_in_the_frozen_log_must_be_acknowledged_by_both_reviewers_at_the_freeze_too(self):
+        w = self.frozen_world()
+        log = w.read("development_voids")
+        names = ["Ann", "Bob"]
+        freeze.check_void_log({"void_log_hash": freeze.sha256_bytes(json.dumps(log).encode())}, json.dumps(log).encode(), names)
+        for broken in (lambda e: e.update(acknowledged_by=e["acknowledged_by"][:1]), lambda e: e.update(acknowledged_by=[]), lambda e: e.pop("acknowledged_by"),
+                       lambda e: e.update(acknowledged_by=[{"reviewer": "Ann"}, {"reviewer": "Mallory"}])):
+            entries = json.loads(json.dumps(log))
+            broken(entries[0])
+            raw = json.dumps(entries).encode()
+            with self.assertRaisesRegex(FreezeError, "not acknowledged by both reviewers"):
+                freeze.check_void_log({"void_log_hash": freeze.sha256_bytes(raw)}, raw, names)
+
+    def test_a_log_that_is_not_json_is_refused(self):
+        raw = b"not json"
+        with self.assertRaisesRegex(FreezeError, "not valid JSON"):
+            freeze.check_void_log({"void_log_hash": freeze.sha256_bytes(raw)}, raw, ["Ann", "Bob"])
+
+    def test_the_draw_step_rechecks_the_development_selection_and_the_log_against_the_planner_freeze(self):
+        for target in ("development_voids.json", "development_selection.json"):
+            base = pathlib.Path(tempfile.mkdtemp())
+            SelectionVersionTests.setup_base(base)
+            steps.void_development(base, "a defect", "project owner")
+            from planner_experiment import golden as golden_mod
+            from tests.pe_world import DEVELOPMENT_ARTIFACT
+            tickets = make_tickets() + golden_mod.load_golden(base / "g.json", ["Ann", "Bob"])
+            steps.select_development(base, tickets, DEVELOPMENT_ARTIFACT)
+            for who in ("Ann", "Bob"):
+                steps.acknowledge_voids(base, [1], who)
+            steps.freeze_planners(base, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
+            file = base / target
+            file.write_text(file.read_text(encoding="utf-8") + " ", encoding="utf-8")
+            with self.assertRaises(steps.StepError, msg=target):
+                steps.draw_experiment(base, 1, tickets)
+            self.assertFalse(steps.round_paths(base, 1)["selection"].exists())
+
+    def test_verify_provenance_covers_each_case(self):
+        base = pathlib.Path(tempfile.mkdtemp())
+        dev, log = base / "dev.json", base / "voids.json"
+        dev.write_text("{}", encoding="utf-8")
+        record = planner_freeze.create_planner_freeze(ENTRYPOINTS, dev, base / "pf.json", base, planners_dir=TESTS_DIR)
+        planner_freeze.verify_provenance(record, dev, log)                                       # no void, no log: fine
+        log.write_text("[]", encoding="utf-8")
+        planner_freeze.verify_provenance(record, dev, log)                                       # an empty log is the same as none
+        log.write_text('[{"void": 1}]', encoding="utf-8")
+        with self.assertRaisesRegex(planner_freeze.PlannerFreezeError, "void log with entries now exists"):
+            planner_freeze.verify_provenance(record, dev, log)
+        dev.write_text("{ }", encoding="utf-8")
+        with self.assertRaisesRegex(planner_freeze.PlannerFreezeError, "development selection on disk"):
+            planner_freeze.verify_provenance(record, dev, log)
+
+    def test_the_assembled_freeze_includes_the_log_automatically(self):
+        w = self.frozen_world()
+        out = w.dir / "assembled.json"
+        record = steps.create_freeze_for_round(w.base, 1, w.files["cases"], w.files["recording"], w.files["annotations"], dict(w.reviewer_files),
+                                               w.extra["golden_path"], out_path=out)
+        self.assertIn("development_voids", record["files"])
 
 
 class ModelManifestTests(unittest.TestCase):

@@ -1,0 +1,8 @@
+[
+ {
+  "key_check": "1160a0b798c63a8b",
+  "reason": "The key was created on, and has sat on, the machine a development session can read, so it is treated as development-accessible (reviewer custody correction, 2026-10-15). No keyed experiment draw existed. Replace with a key created and kept only on the separate owner or gated-CI machine.",
+  "retired_by": "project owner, approved in the working session on 2026-10-15",
+  "date": "2026-10-15"
+ }
+]

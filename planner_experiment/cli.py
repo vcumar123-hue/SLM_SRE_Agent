@@ -7,6 +7,9 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli select-development --artifact <40-character git commit id>
     python -m planner_experiment.cli void-development --reason "..." --authorised-by "..."     (a recorded departure; refused once planners are frozen)
     python -m planner_experiment.cli acknowledge-void --voids 1 2 --by "Reviewer Name" [--note "..."]   (each reviewer, after receiving the notice)
+    python -m planner_experiment.cli retire-key --reason "..." --by "..."                      (retire the key on THIS machine by its check value)
+    python -m planner_experiment.cli key-check                                                (print the check value of the key on this machine; never the key)
+    python -m planner_experiment.cli register-custody --check <16 hex> --custodian "person, machine"
     python -m planner_experiment.cli verify-model                                              (the served model and its file against the manifest)
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
@@ -72,6 +75,13 @@ def main(argv=None) -> int:
     av.add_argument("--by", required=True)
     av.add_argument("--note", default="")
     sub.add_parser("verify-model")
+    rk = sub.add_parser("retire-key")
+    rk.add_argument("--reason", required=True)
+    rk.add_argument("--by", required=True)
+    sub.add_parser("key-check")
+    rc = sub.add_parser("register-custody")
+    rc.add_argument("--check", required=True)
+    rc.add_argument("--custodian", required=True)
     fp = sub.add_parser("freeze-planners")
     fp.add_argument("--round", type=int, required=True)
     fp.add_argument("--planner", action="append", required=True, help="mode=module:Class (rules_only, rules_then_model, model)")
@@ -118,6 +128,22 @@ def main(argv=None) -> int:
             print(json.dumps([{"void": e["void"], "acknowledged_by": [a["reviewer"] for a in e["acknowledged_by"]]} for e in entries], indent=1))
             still = steps.unacknowledged_voids(base)
             print("still to acknowledge:", still if still else "nothing: all voids are acknowledged by both reviewers")
+        elif args.cmd in ("retire-key", "key-check", "register-custody"):
+            from planner_experiment import secrecy
+            try:
+                if args.cmd == "key-check":
+                    held = secrecy.load_key()
+                    print("key check:", secrecy.key_check(held) if held is not None else "no key on this machine")
+                elif args.cmd == "retire-key":
+                    held = secrecy.load_key()
+                    if held is None:
+                        raise secrecy.KeyError_("there is no key on this machine to retire")
+                    print(json.dumps(secrecy.retire(held, args.reason, args.by, base / "retired_keys.json"), indent=1))
+                else:
+                    print(json.dumps(secrecy.register_custody(args.check, args.custodian, base / "key_custody.json", base / "retired_keys.json"), indent=1))
+            except secrecy.KeyError_ as exc:
+                print("refused:", exc)
+                return 2
         elif args.cmd == "verify-model":
             from agentruntime.planners import model_manifest
             report = model_manifest.verify()

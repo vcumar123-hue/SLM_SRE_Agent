@@ -15,7 +15,7 @@ from planner_experiment import composition, freeze, golden, metrics, planner_fre
 from planner_experiment import select_cases as sc
 from planner_experiment.experiment import ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
-from tests.pe_world import (DEVELOPMENT_ARTIFACT, ENTRYPOINTS, NAMES, PARTITION_ARTIFACT, TEST_KEY, TESTS_DIR, build_world, golden_raw, make_tickets)
+from tests.pe_world import (register_test_custody, DEVELOPMENT_ARTIFACT, ENTRYPOINTS, NAMES, PARTITION_ARTIFACT, TEST_KEY, TESTS_DIR, build_world, golden_raw, make_tickets)
 
 
 def planners_here():
@@ -143,6 +143,7 @@ class HeldOutDesignTests(unittest.TestCase):
     def setUp(self):
         self.base = pathlib.Path(tempfile.mkdtemp(prefix="pe-base-"))
         steps.record_reviewers(self.base, ["Ann", "Bob"], {"Ann": 40, "Bob": 40}, "owner")
+        register_test_custody(self.base)
         seed_mod.write_record(steps.paths(self.base)["partition_seed"], PARTITION_ARTIFACT, "calibration-selection")
         self.golden_path = self.base / "g.json"
         self.golden_path.write_text(json.dumps(golden_raw()), encoding="utf-8")

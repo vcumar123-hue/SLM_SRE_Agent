@@ -103,6 +103,35 @@ def load_planner_freeze(path: Path) -> Dict[str, Any]:
     return check_record(json.loads(Path(path).read_text(encoding="utf-8")))
 
 
+def void_log_exists_and_has_entries(path: Path) -> bool:
+    path = Path(path)
+    if not path.is_file():
+        return False
+    try:
+        return bool(json.loads(path.read_text(encoding="utf-8")))
+    except ValueError:
+        return True                                                    # unreadable counts as present: it must then match the recorded hash
+
+
+def verify_provenance(record: Dict[str, Any], development_path: Path, void_log_path: Path) -> None:
+    """The development selection and the void log on disk are exactly those the planners were frozen against.
+
+    `development_selection_hash` and `void_log_hash` are only claims until they are compared with the files. The void log may legitimately have
+    changed only before the freeze (acknowledgements are required first, and a void is refused afterwards), so any difference now is a defect."""
+    development_path, void_log_path = Path(development_path), Path(void_log_path)
+    if not development_path.is_file() or sha256_bytes(development_path.read_bytes()) != record["development_selection_hash"]:
+        raise PlannerFreezeError("the development selection on disk is not the one the planners were frozen against")
+    recorded = record.get("void_log_hash")
+    if recorded is None:
+        if void_log_exists_and_has_entries(void_log_path):
+            raise PlannerFreezeError("the planners were frozen with no void of the development draw, but a void log with entries now exists")
+    else:
+        if not void_log_path.is_file():
+            raise PlannerFreezeError("the planners were frozen under a void log that is no longer there")
+        if sha256_bytes(void_log_path.read_bytes()) != recorded:
+            raise PlannerFreezeError("the void log on disk does not match the hash recorded in the planner freeze")
+
+
 def verify_unchanged(record: Dict[str, Any], root: Path = ROOT) -> None:
     """The planners and runtime on disk are exactly those frozen."""
     now = runtime_hashes(root)

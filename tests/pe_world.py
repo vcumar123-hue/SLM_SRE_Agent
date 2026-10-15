@@ -59,6 +59,15 @@ def fake_code_root() -> pathlib.Path:
     return root
 
 
+def register_test_custody(base):
+    """Put the test key in custody for a base folder, the way the workflow requires before any draw (no key is retired)."""
+    base = pathlib.Path(base)
+    base.mkdir(parents=True, exist_ok=True)
+    if not (base / "retired_keys.json").exists():
+        (base / "retired_keys.json").write_text("[]", encoding="utf-8")
+    secrecy.register_custody(secrecy.key_check(TEST_KEY), "test custodian (a throwaway key)", base / "key_custody.json", base / "retired_keys.json")
+
+
 @contextlib.contextmanager
 def no_key():
     """A process that holds NO experiment key: the environment variable is empty and the key file is somewhere that does not exist. Tests that
@@ -99,7 +108,8 @@ class World:
         return freeze.create_freeze(self.files, self.reviewer_files, self.out)
 
 
-def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=NAMES, n_tickets: int = 400, directory=None, rounds: int = 1) -> World:
+def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=NAMES, n_tickets: int = 400, directory=None, rounds: int = 1,
+                with_void: bool = False) -> World:
     """`rounds=2` draws round 1, revises the (stand-in) planner code, freezes round 2 and draws it too; the frozen set is that of round 2."""
     d = pathlib.Path(directory or tempfile.mkdtemp(prefix="pe-world-"))
     base = d / "baselines"
@@ -108,12 +118,18 @@ def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=N
     root = root or ROOT
     entrypoints = entrypoints or dict(ENTRYPOINTS)
     steps.record_reviewers(base, list(reviewers), {n: 40.0 for n in reviewers}, "owner")
+    register_test_custody(base)
     paths = steps.paths(base)
     seed_mod.write_record(paths["partition_seed"], PARTITION_ARTIFACT, "calibration-selection")
     golden_path = d / "golden_tickets.json"
     golden_path.write_text(json.dumps(golden_raw(golden_approvers)), encoding="utf-8")
     tickets = make_tickets(n_tickets) + golden_mod.load_golden(golden_path, list(reviewers))
     steps.select_development(base, tickets, DEVELOPMENT_ARTIFACT)
+    if with_void:                                       # a recorded void-and-redraw, acknowledged by both reviewers, before the planners are frozen
+        steps.void_development(base, "a defect in the draw", "project owner")
+        steps.select_development(base, tickets, DEVELOPMENT_ARTIFACT)
+        for name in reviewers:
+            steps.acknowledge_voids(base, [1], name, "read the notice")
     steps.freeze_planners(base, 1, entrypoints, root=root, planners_dir=TESTS_DIR)
     steps.draw_experiment(base, 1, tickets, root=root)
     for n in range(2, rounds + 1):
@@ -140,10 +156,12 @@ def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=N
         "config": write("config.json", {"round": rounds, "seed": draw_seed, "modes": list(MODES), "planners": entrypoints, "budgets": {}}),
         "seed_record": rp["seed"], "partition_seed_record": paths["partition_seed"], "experiment_selection": rp["selection"],
         "development_selection": paths["development"], "planner_freeze": rp["planner_freeze"], "reviewers": paths["reviewers"],
-        "golden": golden_path,
+        "golden": golden_path, "key_custody": base / "key_custody.json", "retired_keys": base / "retired_keys.json",
     }
     for n in range(1, rounds):
         files[f"prior_selection:{n}"] = steps.round_paths(base, n)["selection"]
+    if with_void:
+        files["development_voids"] = base / "development_voids.json"
     reviewer_files = {n: write(f"reviewer_{n}.json", [annotation(c["case_id"], n).model_dump() for c in cases]) for n in reviewers}
     return World(dir=d, base=base, tickets=tickets, cases=cases, files=files, reviewer_files=reviewer_files, entrypoints=entrypoints,
                  round=rounds, code_root=(root if root is not ROOT else None), extra={"golden_path": golden_path, "recording": recording})

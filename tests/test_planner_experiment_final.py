@@ -17,7 +17,7 @@ from planner_experiment import experiment as exp_mod
 from planner_experiment import freeze, golden, metrics, reviewers as reviewer_mod, steps
 from planner_experiment.experiment import ExperimentAborted, ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
-from tests.pe_world import TEST_KEY, TEST_KEY_HEX, TESTS_DIR, build_world, golden_raw, no_key
+from tests.pe_world import TEST_KEY, TEST_KEY_HEX, TESTS_DIR, build_world, golden_raw, no_key, register_test_custody
 from planner_experiment import planner_freeze
 
 
@@ -538,7 +538,7 @@ class KeyedDrawTests(unittest.TestCase):
     def test_a_wrong_key_is_detected(self):
         w = build_world()
         with patch.dict(os.environ, {"AIOPS_PE_KEY": "cd" * 32}):
-            with self.assertRaisesRegex(FreezeError, "does not match"):
+            with self.assertRaisesRegex(FreezeError, "(does not match|not the key registered as being in custody)"):
                 w.freeze()
             with self.assertRaisesRegex(steps.StepError, "experiment key"):
                 steps.build_cases(steps.round_paths(w.base, 1)["selection"], w.tickets)
@@ -549,6 +549,7 @@ class KeyedDrawTests(unittest.TestCase):
         # a second round would need a revised freeze; the key check comes first on a fresh base instead
         fresh = pathlib.Path(tempfile.mkdtemp(prefix="pe-nokey-"))
         steps.record_reviewers(fresh, ["Ann", "Bob"], {"Ann": 40, "Bob": 40}, "owner")
+        register_test_custody(fresh)
         from planner_experiment import seed as seed_mod
         seed_mod.write_record(steps.paths(fresh)["partition_seed"], "a" * 40, "calibration-selection")
         from tests.pe_world import DEVELOPMENT_ARTIFACT, ENTRYPOINTS
@@ -668,6 +669,7 @@ class CrossRoundKeyTests(unittest.TestCase):
         self.entry, self.dev_artifact = ENTRYPOINTS, DEVELOPMENT_ARTIFACT
         self.base = pathlib.Path(tempfile.mkdtemp(prefix="pe-rounds-"))
         steps.record_reviewers(self.base, ["Ann", "Bob"], {"Ann": 50, "Bob": 50}, "owner")
+        register_test_custody(self.base)
         seed_mod.write_record(steps.paths(self.base)["partition_seed"], PARTITION_ARTIFACT, "calibration-selection")
         golden_path = self.base / "g.json"
         golden_path.write_text(json.dumps(golden_raw()), encoding="utf-8")
@@ -684,7 +686,7 @@ class CrossRoundKeyTests(unittest.TestCase):
     def test_a_second_round_drawn_with_a_different_key_is_refused_and_records_nothing(self):
         self.revise_and_freeze_round_two()
         with patch.dict(os.environ, {"AIOPS_PE_KEY": self.OTHER_KEY_HEX}):
-            with self.assertRaisesRegex(steps.StepError, "same experiment key"):
+            with self.assertRaisesRegex(steps.StepError, "(same experiment key|not the key registered as being in custody)"):
                 steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
         rp = steps.round_paths(self.base, 2)
         self.assertFalse(rp["selection"].exists())

@@ -1116,3 +1116,40 @@ tickets), implemented with held-out tickets and their clusters removed from retr
 
 **Verification:** 267 harness tests in six files (28 core, 18 integrity, 69 design, 87 sign-off, 36 commands, 29 provenance); the full Windows suite, 760
 tests, passes (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.
+
+### 20.13 Review of the provenance controls (2026-10-15): the void-log hash, and key custody
+
+Starting the three planners was approved, with planner freezing and the hidden 50-ticket draw blocked until the items below are done. Two findings.
+
+**P1: the void-log hash recorded in the planner freeze was never checked against the file.** The planner freeze recorded `void_log_hash`, but nothing
+compared it with a file, and `verify_unchanged` looked only at the code. A hash that is only recorded is a claim, not a control.
+
+| Change | Effect |
+|---|---|
+| `planner_freeze.verify_provenance` | the development selection and the void log on disk must be exactly those the planners were frozen against (hash compared with the file); a planner freeze that recorded no void refuses a log with entries; a log that has disappeared is refused. Run at the **draw** (`draw_experiment`) as well as at the freeze |
+| `freeze.check_void_log` | at the experiment freeze, whenever the planner freeze recorded a log, the log is a **frozen input** (`development_voids`), its hash is compared with the recorded one, and every void in it must be acknowledged by exactly both reviewers; a log supplied when the planners were frozen without one is refused. `create-freeze` includes it automatically |
+
+Tests: a genuine freeze with an acknowledged void log verifies; the log edited after the planner freeze (reason changed, an acknowledgement's note edited, an
+entry added, the log emptied) is refused; five plausible-but-wrong recorded hashes are each refused (tested on the check itself, because editing the
+planner freeze would break the seed derivation first and the test would pass for the wrong reason); a missing or surplus log is refused; each kind of missing
+acknowledgement is refused; the draw step re-checks both files.
+
+**Custody: the present key must be treated as development-accessible.** It was created on the machine this development session can read. No keyed experiment draw
+exists yet, so it can be replaced at no cost, and the replacement must be created and kept only on a separate owner or gated-CI machine and never shown to this session.
+
+| Change | Effect |
+|---|---|
+| **The present key is retired** | `cli retire-key` records its **check value** (`1160a0b798c63a8b`), a reason and who retired it in `retired_keys.json` (committed: check values only, no key material; a test checks nothing key-sized is written). Done on 2026-10-15 with the owner's approval. The key file itself was left in place (the owner may delete it) but every draw, case build, freeze and run now refuses it |
+| **The replacement is registered by check value, not by key** | on the key-holder machine: `init-key`, then `key-check` prints only the check value. On the development machine: `register-custody --check <value> --custodian "person, machine"` writes `key_custody.json`. A retired key's check cannot be registered; a registration can be replaced only after the key it names has been retired |
+| **Only the registered, non-retired key is used** | `draw_experiment` and `build_cases` require the key to be present, not retired and equal to the registered one (`secrecy.active_key`). The experiment freeze takes `key_custody` and `retired_keys` as frozen inputs and refuses a set that was not drawn with the registered key or was drawn with a retired one, and a machine holding a retired or unregistered key cannot freeze or run |
+
+**What this does not do.** It does not create the replacement key: that is the owner's act on the separate machine. The draw reads real tickets, so the
+key-holder machine needs a checkout of this repository, access to the ticket database (or a restore of the ticket tables) and the approved golden file, and it
+runs `draw-experiment`, `build-cases`, `create-freeze` and `run-experiment`. Until the replacement is registered the hidden draw is impossible, by construction.
+
+**Still pending before planners can be frozen or the hidden set drawn:** both reviewers' acknowledgement of both voids (a spreadsheet version of the notice,
+`void_notice_REVIEW.xlsx`, was prepared for them); prompt versions, completed with the planners; the recording-capture command; and the replacement key
+created on the separate machine and registered.
+
+**Verification:** 273 harness tests in six files (28 core, 18 integrity, 69 design, 87 sign-off, 36 commands, 51 provenance); the full Windows suite, 782
+tests, passes (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.

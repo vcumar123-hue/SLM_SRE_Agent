@@ -85,6 +85,14 @@ def _used_clusters(base: Path):
     return frozenset(plain), frozenset(keyed)
 
 
+def _active_key(base: Path) -> bytes:
+    """The key for a draw: present, not retired, and the one registered as being in custody."""
+    try:
+        return secrecy.active_key(Path(base) / "key_custody.json", Path(base) / "retired_keys.json")
+    except secrecy.KeyError_ as exc:
+        raise StepError(str(exc)) from exc
+
+
 def _earlier_rounds(base: Path, rnd: int):
     """[(round number, selection file bytes, record)] for every other recorded planner-experiment draw."""
     found = []
@@ -242,6 +250,7 @@ def draw_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], root: P
     try:
         pf = planner_freeze.load_planner_freeze(rp["planner_freeze"])
         planner_freeze.verify_unchanged(pf, root)
+        planner_freeze.verify_provenance(pf, paths(base)["development"], Path(base) / "development_voids.json")
     except planner_freeze.PlannerFreezeError as exc:
         raise StepError(str(exc)) from exc
     if not paths(base)["development"].is_file():
@@ -252,10 +261,7 @@ def draw_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], root: P
     partition = _partition_seed(base)
     purpose = f"planner-experiment-{rnd}"
     draw = seed_mod.derive_seed(pf["record_hash"], purpose)
-    key = secrecy.load_key()
-    if key is None:
-        raise StepError("the experiment key is required before a planner-experiment set is drawn: everything recorded about the drawn tickets is keyed "
-                        "(cli init-key creates it once, outside the repository)")
+    key = _active_key(base)
     # One key across ALL rounds. Earlier rounds' clusters are recorded as HMACs under the key they were drawn with; under a different key none of
     # them would match, so their clusters would silently be eligible again. A mismatching key is therefore refused, before anything is recorded.
     earlier = _earlier_rounds(base, rnd)
@@ -317,7 +323,10 @@ def create_freeze_for_round(base: Path, rnd: int, cases_path: Path, recording_pa
     four cases). `freeze.create_freeze` then runs the whole consistency check; any failure is reported and nothing is written.
     """
     rp, p = round_paths(base, rnd), paths(base)
-    for label, path in (("the planner freeze", rp["planner_freeze"]), ("the draw's seed record", rp["seed"]), ("the draw's selection", rp["selection"]),
+    retired_file = Path(base) / "retired_keys.json"
+    if not retired_file.exists():
+        retired_file.write_text("[]", encoding="utf-8")             # no key retired: an empty list is still a frozen input
+    for label, path in (("the planner freeze", rp["planner_freeze"]), ("the key custody record", Path(base) / "key_custody.json"), ("the draw's seed record", rp["seed"]), ("the draw's selection", rp["selection"]),
                         ("the development selection", p["development"]), ("the partition seed record", p["partition_seed"]),
                         ("the golden file", golden_path), ("the case package", cases_path), ("the recording", recording_path),
                         ("the adjudicated annotations", annotations_path)):
@@ -346,9 +355,12 @@ def create_freeze_for_round(base: Path, rnd: int, cases_path: Path, recording_pa
     injection_path.write_text(json.dumps([vars(i) for i in injection_mod.build_injection_cases(base_ids)], indent=1), encoding="utf-8")
     files = {"annotations": annotations_path, "cases": cases_path, "recording": recording_path, "injection_cases": injection_path, "config": config_path,
              "seed_record": rp["seed"], "partition_seed_record": p["partition_seed"], "experiment_selection": rp["selection"],
-             "development_selection": p["development"], "planner_freeze": rp["planner_freeze"], "reviewers": p["reviewers"], "golden": golden_path}
+             "development_selection": p["development"], "planner_freeze": rp["planner_freeze"], "reviewers": p["reviewers"], "golden": golden_path,
+             "key_custody": Path(base) / "key_custody.json", "retired_keys": retired_file}
     for n in range(1, rnd):
         files[f"prior_selection:{n}"] = round_paths(base, n)["selection"]
+    if pf.get("void_log_hash") is not None:                       # the planners were frozen under a void log: it travels with the freeze, hash-checked
+        files["development_voids"] = Path(base) / "development_voids.json"
     try:
         return freeze_mod.create_freeze(files, {n: Path(f) for n, f in reviewer_files.items()}, out, root)
     except freeze_mod.FreezeError as exc:
@@ -365,6 +377,7 @@ def build_cases(selection_path: Path, tickets: List[Dict[str, Any]]) -> List[Dic
         key = secrecy.load_key()
         if key is None or secrecy.key_check(key) != selection.get("key_check"):
             raise StepError("this set is keyed: the experiment key it was drawn with is needed to build its cases")
+        _active_key(Path(selection_path).parent)                    # ...and it must be a non-retired key, registered as in custody
     by_key = {(str(t.get("pool") or t.get("tenant_id")), str(t["ticket_id"])): t for t in tickets}
     cases: List[Dict[str, Any]] = []
     for entry in selection["cases"]:

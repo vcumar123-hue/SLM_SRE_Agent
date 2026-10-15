@@ -29,13 +29,13 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from planner_experiment.freeze_names import PLACEHOLDER_NAMES  # noqa: F401  (re-exported for existing callers)
 
 ROOT = Path(__file__).resolve().parent.parent
 REQUIRED_FILES = ("annotations", "cases", "recording", "injection_cases", "config", "seed_record", "partition_seed_record",
-                  "experiment_selection", "development_selection", "planner_freeze", "reviewers", "golden")
+                  "experiment_selection", "development_selection", "planner_freeze", "reviewers", "golden", "key_custody", "retired_keys")
 CODE_ROOTS = ("agentruntime", "planner_experiment")
 PLANNERS_DIR = ROOT / "agentruntime" / "planners"
 MIN_KAPPA = 0.6          # design 13.4: end-state kappa must be at least 0.6
@@ -180,6 +180,28 @@ def check_prior_selection_files(selection: Dict[str, Any], rnd: int, prior_files
             raise FreezeError(f"this round shares a cluster with round {n}: a fresh set cannot reuse earlier clusters")
 
 
+def check_void_log(pf: Dict[str, Any], log_bytes: Optional[bytes], names: List[str]) -> None:
+    """The void log: the hash recorded in the planner freeze is only a claim until it is compared with the file, so compare it; and every void in
+    it must be acknowledged by exactly both reviewers. `log_bytes` is None when no void log was supplied as an input."""
+    recorded = pf.get("void_log_hash")
+    if recorded is None:
+        if log_bytes is not None:
+            raise FreezeError("a void log was supplied, but the planners were frozen without one")
+        return
+    if log_bytes is None:
+        raise FreezeError("the planner freeze records a void log; it must be a frozen input (development_voids)")
+    if sha256_bytes(log_bytes) != recorded:
+        raise FreezeError("the void log does not match the hash recorded in the planner freeze")
+    try:
+        entries = json.loads(log_bytes.decode("utf-8"))
+    except ValueError as exc:
+        raise FreezeError("the void log is not valid JSON") from exc
+    for entry in entries:
+        who = {str(a.get("reviewer", "")).lower() for a in entry.get("acknowledged_by", [])}
+        if who != {n.lower() for n in names}:
+            raise FreezeError(f"void {entry.get('void')} is not acknowledged by both reviewers ({', '.join(names)})")
+
+
 def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict[str, Any]:
     """Check that the frozen inputs are consistent with each other. Returns {'reviewers', 'agreement', 'round', 'seed', 'partition_seed', ...}."""
     from planner_experiment import annotations as ann
@@ -197,7 +219,7 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
     reviewer_keys = sorted(k for k in present if k.startswith("reviewer:"))
     missing = [k for k in REQUIRED_FILES if k not in present]
     prior_keys = sorted((k for k in present if "prior_selection" in k.lower()), key=prior_round_of)
-    unknown = sorted(present - set(REQUIRED_FILES) - set(reviewer_keys) - set(prior_keys))
+    unknown = sorted(present - set(REQUIRED_FILES) - set(reviewer_keys) - set(prior_keys) - {"development_voids"})
     if missing or unknown:
         raise FreezeError(f"frozen inputs must be exactly {REQUIRED_FILES} plus one reviewer file each; missing {missing}, unknown {unknown}")
 
@@ -252,6 +274,7 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
         raise FreezeError("the draw seed must be derived from the planner-freeze hash (the planners were not frozen before the draw)")
     if sha256_bytes(reader.bytes("development_selection")) != pf["development_selection_hash"]:
         raise FreezeError("the development selection is not the one the planners were frozen against")
+    check_void_log(pf, reader.bytes("development_voids") if "development_voids" in present else None, names)
     if config.get("planners") != pf["entrypoints"]:
         raise FreezeError("config.planners must be exactly the planner freeze's entry points")
     if tuple(config.get("modes", ())) != MODES:
@@ -276,9 +299,23 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
     if len(prior_numbers) != len(prior_keys):
         raise FreezeError("two prior-selection inputs stand for the same round")
     check_prior_selection_files(selection, rnd, prior_numbers)
+    from planner_experiment import secrecy
+    # the key must be the one registered as being in custody, and must not have been retired (frozen inputs, so what was checked is what was frozen)
+    registered = reader.json("key_custody")
+    retired = {e["key_check"] for e in reader.json("retired_keys")}
+    drawn_with = selection.get("key_check")
+    if drawn_with in retired:
+        raise FreezeError(f"the set was drawn with a retired key ({drawn_with})")
+    if drawn_with != registered.get("key_check"):
+        raise FreezeError("the set was not drawn with the key registered as being in custody")
+    held = secrecy.load_key()
+    if held is not None:
+        if secrecy.key_check(held) in retired:
+            raise FreezeError("the key on this machine is retired: freeze and run with the replacement key on the key-holder machine")
+        if secrecy.key_check(held) != registered.get("key_check"):
+            raise FreezeError("the key on this machine is not the key registered as being in custody")
     try:
-        from planner_experiment import secrecy
-        composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"), key=secrecy.load_key())
+        composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"), key=held)
     except composition.CompositionError as exc:
         raise FreezeError(f"composition: {exc}") from exc
     return {"reviewers": names, "agreement": report, "round": rnd, "seed": draw["seed"], "partition_seed": partition,
