@@ -1,16 +1,22 @@
 """
 The investigation runner (design 5.1, 7 and 10.1).
 
-`Runner.run` always returns an AgentRunResult; it never raises into its caller. It enforces every budget, validates each planner action,
-sanitises tool results into immutable evidence objects, verifies hypotheses deterministically and records every step so a run can be
-replayed. The planner is injected (rules, model, or scripted for tests); this module contains no model or tool logic of its own.
+`Runner.run` and `Runner.run_batch` always return an AgentRunResult; they never raise into the caller. The runner:
+  * refuses to execute unless the policy and the trusted context agree on a mode other than `off` (the off-by-default rule is
+    structural, not a matter of caller discipline), and reserves `batch` for the explicit batch entry point;
+  * bounds every planner decision with a timeout on the shared bounded executor, hands planners a ModelGateway that enforces the model
+    call, token and timeout budgets, and checks the reported usage **before** it executes the action a reply asked for;
+  * sanitises tool results into immutable evidence objects, verifies hypotheses deterministically, and records every step so a run can
+    be replayed.
+The planner is injected (rules, model, or scripted for tests); this module contains no model or tool logic of its own.
 """
 from __future__ import annotations
 
 import json
+import os
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
 
@@ -19,15 +25,21 @@ from agentruntime.context import TrustedContext
 from agentruntime.contracts import (
     Action, AgentPolicy, AgentRunResult, AgentStep, EvidenceDraft, EvidenceItem, Hypothesis, evidence_hash,
 )
-from agentruntime.registry import (
-    BoundaryViolation, ToolInputError, ToolRegistry, ToolTimeout, UnknownTool,
+from agentruntime.executor import MODEL_EXECUTOR, BoundedExecutor, CallTimeout, ExecutorBusy
+from agentruntime.gateway import (
+    ModelBudgetError, ModelGateway, ModelOverLimit, ModelTimeoutError, ModelUnavailable, ModelUsage,
 )
-from agentruntime.sanitize import sanitize_text, wrap_untrusted
+from agentruntime.registry import (
+    BoundaryViolation, ToolBusy, ToolInputError, ToolRegistry, ToolTimeout, UnknownTool,
+)
+from agentruntime.sanitize import DataBlock, render_data_block, sanitize_text
 from agentruntime.verifier import compute_grounding, verify_hypotheses
 
 EXCERPT_MAX = 400
 FACTS_MAX_CHARS = 800
-RUNTIME_VERSION = "r2-0"
+RUNTIME_VERSION = "r2-0.1"
+BATCH_ENV = "AIOPS_AGENT_BATCH_ENABLED"
+REQUIRED_VERSION_KEYS = ("schema", "runtime", "tools", "prompt", "model", "ruleset", "policy_hash")
 
 
 class PlannerError(Exception):
@@ -61,12 +73,29 @@ class RunState:
     steps: List[AgentStep]
     counters: Dict[str, Any]
     tools: List[Dict[str, Any]]
+    gateway: ModelGateway
     elapsed_s: float = 0.0
 
-    def evidence_block(self, max_chars: int = 3000) -> str:
-        """Evidence the planner may read, delimited as untrusted data."""
-        lines = [f"[{e.evidence_id}] {e.source_type}:{e.source_id} {e.excerpt}" for e in self.evidence]
-        return wrap_untrusted("\n".join(lines)[:max_chars])
+    def evidence_block(self, max_chars: int = 3000) -> DataBlock:
+        """Evidence the planner may read, framed as untrusted data with a fresh unpredictable delimiter."""
+        records: List[Dict[str, Any]] = []
+        used = 0
+        for e in self.evidence:
+            record = {"id": e.evidence_id, "source": f"{e.source_type}:{e.source_id}", "text": e.excerpt}
+            used += len(json.dumps(record))
+            if used > max_chars:
+                break
+            records.append(record)
+        return render_data_block(records)
+
+
+def build_versions(registry: ToolRegistry, planner: Any, policy: AgentPolicy) -> Dict[str, Any]:
+    """The complete version manifest of a run; replay requires every key to match (design 11.2)."""
+    return {
+        "schema": SCHEMA_VERSION, "runtime": RUNTIME_VERSION, "tools": registry.versions(),
+        "prompt": getattr(planner, "prompt_version", "none"), "ruleset": getattr(planner, "ruleset_version", "none"),
+        "model": getattr(planner, "model_id", None), "policy_hash": policy.policy_hash(),
+    }
 
 
 def _canonical(args: Dict[str, Any]) -> str:
@@ -84,6 +113,10 @@ def clean_obj(value: Any, max_chars: int = 1000) -> Any:
     return value
 
 
+class _Stop(Exception):
+    """Internal: leave the loop with the status already set."""
+
+
 class Runner:
     def __init__(
         self,
@@ -91,20 +124,58 @@ class Runner:
         *,
         clock: Callable[[], float] = time.monotonic,
         now_fn: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        model_executor: BoundedExecutor = MODEL_EXECUTOR,
     ) -> None:
         self.registry = registry
         self.clock = clock
         self.now_fn = now_fn
+        self.model_executor = model_executor
 
-    # -- helpers ------------------------------------------------------------------------------------------------------
+    # -- entry points -----------------------------------------------------------------------------------------------------
+
+    def run(self, ctx: TrustedContext, policy: AgentPolicy, task: Dict[str, Any], planner: Planner,
+            run_id: Optional[str] = None) -> AgentRunResult:
+        """Live entry point for modes `shadow` and `on`."""
+        return self._run(ctx, policy, task, planner, run_id, entry="live")
+
+    def run_batch(self, ctx: TrustedContext, policy: AgentPolicy, task: Dict[str, Any], planner: Planner,
+                  run_id: Optional[str] = None) -> AgentRunResult:
+        """The only way to execute mode `batch` (evaluation). It must be enabled explicitly in the environment."""
+        if os.getenv(BATCH_ENV, "").strip().lower() not in {"1", "true", "yes"}:
+            return self._denied(ctx, policy, run_id, f"batch execution is not enabled ({BATCH_ENV})")
+        return self._run(ctx, policy, task, planner, run_id, entry="batch")
+
+    def replay_run(self, ctx: TrustedContext, policy: AgentPolicy, task: Dict[str, Any], planner: Planner,
+                   run_id: str) -> AgentRunResult:
+        """Internal entry for replay: recorded decisions and evidence only, so it makes no live call. Still refuses `off`."""
+        return self._run(ctx, policy, task, planner, run_id, entry="replay")
+
+    # -- guards ----------------------------------------------------------------------------------------------------------
+
+    def _denied(self, ctx: TrustedContext, policy: AgentPolicy, run_id: Optional[str], reason: str) -> AgentRunResult:
+        return AgentRunResult(run_id=run_id or uuid.uuid4().hex[:16], tenant_id=ctx.tenant_id, status="denied_policy", reason=reason,
+                              versions={"schema": SCHEMA_VERSION, "runtime": RUNTIME_VERSION, "policy_hash": policy.policy_hash()},
+                              mode=policy.mode)
+
+    def _mode_problem(self, ctx: TrustedContext, policy: AgentPolicy, entry: str) -> Optional[str]:
+        if policy.mode == "off":
+            return "the policy mode is off"
+        if ctx.mode != policy.mode:
+            return f"the context mode ({ctx.mode}) and the policy mode ({policy.mode}) differ"
+        if policy.mode == "batch" and entry == "live":
+            return "batch mode requires the batch entry point"
+        if policy.mode in ("shadow", "on") and entry == "batch":
+            return "the batch entry point runs only batch policies"
+        return None
+
+    # -- helpers ------------------------------------------------------------------------------------------------------------
 
     def _make_items(self, drafts: List[EvidenceDraft], evidence: List[EvidenceItem], run_id: str, policy: AgentPolicy,
-                    next_index: int) -> Tuple[List[EvidenceItem], List[str], bool]:
+                    next_index: int) -> Tuple[List[EvidenceItem], bool]:
         """Sanitise drafts into immutable items, dropping duplicates and honouring the size caps."""
         budgets = policy.budgets
         existing = {(e.source_type, e.source_id) for e in evidence}
         items: List[EvidenceItem] = []
-        flags: List[str] = []
         truncated = False
         chars = 0
         for draft in drafts:
@@ -128,35 +199,27 @@ class Runner:
                     truncated = True
             existing.add(key)
             items.append(EvidenceItem(
-                evidence_id=f"e{next_index + len(items)}",
-                run_id=run_id,
-                tenant_id=draft.tenant_id,
-                tool=draft.tool,
-                tool_version=draft.tool_version,
-                source_type=draft.source_type,
-                source_id=sanitize_text(draft.source_id, 200)[0],
-                provenance=draft.provenance,
-                retrieved_at=self.now_fn(),
-                data_timestamp=draft.data_timestamp,
-                ttl_days=draft.ttl_days,
-                sanitization=status,
-                relevance=draft.relevance,
-                excerpt=excerpt,
-                facts=facts,
-                content_hash=evidence_hash(excerpt, facts),
-                flags=item_flags,
+                evidence_id=f"e{next_index + len(items)}", run_id=run_id, tenant_id=draft.tenant_id, tool=draft.tool,
+                tool_version=draft.tool_version, source_type=draft.source_type, source_id=sanitize_text(draft.source_id, 200)[0],
+                provenance=draft.provenance, retrieved_at=self.now_fn(), data_timestamp=draft.data_timestamp, ttl_days=draft.ttl_days,
+                sanitization=status, relevance=draft.relevance, excerpt=excerpt, facts=facts,
+                content_hash=evidence_hash(excerpt, facts), flags=item_flags,
             ))
-        return items, flags, truncated
+        return items, truncated
 
     # -- the loop ---------------------------------------------------------------------------------------------------------
 
-    def run(self, ctx: TrustedContext, policy: AgentPolicy, task: Dict[str, Any], planner: Planner,
-            run_id: Optional[str] = None) -> AgentRunResult:
+    def _run(self, ctx: TrustedContext, policy: AgentPolicy, task: Dict[str, Any], planner: Planner,
+             run_id: Optional[str], entry: str) -> AgentRunResult:
+        problem = self._mode_problem(ctx, policy, entry)
+        if problem:
+            return self._denied(ctx, policy, run_id, problem)
         run_id = run_id or uuid.uuid4().hex[:16]
         started = self.clock()
         budgets = policy.budgets
         counters: Dict[str, Any] = {"steps": 0, "tool_calls": 0, "model_calls": 0, "tokens": 0, "no_progress": 0,
                                     "invalid_actions": 0, "tool_failures": 0, "skipped_duplicates": 0}
+        usage = ModelUsage()
         evidence: List[EvidenceItem] = []
         steps: List[AgentStep] = []
         hypotheses: List[Hypothesis] = []
@@ -170,6 +233,8 @@ class Runner:
 
         def elapsed() -> float:
             return self.clock() - started
+
+        gateway = ModelGateway(budgets, usage, lambda: budgets.deadline_s - elapsed(), self.model_executor)
 
         try:
             unknown = [t for t in policy.allowed_tools if t not in self.registry.names()]
@@ -188,35 +253,84 @@ class Runner:
                     break
 
                 state = RunState(ctx=ctx, policy=policy, task=task, run_id=run_id, evidence=list(evidence), steps=list(steps),
-                                 counters=dict(counters), tools=self.registry.describe(policy.allowed_tools), elapsed_s=elapsed())
+                                 counters=dict(counters), tools=self.registry.describe(policy.allowed_tools), gateway=gateway,
+                                 elapsed_s=elapsed())
                 t0 = self.clock()
                 n = counters["steps"] + 1
+                calls_before, tokens_before = usage.calls, usage.tokens
+                # a planner decision may make several model requests (through the gateway, each separately bounded); the outer
+                # bound covers a planner that blocks without using the gateway
+                outer = max(0.1, min(budgets.deadline_s - elapsed(),
+                                     budgets.model_call_timeout_s * max(1, budgets.max_model_calls - counters["model_calls"])))
+                reply: Optional[PlannerReply] = None
+                planner_error: Optional[str] = None
+                over_budget: Optional[str] = None
                 try:
-                    reply = planner.next_action(state)
+                    reply = self.model_executor.run(lambda token: planner.next_action(state), outer)
                     if not isinstance(reply, PlannerReply) or not isinstance(reply.action, Action):
                         raise PlannerError("the planner returned something that is not an action")
+                except ModelBudgetError as exc:
+                    over_budget = str(exc)
+                except ModelOverLimit as exc:
+                    counters["steps"] += 1
+                    steps.append(AgentStep(n=n, kind="plan", error="over_limit: " + sanitize_text(str(exc), 200)[0],
+                                           duration_ms=int((self.clock() - t0) * 1000)))
+                    status, reason = "failed_model", "a model reply exceeded its token limit and was discarded"
+                    break
+                except (ModelTimeoutError, CallTimeout) as exc:
+                    planner_error = "timeout: " + sanitize_text(str(exc), 200)[0]
+                except (ModelUnavailable, ExecutorBusy) as exc:
+                    planner_error = "unavailable: " + sanitize_text(str(exc), 200)[0]
                 except Exception as exc:  # noqa: BLE001 - any planner failure is recorded, never raised
+                    planner_error = "planner_error: " + sanitize_text(str(exc), 200)[0]
+
+                counters["model_calls"] += max(usage.calls - calls_before, getattr(reply, "model_calls", 0) if reply else 0)
+                counters["tokens"] += max(usage.tokens - tokens_before,
+                                          (reply.tokens_in + reply.tokens_out) if reply else 0)
+
+                if over_budget is not None:
+                    counters["steps"] += 1
+                    steps.append(AgentStep(n=n, kind="plan", error="budget: " + sanitize_text(over_budget, 200)[0],
+                                           duration_ms=int((self.clock() - t0) * 1000)))
+                    status, reason = "budget_exhausted", over_budget
+                    break
+                if planner_error is not None:
                     counters["steps"] += 1
                     counters["invalid_actions"] += 1
                     consecutive_invalid += 1
-                    steps.append(AgentStep(n=n, kind="plan", error="planner_error: " + sanitize_text(str(exc), 200)[0],
-                                           duration_ms=int((self.clock() - t0) * 1000)))
+                    steps.append(AgentStep(n=n, kind="plan", error=planner_error, duration_ms=int((self.clock() - t0) * 1000)))
+                    if elapsed() >= budgets.deadline_s:
+                        status, reason = "timeout_deadline", "deadline reached"
+                        break
                     if consecutive_invalid >= 2:
                         status, reason = "failed_model", "the planner failed twice in a row"
                         break
                     continue
 
+                assert reply is not None
                 counters["steps"] += 1
-                counters["model_calls"] += max(0, int(reply.model_calls))
-                counters["tokens"] += max(0, int(reply.tokens_in)) + max(0, int(reply.tokens_out))
                 action = reply.action
                 recorded_action = clean_obj(action.model_dump(mode="json"))
                 duration = lambda: int((self.clock() - t0) * 1000)  # noqa: E731
 
-                if action.kind == "escalate":
-                    steps.append(AgentStep(n=n, kind="plan", action=recorded_action, result_summary="escalate",
-                                           model=reply.model, tokens_in=reply.tokens_in, tokens_out=reply.tokens_out,
+                # budgets are checked on the reported usage BEFORE the action is executed
+                per_call_limit = budgets.max_tokens_synthesis if action.kind == "finish" else budgets.max_tokens_planner
+                if reply.tokens_out > per_call_limit:
+                    steps.append(AgentStep(n=n, kind="plan", action=None, model=reply.model, tokens_in=reply.tokens_in,
+                                           tokens_out=reply.tokens_out, error="over_limit: reply exceeds the per-call token limit",
                                            duration_ms=duration()))
+                    status, reason = "failed_model", "a model reply exceeded its token limit and was discarded"
+                    break
+                if counters["model_calls"] > budgets.max_model_calls or counters["tokens"] > budgets.max_tokens_run:
+                    steps.append(AgentStep(n=n, kind="plan", action=None, model=reply.model, tokens_in=reply.tokens_in,
+                                           tokens_out=reply.tokens_out, error="budget: the reply exceeded the run budget",
+                                           duration_ms=duration()))
+                    status, reason = "budget_exhausted", "the planner's reply exceeded the model call or token budget"
+                    break
+
+                if action.kind == "escalate":
+                    steps.append(AgentStep(n=n, kind="plan", action=recorded_action, result_summary="escalate", model=reply.model,
+                                           tokens_in=reply.tokens_in, tokens_out=reply.tokens_out, duration_ms=duration()))
                     status = "escalated_conflict" if action.conflict else "escalated_insufficient"
                     reason = sanitize_text(action.reason or "the planner escalated", 200)[0]
                     break
@@ -296,6 +410,10 @@ class Runner:
                     steps.append(AgentStep(**step_common, error="unknown_tool", duration_ms=duration()))
                     status, reason = "failed_model", "the planner chose an unknown tool"
                     break
+                except ToolBusy as exc:
+                    steps.append(AgentStep(**step_common, error="tool_busy: " + sanitize_text(str(exc), 200)[0], duration_ms=duration()))
+                    status, reason = "failed_tool", "earlier timed-out tool calls are still running; no new tool call was started"
+                    break
                 except ToolTimeout as exc:
                     counters["tool_failures"] += 1
                     consecutive_tool_failures += 1
@@ -314,7 +432,7 @@ class Runner:
                     continue
                 consecutive_invalid = 0
                 consecutive_tool_failures = 0
-                items, item_flags, truncated = self._make_items(drafts, evidence, run_id, policy, len(evidence) + 1)
+                items, truncated = self._make_items(drafts, evidence, run_id, policy, len(evidence) + 1)
                 evidence.extend(items)
                 if any("instruction_like_text" in i.flags for i in items) and "instruction_like_text" not in flags:
                     flags.append("instruction_like_text")
@@ -338,19 +456,10 @@ class Runner:
         result = AgentRunResult(
             run_id=run_id, tenant_id=ctx.tenant_id, status=status, reason=reason, hypotheses=hypotheses, evidence=evidence,
             steps=steps, analysis=analysis if status == "supported" else None, counters=counters,
-            versions={
-                "schema": SCHEMA_VERSION, "runtime": RUNTIME_VERSION, "tools": self.registry.versions(),
-                "prompt": getattr(planner, "prompt_version", "none"), "ruleset": getattr(planner, "ruleset_version", "none"),
-                "model": getattr(planner, "model_id", None), "policy_hash": policy.policy_hash(),
-            },
-            mode=policy.mode, flags=flags,
+            versions=build_versions(self.registry, planner, policy), mode=policy.mode, flags=flags,
         )
         try:
             result = result.model_copy(update={"evidence_grounding": compute_grounding(result, self.now_fn())})
         except Exception:  # noqa: BLE001
             pass
         return result
-
-
-class _Stop(Exception):
-    """Internal: leave the loop with the status already set."""

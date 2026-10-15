@@ -99,8 +99,8 @@ class EvidenceDraft(BaseModel):
     source_id: str
     provenance: Literal["tenant_data", "shared_base", "learned", "computed"]
     data_timestamp: Optional[datetime] = None
-    ttl_days: Optional[int] = None
-    relevance: Optional[float] = None
+    ttl_days: Optional[int] = Field(default=None, ge=0)
+    relevance: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     excerpt: str = ""
     facts: Optional[Dict[str, Any]] = None
 
@@ -124,9 +124,9 @@ class EvidenceItem(BaseModel):
     provenance: Literal["tenant_data", "shared_base", "learned", "computed"]
     retrieved_at: datetime
     data_timestamp: Optional[datetime] = None
-    ttl_days: Optional[int] = None
+    ttl_days: Optional[int] = Field(default=None, ge=0)
     sanitization: Literal["clean", "redacted", "truncated"]
-    relevance: Optional[float] = None
+    relevance: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     excerpt: str
     facts: Optional[Dict[str, Any]] = None
     content_hash: str
@@ -185,7 +185,7 @@ class AgentPolicy(BaseModel):
     allowed_tools: List[str]
     budgets: Budgets = Field(default_factory=Budgets)
     planner: Literal["rules_only", "rules_then_model", "model"] = "rules_then_model"
-    mode: Mode = "shadow"
+    mode: Mode = "off"            # off by default: a policy must opt in to shadow, on or batch
 
     def policy_hash(self) -> str:
         return hashlib.sha256(self.model_dump_json().encode("utf-8")).hexdigest()[:16]

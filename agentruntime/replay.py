@@ -11,11 +11,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from agentruntime import SCHEMA_VERSION
 from agentruntime.context import TrustedContext
 from agentruntime.contracts import Action, AgentPolicy, AgentRunResult, EvidenceDraft, evidence_hash
 from agentruntime.registry import BoundaryViolation, ToolInputError, ToolRegistry, ToolTimeout
-from agentruntime.runner import RUNTIME_VERSION, PlannerError, PlannerReply, RunState, Runner
+from agentruntime.runner import REQUIRED_VERSION_KEYS, PlannerError, PlannerReply, RunState, Runner
 
 
 @dataclass
@@ -117,15 +116,23 @@ def _shape(r: AgentRunResult) -> Dict[str, Any]:
 
 
 def replay(recorded: AgentRunResult, registry: ToolRegistry, ctx: TrustedContext, policy: AgentPolicy,
-           current_versions: Optional[Dict[str, Any]] = None) -> ReplayReport:
-    """Replay a stored run. `current_versions` defaults to the registry's tool versions and the current schema/runtime."""
+           current_versions: Dict[str, Any]) -> ReplayReport:
+    """Replay a stored run.
+
+    `current_versions` is the **complete** current manifest (build `runner.build_versions(registry, current_planner, policy)`):
+    schema, runtime, tools, prompt, model, ruleset and policy hash. Replay fails closed: a manifest or recorded run that lacks any
+    required key, or any value that differs, makes the record `stale` (inspectable, never usable for acceptance comparisons).
+    """
     stale: List[str] = []
-    now = current_versions or {"schema": SCHEMA_VERSION, "runtime": RUNTIME_VERSION, "tools": registry.versions()}
-    for key in ("schema", "runtime", "tools"):
-        if recorded.versions.get(key) != now.get(key):
-            stale.append(f"{key} version differs (recorded {recorded.versions.get(key)!r}, current {now.get(key)!r})")
-    if recorded.versions.get("policy_hash") != policy.policy_hash():
-        stale.append("policy differs from the recorded policy")
+    for key in REQUIRED_VERSION_KEYS:
+        if key not in current_versions:
+            stale.append(f"the current version manifest is missing '{key}'")
+        elif key not in recorded.versions:
+            stale.append(f"the recorded run has no '{key}' version")
+        elif recorded.versions[key] != current_versions[key]:
+            stale.append(f"{key} version differs (recorded {recorded.versions[key]!r}, current {current_versions[key]!r})")
+    if current_versions.get("policy_hash") != policy.policy_hash():
+        stale.append("the supplied policy does not match the current manifest")
     for item in recorded.evidence:
         if evidence_hash(item.excerpt, item.facts) != item.content_hash:
             stale.append(f"evidence {item.evidence_id} does not match its hash")
@@ -136,7 +143,7 @@ def replay(recorded: AgentRunResult, registry: ToolRegistry, ctx: TrustedContext
 
     replay_time = max((e.retrieved_at for e in recorded.evidence), default=datetime.now(timezone.utc))
     runner = Runner(RecordedRegistry(registry, recorded), now_fn=lambda: replay_time)
-    replayed = runner.run(ctx, policy, {"replay": True}, RecordedPlanner(recorded), run_id=recorded.run_id)
+    replayed = runner.replay_run(ctx, policy, {"replay": True}, RecordedPlanner(recorded), run_id=recorded.run_id)
     a, b = _shape(recorded), _shape(replayed)
     diffs = [f"{k}: recorded {a[k]!r} != replayed {b[k]!r}" for k in a if a[k] != b[k]]
     return ReplayReport(valid=True, identical=not diffs, differences=diffs, result=replayed)

@@ -12,8 +12,9 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional
 
+from agentruntime.config import clamp_retention_days
 from agentruntime.contracts import AgentRunResult, AgentStep, EvidenceItem, Hypothesis
-from agentruntime.crypto import Cipher, get_cipher
+from agentruntime.crypto import Cipher, Waiver, get_cipher, load_waiver
 from agentruntime.sanitize import sanitize_text
 
 SCHEMA_SQL = """
@@ -52,17 +53,33 @@ def _hash(text: str) -> str:
 
 
 class RunStore:
-    def __init__(self, connect: Optional[Callable[[], Any]] = None, cipher: Optional[Cipher] = None, *, encrypt: Optional[bool] = None):
+    def __init__(self, connect: Optional[Callable[[], Any]] = None, cipher: Optional[Cipher] = None,
+                 waiver: Optional[Waiver] = None):
         if connect is None:
             import postgres_store
             connect = postgres_store.get_connection
         self._connect = connect
-        if encrypt is None:
-            cipher = cipher or get_cipher()       # raises KeyMissing when required and absent: persistence is refused
-        self._cipher = cipher
-        self._encrypt = (cipher is not None) if encrypt is None else encrypt
-        if self._encrypt and self._cipher is None:
-            raise StoreError("encryption requested without a cipher")
+        self._cipher: Optional[Cipher] = None
+        self.waiver: Optional[Waiver] = None
+        if cipher is not None:
+            self._cipher = cipher
+        elif waiver is not None:
+            if not waiver.valid():
+                raise StoreError("a plaintext-storage waiver must name who approved it, why, the policy reference and the date")
+            self.waiver = waiver
+        else:
+            self._cipher = get_cipher()           # raises KeyMissing when encryption is required and no key exists
+            if self._cipher is None:              # only a valid recorded waiver file gets here
+                self.waiver = load_waiver()
+                if self.waiver is None:
+                    raise StoreError("no cipher and no valid waiver: refusing to store run data")
+        self._encrypt = self._cipher is not None
+
+    def encryption_record(self) -> Dict[str, Any]:
+        if self._cipher is not None:
+            return {"mode": "aes-256-gcm", "key_id": self._cipher.key_id}
+        return {"mode": "waived", "reference": self.waiver.reference if self.waiver else "",
+                "approved_by": self.waiver.approved_by if self.waiver else ""}
 
     # -- encoding of sensitive JSON ---------------------------------------------------------------------------------------
 
@@ -93,6 +110,11 @@ class RunStore:
         tenant, run = result.tenant_id, result.run_id
         if not tenant:
             raise StoreError("a run needs a tenant")
+        for item in result.evidence:       # defence in depth: nothing from another tenant is ever persisted under this run
+            if item.tenant_id != tenant or item.run_id != run:
+                raise StoreError(f"evidence {item.evidence_id} does not belong to tenant '{tenant}' run '{run}'")
+        retention_days = clamp_retention_days(retention_days)   # never trust the caller's value
+        versions = {**result.versions, "encryption": self.encryption_record()}
         expires = datetime.now(timezone.utc) + timedelta(days=retention_days)
         reason = sanitize_text(result.reason, 200)[0]
         with self._connect() as conn, conn.cursor() as cur:
@@ -100,7 +122,7 @@ class RunStore:
                 "INSERT INTO agent_runs (run_id, tenant_id, request_id, mode, status, reason, ticket_ref, ticket_hash, counters,"
                 " versions, policy_hash, duration_ms, expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s,%s)",
                 (run, tenant, request_id, result.mode, result.status, reason, ticket_ref, _hash(ticket_text) if ticket_text else "",
-                 json.dumps(result.counters, default=str), json.dumps(result.versions, default=str),
+                 json.dumps(result.counters, default=str), json.dumps(versions, default=str),
                  str(result.versions.get("policy_hash", "")), duration_ms or int(float(result.counters.get("elapsed_s", 0)) * 1000),
                  expires))
             for item in result.evidence:

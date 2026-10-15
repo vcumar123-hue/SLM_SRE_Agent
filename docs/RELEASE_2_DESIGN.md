@@ -377,7 +377,9 @@ was 5–10 s per call warm (44 s on the first call). This is a warning, not a re
    | leading hypotheses conflict | `evidence_lookup` |
 2. **Model step**, only when the rules propose nothing or a judgement is needed. Schema (strict, `additionalProperties: false`, temperature 0):
    `{"action": "<tool name>|finish|escalate", "reason": "<one sentence>", "input": {...}}`. Tool-result text reaches the model only inside a
-   delimited data block that the system prompt defines as data; instructions found in it are ignored and flagged on the step.
+   data block: the records are one JSON value (quotes, newlines and non-ASCII escaped) framed with a fresh random delimiter that is regenerated if
+   it ever occurs in the content, and the system prompt names that delimiter and states that the block is data, never instructions. Instructions
+   found in it are also flagged on the step.
 3. **Verification and synthesis** use a second schema (`hypotheses[]` with `cause`, `status`, `evidence[]`). Hypotheses citing no verified
    evidence are discarded by the runtime regardless of the model.
 
@@ -454,7 +456,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_runs_expiry ON agent_runs (expires_at);
 | Raw or sanitised? | **Sanitised only.** Raw tool output is never persisted. The run stores EvidenceItems (bounded excerpt + facts) by reference, plus sanitised model outputs |
 | Ticket text? | **Not stored.** `ticket_ref` points to the source record; `ticket_hash` detects change |
 | Redaction at write | the egress `basic` redaction plus secret patterns (API keys, bearer tokens, private-key blocks, `password=` style values), email addresses and phone numbers; hostnames are kept because they are operational evidence. Names are kept only as present in already-anonymised source data |
-| Encryption | **Decided (section 17):** infrastructure encryption now (host disk, encrypted backups and snapshots, TLS to the database, restricted role, keys held outside the database) **and** application-level encryption of `agent_evidence.item` and `agent_run_events.output_json` by default; waivable only with a recorded client policy and threat model. Key from `AIOPS_AGENT_DATA_KEY` or `AIOPS_AGENT_DATA_KEY_FILE`; if encryption is required and no key is available, persistence is refused and the mode resolves to `off` |
+| Encryption | **Decided (section 17):** infrastructure encryption now (host disk, encrypted backups and snapshots, TLS to the database, restricted role, keys held outside the database) **and** application-level AES-256-GCM encryption of `agent_evidence.item` and `agent_run_events.output_json` by default. The only way to store plaintext is a **recorded waiver file** (`config/agent_data_encryption_waiver.json`: approved_by, reason, client policy reference, date, `threat_model_reviewed: true`); an environment variable alone is not a waiver and the waiver is recorded in each run's manifest. Key from `AIOPS_AGENT_DATA_KEY` or `AIOPS_AGENT_DATA_KEY_FILE`; if encryption is required and no key is available, persistence is refused and the mode resolves to `off` |
 | Access control | all reads and writes go through a tenant-scoped data layer (tenant is a mandatory argument); a dedicated database role limited to the `agent_*` tables; no API returns another tenant's runs; operators see only their active tenant's runs |
 | Lookup keys | `(tenant_id, run_id)` everywhere; replay by `run_id` alone is impossible |
 | Retention | `expires_at = created_at + retention`; default **90 days**, per-tenant override `agent_run_retention_days` in tenant config; a daily purge job deletes expired runs (cascade) |
@@ -692,10 +694,29 @@ R2-2 implementation may begin after R2-1 and the planner decision, **with the lo
 | 3. Name the reviewers and reserve labelling capacity | **open: owner to supply names and capacity** |
 | 4. Freeze and hash the planner experiment (annotations, cases, decision rule) | blocked on step 3 (annotations need two reviewers); the harness, ticket selection and injection cases can be prepared meanwhile |
 | 5. Run the planner experiment | after step 4 |
-| 6. Implement and verify R2-0 | **done 2026-10-14**: `agentruntime/` (contracts, trusted context, sanitising, AES-GCM encryption, tool registry and boundary, verifier and grounding, runner with enforced budgets, run store with retention and deletion, record/replay) and 83 tests, 13 of them against a real PostgreSQL. Exit criterion met: a stub run persists encrypted and replays identically. No tools or planner yet (R2-1, R2-2); the loop is not wired into the application |
+| 6. Implement and verify R2-0 | **implemented; awaiting review sign-off.** First delivery 2026-10-14; a code review found five P1 gaps and seven hardening items, all fixed the same day (section 18). Not accepted as complete until the reviewer confirms. No tools or planner yet (R2-1, R2-2); the loop is not wired into the application |
 | 7. Implement and verify R2-1 | after step 6 |
 | 8. Select the planner from the experiment result | after step 5 |
 | 9. Implement R2-2 with the mode remaining `off` | after steps 7 and 8 |
 | 10. Merge after R2-2 controls pass (decision 5) | after step 9 |
 | 11. Complete calibration, create the freeze record, only then expose acceptance tickets | after step 10 |
 | 12. Run R2-3 once and decide whether one pilot tenant may enter L1 | after step 11 |
+
+---
+
+## 18. R2-0 code review and fixes (2026-10-14)
+
+A static review of the first R2-0 delivery found five P1 gaps and seven hardening items. All are fixed; each has regression tests in
+`tests/test_agentruntime_review_fixes.py` (and the live storage tests). **R2-0 remains unaccepted until the reviewer confirms.**
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | Model-call timeout and per-call token budgets declared but not enforced; an over-budget reply's action executed once | A `ModelGateway` is the only way a planner calls a model: it refuses requests the budget cannot cover, bounds each call by `model_call_timeout_s` (and the remaining deadline) on a shared bounded executor, passes the per-kind token limit to the model as `max_tokens`, discards an over-limit reply (`failed_model`), and counts usage before returning. The runner also bounds each planner decision with an outer timeout and checks the reply's reported calls and tokens **before executing its action**; an over-run is `budget_exhausted` and nothing executes |
+| 2 | A timed-out tool kept running; a new pool per call | One shared `BoundedExecutor` for tools and one for models. A call receives a `CancelToken` that is set at timeout (wrappers must check it and set database statement timeouts); timed-out calls are counted as abandoned and further work is **refused** (`ToolBusy`, `failed_tool`) while too many are still running; a call still queued at its timeout never starts; results are materialised with bounded iteration inside the worker |
+| 3 | The data-block delimiter could be closed by its own content | Records are serialised as one JSON value inside a frame with a per-prompt random delimiter that is regenerated on collision; the instruction names the actual delimiter |
+| 4 | Replay validated only schema, runtime, tools and policy | Replay requires the **complete** current manifest (schema, runtime, tools, prompt, model, ruleset, policy hash) and fails closed on any missing or differing key, in the manifest or in the recorded run |
+| 5 | `off` depended on caller discipline | `AgentPolicy.mode` defaults to `off`; the runner refuses an `off` policy, requires the context and policy modes to match, reserves `batch` for `run_batch` (which also needs `AIOPS_AGENT_BATCH_ENABLED`), and no trusted context can be built for `off` |
+
+Hardening: `relevance` constrained to [0, 1] and `ttl_days` to non-negative (so grounding stays in [0, 1]); retention clamped to 1-3650 days inside
+`save_run`; every evidence item's tenant and run are re-checked before persistence; plaintext storage needs a waiver object (see the encryption
+row in 11.2) instead of a free flag; non-empty request id and principal id are required to build a trusted context.

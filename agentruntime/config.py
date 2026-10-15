@@ -64,3 +64,12 @@ def retention_days(tenant_config: Optional[dict] = None) -> int:
     except (TypeError, ValueError):
         return 90
     return value if 1 <= value <= 3650 else 90
+
+
+def clamp_retention_days(value: object) -> int:
+    """Bound a caller-supplied retention to 1-3650 days (an unusable value means the 90-day default). Used by the store itself."""
+    try:
+        days = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return 90
+    return max(1, min(days, 3650))

@@ -8,16 +8,18 @@ other than the context's.
 """
 from __future__ import annotations
 
-import concurrent.futures
+import inspect
+import itertools
 import re
 from typing import Any, Callable, Dict, List, Tuple
 
 from agentruntime.context import TrustedContext
 from agentruntime.contracts import EvidenceDraft, ToolSpec
+from agentruntime.executor import CallTimeout, CancelToken, ExecutorBusy, TOOL_EXECUTOR, BoundedExecutor
 
 FORBIDDEN_ARG_NAMES = frozenset({
     "tenant", "tenant_id", "client", "client_id", "knowledge_scope", "scope", "search_order", "collection", "collection_name",
-    "sql", "query_sql", "statement", "path", "file", "filename", "url", "uri", "endpoint", "host_url",
+    "sql", "query_sql", "statement", "path", "file", "filename", "url", "uri", "endpoint", "host_url", "cancel", "ctx",
 })
 ALLOWED_KEYWORDS = frozenset({
     "type", "properties", "required", "additionalProperties", "enum", "minimum", "maximum", "minLength", "maxLength", "pattern",
@@ -44,6 +46,10 @@ class BoundaryViolation(Exception):
 
 class ToolTimeout(Exception):
     pass
+
+
+class ToolBusy(Exception):
+    """Earlier timed-out tool calls are still running; new calls are refused until they finish."""
 
 
 def check_schema(schema: Dict[str, Any], where: str = "schema") -> None:
@@ -108,8 +114,9 @@ def validate_args(value: Any, schema: Dict[str, Any], where: str = "input") -> N
 
 
 class ToolRegistry:
-    def __init__(self) -> None:
+    def __init__(self, executor: BoundedExecutor = TOOL_EXECUTOR) -> None:
         self._tools: Dict[str, Tuple[ToolSpec, Callable[..., List[EvidenceDraft]]]] = {}
+        self._executor = executor
 
     def register(self, spec: ToolSpec, fn: Callable[..., List[EvidenceDraft]]) -> None:
         if spec.tier != "read":
@@ -145,16 +152,25 @@ class ToolRegistry:
             raise UnknownTool(name)
         spec, fn = self._tools[name]
         validate_args(args, spec.input_schema, f"tool '{name}' input")
-        pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        future = pool.submit(fn, ctx, **args)
+        accepts_cancel = "cancel" in inspect.signature(fn).parameters
+        limit = spec.max_items
+
+        def job(token: CancelToken) -> List[Any]:
+            kwargs = dict(args)
+            if accepts_cancel:
+                kwargs["cancel"] = token          # cooperative cancellation; wrappers also set database statement timeouts
+            produced = fn(ctx, **kwargs)
+            # bounded iteration inside the worker: a huge or endless generator is never fully materialised, and the timeout covers it
+            return list(itertools.islice(iter(produced or ()), limit))
+
         try:
-            raw = future.result(timeout=timeout_s)
-        except concurrent.futures.TimeoutError as exc:
+            raw = self._executor.run(job, timeout_s)
+        except CallTimeout as exc:
             raise ToolTimeout(f"tool '{name}' exceeded {timeout_s:.0f}s") from exc
-        finally:
-            pool.shutdown(wait=False)
+        except ExecutorBusy as exc:
+            raise ToolBusy(str(exc)) from exc
         drafts: List[EvidenceDraft] = []
-        for item in list(raw or [])[: spec.max_items]:
+        for item in raw:
             draft = item if isinstance(item, EvidenceDraft) else EvidenceDraft(**item)
             if draft.tenant_id != ctx.tenant_id:
                 raise BoundaryViolation(f"tool '{name}' returned a record for another tenant")

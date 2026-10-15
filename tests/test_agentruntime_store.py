@@ -15,10 +15,10 @@ from unittest.mock import patch
 from agentruntime import crypto
 from agentruntime.contracts import Action
 from agentruntime.replay import replay
-from agentruntime.runner import Runner
+from agentruntime.runner import Runner, build_versions
 from agentruntime.store import RunStore, StoreError
 from tests.agentruntime_helpers import (
-    FakeClock, FakePrincipal, ScriptedPlanner, draft, finish_action, make_registry, policy, tenant_dir, tool_action,
+    FakeClock, FakePrincipal, ScriptedPlanner, batch_env, draft, finish_action, make_registry, policy, tenant_dir, tool_action,
 )
 from agentruntime.context import build_context
 
@@ -36,8 +36,13 @@ def make_run(tenant, run_id=None, marker=SECRET_EXCERPT):
     ctx = build_context(tenant, "req", FakePrincipal(), "batch", config_dir=tenant_dir(tenant))
     planner = ScriptedPlanner([tool_action("incident_kb_search", query="disk"),
                                finish_action({"cause": "disk full", "status": "supported", "evidence": ["e1"]})])
-    result = Runner(reg, clock=FakeClock()).run(ctx, policy(), {"ticket_text": TICKET_TEXT}, planner, run_id=run_id)
+    with batch_env():
+        result = Runner(reg, clock=FakeClock()).run_batch(ctx, policy(), {"ticket_text": TICKET_TEXT}, planner, run_id=run_id)
     return reg, ctx, result
+
+
+def current_manifest(reg, pol=None):
+    return build_versions(reg, ScriptedPlanner([]), pol or policy())
 
 
 @unittest.skipUnless(LIVE, "set AIOPS_TEST_AGENT_PG=1 with a reachable PostgreSQL to run")
@@ -49,7 +54,8 @@ class StoreBase(unittest.TestCase):
         if cls.encrypted and crypto.AESGCM is None:
             raise unittest.SkipTest("the cryptography package is not installed")
         cls.cipher = crypto.Cipher(b"s" * 32) if cls.encrypted else None
-        cls.store = RunStore(cipher=cls.cipher, encrypt=cls.encrypted)
+        cls.store = (RunStore(cipher=cls.cipher) if cls.encrypted
+                     else RunStore(waiver=crypto.Waiver("owner", "client policy accepts infrastructure encryption", "POLICY-1", "2026-10-14")))
         cls.store.ensure_schema()
 
     def setUp(self):
@@ -80,7 +86,7 @@ class EncryptedStoreTests(StoreBase):
         self.assertEqual([(h.cause, h.verified) for h in loaded.hypotheses], [("disk full", True)])
         self.assertEqual([e.content_hash for e in loaded.evidence], [e.content_hash for e in result.evidence])
         self.assertEqual(loaded.versions["policy_hash"], result.versions["policy_hash"])
-        report = replay(loaded, reg, ctx, policy())
+        report = replay(loaded, reg, ctx, policy(), current_manifest(reg))
         self.assertTrue(report.valid and report.identical, report.stale_reasons + report.differences)
 
     def test_stored_evidence_and_events_are_ciphertext_not_plaintext(self):
@@ -164,8 +170,35 @@ class SharedStoreTests(StoreBase):
         self.store.save_run(result)
         loaded = self.store.load_run(t, result.run_id)
         reg._tools["incident_kb_search"][0].version = "2"
-        report = replay(loaded, reg, ctx, policy())
+        report = replay(loaded, reg, ctx, policy(), current_manifest(reg))
         self.assertFalse(report.valid)
+
+    def test_retention_is_clamped_by_the_store_and_foreign_evidence_is_refused(self):
+        t = self.tenant()
+        _r, _c, result = make_run(t)
+        self.store.save_run(result, retention_days=99999)
+        days = self.raw("SELECT extract(epoch FROM (expires_at - created_at)) / 86400 FROM agent_runs WHERE tenant_id = %s", (t,))[0][0]
+        self.assertLessEqual(float(days), 3650.5)
+        t2 = self.tenant()
+        _r, _c, other = make_run(t2)
+        self.store.save_run(other, retention_days=0)
+        days = self.raw("SELECT extract(epoch FROM (expires_at - created_at)) / 86400 FROM agent_runs WHERE tenant_id = %s", (t2,))[0][0]
+        self.assertGreaterEqual(float(days), 0.99)
+        t3 = self.tenant()
+        _r, _c, mixed = make_run(t3)
+        foreign = mixed.evidence[0].model_copy(update={"tenant_id": t})
+        with self.assertRaises(StoreError):
+            self.store.save_run(mixed.model_copy(update={"evidence": [foreign]}))
+        self.assertEqual(self.store.count_runs(t3), 0)
+
+    def test_the_stored_manifest_records_how_the_data_is_protected(self):
+        t = self.tenant()
+        _r, _c, result = make_run(t)
+        self.store.save_run(result)
+        versions = self.store.load_run(t, result.run_id).versions
+        self.assertEqual(versions["encryption"]["mode"], "aes-256-gcm")
+        for key in ("schema", "runtime", "tools", "prompt", "ruleset", "model", "policy_hash"):
+            self.assertIn(key, versions)
 
     def test_the_schema_can_be_applied_repeatedly(self):
         self.store.ensure_schema()
@@ -194,7 +227,7 @@ class PlaintextWaiverTests(StoreBase):
 @unittest.skipUnless(LIVE, "set AIOPS_TEST_AGENT_PG=1 with a reachable PostgreSQL to run")
 class RefusalTests(unittest.TestCase):
     def test_persistence_is_refused_when_encryption_is_required_and_no_key_exists(self):
-        with patch.dict(os.environ, {"AIOPS_AGENT_DATA_ENCRYPTION": "on"}), patch.object(crypto, "_load_key", return_value=None):
+        with patch.object(crypto, "_load_key", return_value=None), patch.object(crypto, "load_waiver", return_value=None):
             with self.assertRaises(crypto.KeyMissing):
                 RunStore()
 

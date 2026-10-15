@@ -1,5 +1,6 @@
 """Shared fixtures for the agentruntime tests: a trusted context, fake tools and a scripted planner."""
 import json
+import os
 import pathlib
 import tempfile
 from typing import Any, Dict, List, Optional
@@ -28,7 +29,7 @@ def tenant_dir(*tenants: str) -> pathlib.Path:
 
 
 def make_ctx(tenant: str = "client_x", mode: str = "batch"):
-    return build_context(tenant, "req-1", FakePrincipal(), mode, config_dir=tenant_dir(tenant, "client_y"))
+    return build_context(tenant, "req-1", FakePrincipal(), mode, config_dir=tenant_dir(tenant, "client_x", "client_y", tenant))
 
 
 def draft(tenant: str, source_id: str, excerpt: str = "evidence text", source_type: str = "incident", **kw) -> EvidenceDraft:
@@ -86,8 +87,14 @@ def finish_action(*hyps: Dict[str, Any], conflict: bool = False, analysis: Optio
                   analysis=analysis if analysis is not None else {"probable_causes": [h["cause"] for h in hyps]})
 
 
-def policy(allowed=("incident_kb_search", "ticket_history_lookup"), **budget) -> AgentPolicy:
-    return AgentPolicy(allowed_tools=list(allowed), budgets=Budgets(**budget), mode="batch")
+def policy(allowed=("incident_kb_search", "ticket_history_lookup"), mode="batch", **budget) -> AgentPolicy:
+    return AgentPolicy(allowed_tools=list(allowed), budgets=Budgets(**budget), mode=mode)
+
+
+def batch_env():
+    """The explicit opt-in the batch entry point requires."""
+    from unittest.mock import patch
+    return patch.dict(os.environ, {"AIOPS_AGENT_BATCH_ENABLED": "1"})
 
 
 class FakeClock:

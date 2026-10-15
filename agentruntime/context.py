@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
+TRUSTED_MODES = ("shadow", "on", "batch")   # there is no context for `off`: nothing runs
 _TENANT_RE = re.compile(r"^[a-z0-9_]{1,64}$")
 KNOWLEDGE_SCOPES: Tuple[str, ...] = ("client_private",)   # the shared layers are added by the retrieval wrapper, not chosen by anyone else
 
@@ -58,6 +59,10 @@ def build_context(
     egress: Any = None,
     config_dir: Optional[Path] = None,
 ) -> TrustedContext:
+    if mode not in TRUSTED_MODES:
+        raise ContextError(f"no trusted context exists for mode {mode!r}")
+    if not str(request_id or "").strip():
+        raise ContextError("a non-empty request id is required")
     tenant = str(tenant_id or "").strip().lower()
     if not tenant:
         raise ContextError("no tenant in the request context")
@@ -67,8 +72,8 @@ def build_context(
         raise ContextError("malformed tenant id")
     if not tenant_is_configured(tenant, config_dir):
         raise ContextError(f"unknown tenant '{tenant}'")
-    if principal is None:
-        raise ContextError("no authenticated principal")
+    if principal is None or not str(getattr(principal, "id", "") or "").strip():
+        raise ContextError("an authenticated principal with an id is required")
     allows = getattr(principal, "allows_tenant", None)
     if not callable(allows) or not allows(tenant):
         raise ContextError(f"principal is not permitted to act for tenant '{tenant}'")

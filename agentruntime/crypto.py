@@ -3,15 +3,18 @@ Application-level encryption for stored run data (design 11.2, owner decision 3)
 
 AES-256-GCM with a key that lives outside the database: AIOPS_AGENT_DATA_KEY (base64, 32 bytes) or AIOPS_AGENT_DATA_KEY_FILE.
 Ciphertexts are bound to their tenant, run and field through the authenticated data, so a ciphertext moved to another tenant or
-field does not decrypt. Encryption is on by default; turning it off needs AIOPS_AGENT_DATA_ENCRYPTION=off, which is a recorded waiver.
+field does not decrypt. Encryption is on by default; the only way off is a valid, recorded waiver (see Waiver).
 If encryption is required and no key is available, persistence is refused and the mode resolves to `off`.
+Plaintext storage needs a recorded Waiver file (who, why, the policy and threat-model reference); an environment variable alone is not one.
 """
 from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import os
 import secrets
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -31,8 +34,42 @@ class DecryptionError(Exception):
     """A ciphertext failed authentication (wrong key, wrong tenant, wrong field, or tampering)."""
 
 
+@dataclass(frozen=True)
+class Waiver:
+    """An auditable decision to store run data without application-level encryption (owner decision 3).
+
+    It must name who approved it, why, and the client policy and threat-model references it rests on. An environment variable alone
+    is never a waiver.
+    """
+    approved_by: str
+    reason: str
+    reference: str            # the client policy or threat-model document that permits infrastructure encryption alone
+    approved_at: str
+
+    def valid(self) -> bool:
+        return all(isinstance(v, str) and v.strip() for v in (self.approved_by, self.reason, self.reference, self.approved_at))
+
+
+def waiver_path() -> Path:
+    return Path(os.getenv("AIOPS_AGENT_DATA_WAIVER_FILE", "config/agent_data_encryption_waiver.json"))
+
+
+def load_waiver(path: Optional[Path] = None) -> Optional[Waiver]:
+    """The recorded waiver, or None when there is none or it is incomplete (incomplete means not waived)."""
+    p = path or waiver_path()
+    try:
+        if not p.is_file():
+            return None
+        data = json.loads(p.read_text(encoding="utf-8-sig"))
+        waiver = Waiver(str(data.get("approved_by", "")), str(data.get("reason", "")), str(data.get("reference", "")),
+                        str(data.get("approved_at", "")))
+        return waiver if waiver.valid() and data.get("threat_model_reviewed") is True else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
 def encryption_required() -> bool:
-    return os.getenv("AIOPS_AGENT_DATA_ENCRYPTION", "on").strip().lower() not in {"off", "false", "0", "no"}
+    return load_waiver() is None
 
 
 def _load_key() -> Optional[bytes]:
