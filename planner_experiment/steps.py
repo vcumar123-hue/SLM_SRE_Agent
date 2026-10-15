@@ -22,6 +22,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from planner_experiment import golden as golden_mod
+from planner_experiment import injection as injection_mod
 from planner_experiment import planner_freeze, reviewers as reviewer_mod, secrecy
 from planner_experiment import seed as seed_mod
 from planner_experiment import select_cases as sc
@@ -171,6 +173,86 @@ def draw_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], root: P
     prior = [{"round": r, "selection_hash": freeze_mod.sha256_bytes(raw), "key_check": rec.get("key_check")} for r, raw, rec in sorted(earlier, key=lambda x: x[0])]
     return _write_selection(rp["selection"], "experiment", selection,
                             {"round": rnd, "planner_freeze_hash": pf["record_hash"], "prior_rounds": prior}, key)
+
+
+def approve_golden(base: Path, draft_path: Path, out_path: Path, approved_ids: List[str], approvers: List[str]) -> List[Dict[str, Any]]:
+    """Write the golden tickets the reviewers have approved. Approval is explicit and per ticket: only the ids listed are written, with
+    `approved_by` set to the two reviewers of the reviewer record. `approvers` is what the caller asserts; it must be exactly those two names,
+    so this command cannot approve on behalf of anyone else. It records an approval; the reviewing has to have happened (golden-ticket
+    approval is a human act, and the names must be added only after it). Written once; the draft's descriptive fields are dropped."""
+    names = _reviewers(base)
+    if sorted(a.strip().lower() for a in approvers) != sorted(n.lower() for n in names):
+        raise StepError(f"the approvers must be exactly the two recorded reviewers ({', '.join(names)}), no more and no fewer")
+    if not approved_ids or len(set(approved_ids)) != len(approved_ids):
+        raise StepError("list each approved ticket id once (at least one)")
+    out_path = Path(out_path)
+    if out_path.exists():
+        raise StepError(f"{out_path} already exists: the approved golden file is written once")
+    draft = {str(i.get("ticket_id")): i for i in json.loads(Path(draft_path).read_text(encoding="utf-8"))}
+    unknown = [i for i in approved_ids if i not in draft]
+    if unknown:
+        raise StepError(f"not in the draft: {unknown}")
+    items = []
+    for ticket_id in approved_ids:
+        item = {k: v for k, v in draft[ticket_id].items() if k in ("ticket_id", "text", "host", "opened_at", "set", "tenant_id")}
+        item["approved_by"] = list(names)
+        items.append(item)
+    try:
+        golden_mod.parse_golden(items, names)
+    except golden_mod.GoldenError as exc:
+        raise StepError(str(exc)) from exc
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(items, indent=1), encoding="utf-8")
+    return items
+
+
+def create_freeze_for_round(base: Path, rnd: int, cases_path: Path, recording_path: Path, annotations_path: Path, reviewer_files: Dict[str, Path],
+                            golden_path: Path, out_path: Optional[Path] = None, root: Path = ROOT) -> Dict[str, Any]:
+    """Assemble and create the complete experiment freeze for round `rnd`.
+
+    Supplied by the caller (they come from people and from the live system): the case package, the scripted recording, the adjudicated annotations
+    and each reviewer's own annotation file. Everything else is taken from the recorded workflow, never typed: the seed and selection records, the
+    planner freeze, the reviewer record, the earlier rounds' selections, the golden file, and the two files generated here so they cannot disagree
+    with the workflow: `config.json` (round, derived seed, modes, the planner freeze's entry points) and the injection cases (built from the first
+    four cases). `freeze.create_freeze` then runs the whole consistency check; any failure is reported and nothing is written.
+    """
+    rp, p = round_paths(base, rnd), paths(base)
+    for label, path in (("the planner freeze", rp["planner_freeze"]), ("the draw's seed record", rp["seed"]), ("the draw's selection", rp["selection"]),
+                        ("the development selection", p["development"]), ("the partition seed record", p["partition_seed"]),
+                        ("the golden file", golden_path), ("the case package", cases_path), ("the recording", recording_path),
+                        ("the adjudicated annotations", annotations_path)):
+        if not Path(path).is_file():
+            raise StepError(f"{label} is missing: {path}")
+    names = _reviewers(base)
+    if sorted(n.lower() for n in reviewer_files) != sorted(n.lower() for n in names):
+        raise StepError(f"supply one annotation file for each of exactly the two recorded reviewers ({', '.join(names)})")
+    out = Path(out_path) if out_path is not None else Path(base) / f"freeze_round{rnd}.json"
+    if out.exists():
+        raise StepError(f"{out} already exists: a freeze is created once per round")
+    try:
+        pf = planner_freeze.load_planner_freeze(rp["planner_freeze"])
+        draw = seed_mod.load_record(rp["seed"], f"planner-experiment-{rnd}")
+    except (planner_freeze.PlannerFreezeError, ValueError) as exc:
+        raise StepError(str(exc)) from exc
+    cases = json.loads(Path(cases_path).read_text(encoding="utf-8"))
+    inputs_dir = Path(base) / f"inputs_round{rnd}"
+    inputs_dir.mkdir(parents=True, exist_ok=True)
+    config_path, injection_path = inputs_dir / "config.json", inputs_dir / "injection_cases.json"
+    config_path.write_text(json.dumps({"round": rnd, "seed": draw["seed"], "modes": list(freeze_mod.MODES), "planners": pf["entrypoints"], "budgets": {}},
+                                      indent=1, sort_keys=True), encoding="utf-8")
+    base_ids = [c["case_id"] for c in cases][:4]
+    if len(base_ids) < 4:
+        raise StepError("the case package has fewer than four cases")
+    injection_path.write_text(json.dumps([vars(i) for i in injection_mod.build_injection_cases(base_ids)], indent=1), encoding="utf-8")
+    files = {"annotations": annotations_path, "cases": cases_path, "recording": recording_path, "injection_cases": injection_path, "config": config_path,
+             "seed_record": rp["seed"], "partition_seed_record": p["partition_seed"], "experiment_selection": rp["selection"],
+             "development_selection": p["development"], "planner_freeze": rp["planner_freeze"], "reviewers": p["reviewers"], "golden": golden_path}
+    for n in range(1, rnd):
+        files[f"prior_selection:{n}"] = round_paths(base, n)["selection"]
+    try:
+        return freeze_mod.create_freeze(files, {n: Path(f) for n, f in reviewer_files.items()}, out, root)
+    except freeze_mod.FreezeError as exc:
+        raise StepError(f"the freeze was not created: {exc}") from exc
 
 
 def build_cases(selection_path: Path, tickets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

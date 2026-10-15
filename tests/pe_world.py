@@ -3,10 +3,12 @@ A complete, consistent synthetic planner-experiment world, built through the REA
 folder: reviewers, partition seed, development subset, planner freeze, experiment draw, cases, recording, annotations, injection cases,
 config and golden tickets. Tests then mutate one thing and check the freeze or the run refuses it. Synthetic tickets only.
 """
+import contextlib
 import json
 import os
 import pathlib
 import tempfile
+from unittest.mock import patch
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
@@ -55,6 +57,14 @@ def fake_code_root() -> pathlib.Path:
     (root / "agentruntime" / "planners").mkdir()
     (root / "agentruntime" / "planners" / "p.py").write_text("RULES = 1\n", encoding="utf-8")
     return root
+
+
+@contextlib.contextmanager
+def no_key():
+    """A process that holds NO experiment key: the environment variable is empty and the key file is somewhere that does not exist. Tests that
+    need 'no key' use this, so they never depend on whether the machine running them happens to hold a real key file."""
+    with patch.dict(os.environ, {secrecy.KEY_ENV: ""}), patch.object(secrecy, "KEY_FILE", pathlib.Path(tempfile.mkdtemp(prefix="pe-nokey-")) / "absent.key"):
+        yield
 
 
 @dataclass

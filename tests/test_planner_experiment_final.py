@@ -17,7 +17,7 @@ from planner_experiment import experiment as exp_mod
 from planner_experiment import freeze, golden, metrics, reviewers as reviewer_mod, steps
 from planner_experiment.experiment import ExperimentAborted, ExperimentInputError, run_once
 from planner_experiment.freeze import FreezeError, ROOT
-from tests.pe_world import TEST_KEY, TEST_KEY_HEX, TESTS_DIR, build_world, golden_raw
+from tests.pe_world import TEST_KEY, TEST_KEY_HEX, TESTS_DIR, build_world, golden_raw, no_key
 from planner_experiment import planner_freeze
 
 
@@ -529,7 +529,7 @@ class KeyedDrawTests(unittest.TestCase):
     # -- fail closed without the key --------------------------------------------------------------------------------------------------------
     def test_without_the_key_the_freeze_and_the_case_builder_refuse(self):
         w = build_world()
-        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+        with no_key():
             with self.assertRaisesRegex(FreezeError, "does not hold the experiment key"):
                 w.freeze()
             with self.assertRaisesRegex(steps.StepError, "experiment key"):
@@ -554,7 +554,7 @@ class KeyedDrawTests(unittest.TestCase):
         from tests.pe_world import DEVELOPMENT_ARTIFACT, ENTRYPOINTS
         steps.select_development(fresh, w.tickets, DEVELOPMENT_ARTIFACT)
         steps.freeze_planners(fresh, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
-        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+        with no_key():
             with self.assertRaisesRegex(steps.StepError, "experiment key is required"):
                 steps.draw_experiment(fresh, 1, w.tickets)
         self.assertFalse(steps.round_paths(fresh, 1)["selection"].exists())
@@ -576,7 +576,7 @@ class KeyedDrawTests(unittest.TestCase):
             t = by_key[(d["pool"], d["ticket_id"])]
             dev_cases.append({"case_id": d["case_id"], "pool": d["pool"], "tenant_id": t["tenant_id"], "ticket_id": d["ticket_id"],
                               "ticket_text": t["text"], "host": t["host"], "opened_at": t["opened_at"]})
-        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+        with no_key():
             self.assertIsNone(self.run_guard(dev_cases))                                       # the development subset runs
             self.assertIn("does not hold the experiment key", self.run_guard([dict(self.w.cases[0])]))       # a drawn ticket does not
             unrelated = {"case_id": "z1", "tenant_id": "t", "ticket_text": "tape library offline after the firmware update"}
@@ -606,7 +606,7 @@ class KeyCustodyTests(unittest.TestCase):
         with self.assertRaises(secrecy.KeyError_):
             secrecy.create_key(path)
         self.assertEqual(path.read_text(encoding="utf-8"), raw)                    # the first key survived
-        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):                           # (the tests set a key in the environment, which takes priority)
+        with no_key():                           # (the tests set a key in the environment, which takes priority)
             self.assertEqual(secrecy.key_check(secrecy.load_key(path)), check)
 
     def test_the_environment_takes_priority_and_bad_keys_are_refused(self):
@@ -615,7 +615,7 @@ class KeyCustodyTests(unittest.TestCase):
         secrecy.create_key(path)
         with patch.dict(os.environ, {"AIOPS_PE_KEY": "ef" * 32}):
             self.assertEqual(secrecy.load_key(path), bytes.fromhex("ef" * 32))
-        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+        with no_key():
             self.assertEqual(secrecy.load_key(path), bytes.fromhex(path.read_text(encoding="utf-8")))
             self.assertIsNone(secrecy.load_key(path.with_name("missing.key")))
         for bad in ("zz" * 32, "ab" * 31, "ab" * 33, "not hex"):
@@ -631,8 +631,26 @@ class KeyCustodyTests(unittest.TestCase):
         self.assertNotEqual(secrecy.keyed(key, "content", "x"), secrecy.keyed(key, "token", "x"))        # domain separation
         self.assertNotEqual(secrecy.keyed(key, "content", "x"), secrecy.keyed(bytes.fromhex("cd" * 32), "content", "x"))
 
-    def test_the_repository_holds_no_key_file(self):
-        self.assertFalse((ROOT / "data" / "planner_experiment.key").exists())
+    def test_a_key_file_if_present_is_git_ignored_and_never_tracked(self):
+        """The real key may well exist on the machine running the tests (it should, on the key holder's). It must never be in git. (Not read here.)"""
+        import subprocess
+        try:
+            ignored = subprocess.run(["git", "check-ignore", "-q", "data/planner_experiment.key"], cwd=ROOT, capture_output=True).returncode
+            tracked = subprocess.run(["git", "ls-files", "--error-unmatch", "data/planner_experiment.key"], cwd=ROOT, capture_output=True).returncode
+            history = subprocess.run(["git", "log", "--all", "--oneline", "--", "data/planner_experiment.key"], cwd=ROOT, capture_output=True, text=True)
+        except OSError:
+            self.skipTest("git is not available")
+        if history.returncode != 0:
+            self.skipTest("not a git checkout")
+        self.assertEqual(ignored, 0)                                  # ignored
+        self.assertNotEqual(tracked, 0)                               # not tracked
+        self.assertEqual(history.stdout.strip(), "")                  # never committed
+
+    def test_the_tests_do_not_depend_on_a_real_key_file_being_present_or_absent(self):
+        from planner_experiment import secrecy
+        with no_key():
+            self.assertIsNone(secrecy.load_key())
+        self.assertEqual(secrecy.load_key(), TEST_KEY)
 
 
 class CrossRoundKeyTests(unittest.TestCase):
@@ -750,7 +768,7 @@ class CrossRoundKeyTests(unittest.TestCase):
 
     def test_a_missing_key_cannot_start_a_later_round_either(self):
         self.revise_and_freeze_round_two()
-        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+        with no_key():
             with self.assertRaisesRegex(steps.StepError, "experiment key is required"):
                 steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
 

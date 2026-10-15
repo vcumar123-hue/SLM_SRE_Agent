@@ -8,6 +8,8 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
     python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>
+    python -m planner_experiment.cli approve-golden --draft docs/drafts/golden_tickets_DRAFT.json --ids golden-1 golden-2 ... --approved-by "A B" "C D"
+    python -m planner_experiment.cli create-freeze --round 1 --cases <file> --recording <file> --annotations <file> --reviewer-file "A B"=<file> --reviewer-file "C D"=<file>
     python -m planner_experiment.cli run-experiment --record <freeze record>        (the one-shot run: claimed, never a dry run)
 
 There is no way to pass a seed: every seed is derived from an immutable artifact (seed.py). Golden tickets are read from
@@ -64,6 +66,18 @@ def main(argv=None) -> int:
     fp.add_argument("--planner", action="append", required=True, help="mode=module:Class (rules_only, rules_then_model, model)")
     de = sub.add_parser("draw-experiment")
     de.add_argument("--round", type=int, required=True)
+    ag = sub.add_parser("approve-golden")
+    ag.add_argument("--draft", required=True)
+    ag.add_argument("--ids", nargs="+", required=True, help="the ticket ids the reviewers approved (listed explicitly; there is no 'all')")
+    ag.add_argument("--approved-by", nargs=2, required=True)
+    ag.add_argument("--out", default=None)
+    cf = sub.add_parser("create-freeze")
+    cf.add_argument("--round", type=int, required=True)
+    cf.add_argument("--cases", required=True)
+    cf.add_argument("--recording", required=True)
+    cf.add_argument("--annotations", required=True)
+    cf.add_argument("--reviewer-file", action="append", required=True, help='"Reviewer Name"=<path to that reviewer\'s own annotations>')
+    cf.add_argument("--out", default=None)
     rx = sub.add_parser("run-experiment")
     rx.add_argument("--record", required=True)
     bc = sub.add_parser("build-cases")
@@ -93,6 +107,15 @@ def main(argv=None) -> int:
         elif args.cmd == "draw-experiment":
             rec = steps.draw_experiment(base, args.round, load_tickets(steps.reviewer_names(base)))
             print(json.dumps({"round": rec["round"], "cases": len(rec["cases"]), "draw_seed": rec["draw_seed"], "type_counts": rec["type_counts"]}, indent=1))
+        elif args.cmd == "approve-golden":
+            items = steps.approve_golden(base, Path(args.draft), Path(args.out) if args.out else GOLDEN, args.ids, args.approved_by)
+            print("wrote", len(items), "approved golden tickets;", "ids:", ", ".join(i["ticket_id"] for i in items))
+        elif args.cmd == "create-freeze":
+            reviewer_files = dict(item.rsplit("=", 1) for item in args.reviewer_file)
+            record = steps.create_freeze_for_round(base, args.round, Path(args.cases), Path(args.recording), Path(args.annotations), reviewer_files, GOLDEN,
+                                                   Path(args.out) if args.out else None)
+            print(json.dumps({"record_hash": record["record_hash"], "reviewers": record["reviewers"], "end_state_kappa": record["agreement"]["end_state_kappa"],
+                              "disagreements": len(record["agreement"]["disagreements"])}, indent=1))
         elif args.cmd == "run-experiment":
             from planner_experiment.experiment import ExperimentInputError, run_once
             try:

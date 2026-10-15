@@ -1035,3 +1035,30 @@ own hash repaired, fails verification; the reviewer-name variants are refused; t
 **Verification:** 201 harness tests in four files (28 core, 18 integrity, 69 design, 86 sign-off); the full Windows suite, 694 tests, passes (55
 skipped for missing dependencies). Container and PostgreSQL suites remain to be run when Docker is intentionally available and before the release
 gate (last run for `38a48e6`: 669 and 356).
+
+### 20.10 Preparation for the golden tickets and the first draws (2026-10-15, after harness approval)
+
+The harness was approved at `c8dbb82`. Reviewer guidance then asked for the calibration golden tickets to be prepared and approved, and for the runbook's
+custody correction and a tested `create-freeze` command to be finished **before** the 50-ticket draw. Nothing has been drawn.
+
+| Item | State |
+|---|---|
+| **Draft golden tickets** | `docs/drafts/golden_tickets_DRAFT.json`: 18 synthetic incidents for the `poc_client` tenant, unique `golden-N` ids, 18 distinct opening-word types and 18 distinct hosts, `set: calibration`, **`approved_by` empty**. `data/golden_tickets.json` does not exist; the draw tooling does not read the draft. Tests check the draft is well-formed, has no approvals, and would load and serve both draws once approved by the two recorded reviewers |
+| **`approve-golden` command** | writes `data/golden_tickets.json` once, for the ticket ids the reviewers name explicitly (there is no "approve all"), with `approved_by` set to the two reviewers of the reviewer record. The asserted approvers must be exactly those two names, so it cannot approve in anyone else's name. It records an approval; it cannot make one. The reviewing is a human act and the names are added only afterwards |
+| **`create-freeze` command** | assembles and creates the complete experiment freeze from the case package, the recording, the adjudicated annotations and the two reviewers' own files. Everything else is taken from the recorded workflow, never typed: seed and selection records, planner freeze, reviewer record, earlier rounds' selections, the golden file, and the two files it generates (`config.json` from the derived seed and the planner freeze's entry points; the injection cases from the first four cases). The whole consistency check runs; any failure is reported and nothing is written; it is created once per round. Tested on a real world, including that the assembled freeze verifies and `run_once` runs it |
+| **Runbook custody correction** | `docs/PLANNER_EXPERIMENT_RUNBOOK.md` previously listed a developer running key-dependent steps "on the controlled machine". It now separates the **key holder** (owner or gated CI), the only party that runs `draw-experiment`, `build-cases`, `create-freeze` and `run-experiment`, from the **developer** (including an AI assistant), who never holds the key, never runs those commands and never sees the drawn tickets, case package, recording, annotations or results before the freeze. Reviewers receive the case package from the key holder and never the key |
+| **Still missing** | a command to capture the scripted tool recording for the 50 cases (library only: `scripted_env.capture_case`). It must run on the key holder's side because it processes the drawn tickets, and it should be added and tested before the draw is used. The container and PostgreSQL suites remain due before the release gate |
+
+**Finding about the test suite.** After the owner created the real experiment key on this machine, four tests failed: they assumed no key file exists
+and so were not independent of the machine. They now use a `no_key()` helper that clears the environment variable **and** points the key file at a
+location that does not exist, so no test depends on whether a real key is present. A test that asserted the repository holds no key file was wrong
+in the other direction (the key holder's machine should hold one); it now asserts what matters, that a key file, if present, is git-ignored, untracked and
+has never been committed (checked by git, without reading the file).
+
+**State on 2026-10-15:** the experiment key exists (`data/planner_experiment.key`, git-ignored, never read by the assistant); the reviewers are recorded
+(Vijay and Sara, 40 hours each, the minimum; 50 is preferred); golden tickets are drafted and awaiting the reviewers' approval. The key sits on the
+same machine the assistant works on, which the runbook's custody rules say a developer's machine should not hold; the owner should decide whether the
+real key should move to a separate key-holder machine before the 50-ticket draw.
+
+**Verification:** 223 harness tests in five files (28 core, 18 integrity, 69 design, 87 sign-off, 21 commands); the full Windows suite, 716 tests,
+passes (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.
