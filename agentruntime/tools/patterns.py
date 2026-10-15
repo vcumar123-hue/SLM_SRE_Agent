@@ -1,9 +1,9 @@
 """
 pattern_lookup: dominant causes and actions recorded for a classification (design 4.3).
 
-`get_pattern_intelligence` counts this tenant's records **and records with no tenant tag** (shared knowledge). The tenant argument is
-always the trusted tenant, never empty (an empty tenant would count everyone's). The result is flagged so a reader knows it can include
-shared, untagged records.
+`get_pattern_intelligence` by default also counts records with **no tenant tag** (shared or legacy data), which could expose another
+tenant's text. This tool therefore calls it with `strict_tenant=True`: only records tagged with exactly the trusted tenant are counted,
+and untagged records are excluded. The tenant is never empty.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def make_tool(intelligence: Optional[Callable[..., Optional[Dict[str, Any]]]] = 
             fn = knowledge_manager.get_pattern_intelligence
         from agentruntime.db_limits import statement_timeout
         with statement_timeout(timeout_s):
-            result = fn(classification, tenant_id=ctx.tenant_id)
+            result = fn(classification, tenant_id=ctx.tenant_id, strict_tenant=True)
         check_cancel(cancel)
         if not result:
             return [EvidenceDraft(
@@ -50,11 +50,10 @@ def make_tool(intelligence: Optional[Callable[..., Optional[Dict[str, Any]]]] = 
         causes = [clip(c, 120) for c in (result.get("dominant_root_causes") or [])[:MAX_LISTED]]
         actions = [clip(a, 120) for a in (result.get("dominant_actions") or [])[:MAX_LISTED]]
         return [EvidenceDraft(
-            tenant_id=ctx.tenant_id, source_type="pattern", source_id=classification, provenance="learned", ttl_days=TTL_DAYS,
+            tenant_id=ctx.tenant_id, source_type="pattern", source_id=classification, provenance="tenant_data", ttl_days=TTL_DAYS,
             excerpt=clip(result.get("insight") or f"Patterns for {classification}"),
             facts={"total_resolutions": int(result.get("total_resolutions") or 0), "candidate_count": int(result.get("candidate_count") or 0),
                    "dominant_root_causes": causes, "dominant_actions": actions,
-                   "pattern_confidence": clip(result.get("pattern_confidence"), 20), "recurrence_trend": clip(result.get("recurrence_trend"), 20),
-                   "includes_shared_untagged_records": True})]
+                   "pattern_confidence": clip(result.get("pattern_confidence"), 20), "recurrence_trend": clip(result.get("recurrence_trend"), 20)})]
 
     return pattern_lookup

@@ -102,6 +102,34 @@ class IncidentKbSearchTests(unittest.TestCase):
         with self.assertRaises(ToolInputError):
             reg.call(make_ctx("client_x"), "incident_kb_search", {"query": "x" * 301}, 5)
 
+    def test_an_endless_backend_result_is_cut_off_before_it_is_materialised(self):
+        pulled = []
+
+        def endless(**kw):
+            i = 0
+            while True:
+                pulled.append(i)
+                yield {"id": f"r{i}", "title": "t", "summary": "s", "score": 0.5, "knowledge_scope": "client_private", "tenant_id": kw["tenant_id"]}
+                i += 1
+
+        out = self.reg(endless).call(make_ctx("client_x"), "incident_kb_search", {"query": "disk full", "top_k": 3}, 5)
+        self.assertEqual(len(out), 3)
+        self.assertLessEqual(len(pulled), 4)                    # only what was needed (one extra pull at most), not the whole stream
+
+    def test_a_huge_list_is_not_walked_past_the_cap(self):
+        class Counting(list):
+            reads = 0
+
+            def __iter__(self):
+                for item in super().__iter__():
+                    Counting.reads += 1
+                    yield item
+
+        rows = Counting({"id": f"r{i}", "title": "t", "knowledge_scope": "client_private", "tenant_id": "client_x"} for i in range(10000))
+        out = kb_search.make_tool(lambda **kw: rows)(make_ctx("client_x"), "disk full", 2)
+        self.assertEqual(len(out), 2)
+        self.assertLessEqual(Counting.reads, 2)
+
     def test_long_text_is_clipped_and_scores_are_clamped(self):
         rows = {"client_x": [{"id": "1", "title": "t" * 900, "summary": "s" * 900, "score": 7.3, "knowledge_scope": "client_private"}]}
         out = self.reg(FakeRetrieve(rows)).call(make_ctx("client_x"), "incident_kb_search", {"query": "disk full"}, 5)
@@ -175,30 +203,70 @@ class OutcomeAndPatternTests(unittest.TestCase):
     def test_pattern_lookup_always_passes_the_trusted_tenant_and_flags_shared_records(self):
         calls = []
 
-        def intelligence(classification, tenant_id=None):
-            calls.append(tenant_id)
+        def intelligence(classification, tenant_id=None, strict_tenant=False):
+            calls.append((tenant_id, strict_tenant))
             return {"total_resolutions": 9, "candidate_count": 12, "dominant_root_causes": ["a", "b", "c", "d", "e"],
                     "dominant_actions": ["x"] * 9, "pattern_confidence": "high", "recurrence_trend": "stable", "insight": "disk issues"}
 
         reg = build_default_registry(self.ex, intelligence=intelligence)
         out = reg.call(make_ctx("client_y"), "pattern_lookup", {"classification": "disk_full"}, 5)
-        self.assertEqual(calls, ["client_y"])
+        self.assertEqual(calls, [("client_y", True)])           # strict: untagged records are never counted
         self.assertLessEqual(len(out[0].facts["dominant_root_causes"]), patterns.MAX_LISTED)
         self.assertLessEqual(len(out[0].facts["dominant_actions"]), patterns.MAX_LISTED)
-        self.assertTrue(out[0].facts["includes_shared_untagged_records"])
         self.assertEqual(len(out), 1)
 
     def test_pattern_absence_timeout_and_cancel(self):
-        reg = build_default_registry(self.ex, intelligence=lambda c, tenant_id=None: None)
+        reg = build_default_registry(self.ex, intelligence=lambda c, tenant_id=None, strict_tenant=False: None)
         out = reg.call(make_ctx("client_x"), "pattern_lookup", {"classification": "disk_full"}, 5)
         self.assertEqual(out[0].facts["total_resolutions"], 0)
         gate = threading.Event()
-        slow = build_default_registry(self.ex, intelligence=lambda c, tenant_id=None: gate.wait(10))
+        slow = build_default_registry(self.ex, intelligence=lambda c, tenant_id=None, strict_tenant=False: gate.wait(10))
         with self.assertRaises(ToolTimeout):
             slow.call(make_ctx("client_x"), "pattern_lookup", {"classification": "disk_full"}, 0.3)
         gate.set()
         with self.assertRaises(Cancelled):
-            patterns.make_tool(lambda c, tenant_id=None: None)(make_ctx("client_x"), "disk_full", cancel=cancelled_token())
+            patterns.make_tool(lambda c, tenant_id=None, strict_tenant=False: None)(make_ctx("client_x"), "disk_full", cancel=cancelled_token())
+
+
+class StrictPatternIntelligenceTests(unittest.TestCase):
+    """The real knowledge_manager function with strict_tenant: untagged and other-tenant records never count."""
+
+    def setUp(self):
+        import knowledge_manager as km
+        self.km = km
+        d = pathlib.Path(tempfile.mkdtemp())
+        rec = lambda tenant, cause: {"classification": "disk_full", "tenant_id": tenant, "root_cause": cause, "validated_actions": [f"fix-{cause}"]}
+        res = [rec("client_x", "mine"), rec("client_y", "THEIRS"), rec(None, "UNTAGGED"), rec("", "BLANK"), rec("   ", "SPACES")]
+        (d / "res.json").write_text(json.dumps(res), encoding="utf-8")
+        (d / "cand.json").write_text(json.dumps([rec(None, "UNTAGGED-CAND"), rec("client_y", "THEIRS-CAND")]), encoding="utf-8")
+        from unittest.mock import patch
+        self.patches = [patch.object(km, "RESOLUTIONS_FILE", d / "res.json"), patch.object(km, "KNOWLEDGE_CANDIDATES_FILE", d / "cand.json")]
+        for p in self.patches:
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_strict_counts_only_exactly_tagged_records(self):
+        out = self.km.get_pattern_intelligence("disk_full", tenant_id="client_x", strict_tenant=True)
+        self.assertEqual(out["total_resolutions"], 1)
+        self.assertEqual(out["candidate_count"], 0)
+        self.assertEqual(out["dominant_root_causes"], ["mine"])
+        text = json.dumps(out)
+        for leaked in ("THEIRS", "UNTAGGED", "BLANK", "SPACES"):
+            self.assertNotIn(leaked, text)
+
+    def test_strict_with_no_matching_records_or_no_tenant_returns_nothing(self):
+        self.assertIsNone(self.km.get_pattern_intelligence("disk_full", tenant_id="client_z", strict_tenant=True))
+        self.assertIsNone(self.km.get_pattern_intelligence("disk_full", tenant_id="", strict_tenant=True))
+
+    def test_the_tool_uses_strict_mode_end_to_end(self):
+        reg = build_default_registry(executor())
+        out = reg.call(make_ctx("client_x"), "pattern_lookup", {"classification": "disk_full"}, 5)
+        self.assertEqual(out[0].facts["total_resolutions"], 1)
+        self.assertNotIn("UNTAGGED", json.dumps(out[0].model_dump(mode="json")))
+
+    def test_the_default_behaviour_for_existing_callers_is_unchanged(self):
+        out = self.km.get_pattern_intelligence("disk_full", tenant_id="client_x")
+        self.assertGreater(out["total_resolutions"], 1)           # still includes untagged records, as before
 
 
 class EvidenceLookupTests(unittest.TestCase):
@@ -356,8 +424,23 @@ class StatementTimeoutPlumbingTests(unittest.TestCase):
     def test_timeout_is_bounded_by_the_call_time(self):
         self.assertIsNone(db_limits.timeout_ms_for(None))
         self.assertEqual(db_limits.timeout_ms_for(6.0), 5750)
-        self.assertEqual(db_limits.timeout_ms_for(0.1), db_limits.MIN_MS)       # never zero (zero means "no limit" in PostgreSQL)
         self.assertLess(db_limits.timeout_ms_for(6.0), 6000)
+
+    def test_timeout_never_reaches_the_time_left_and_is_never_zero(self):
+        for left in (0.002, 0.003, 0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0, 2.0, 45.0):
+            ms = db_limits.timeout_ms_for(left)
+            self.assertGreaterEqual(ms, 1, left)                        # zero would mean "no limit" in PostgreSQL
+            self.assertLess(ms, left * 1000, left)                      # strictly inside the remaining budget
+        self.assertEqual(db_limits.timeout_ms_for(0.1), 75)
+
+    def test_no_time_left_refuses_to_start_a_statement(self):
+        for left in (0, 0.0, 0.001, -1.0):
+            with self.assertRaises(db_limits.DeadlineExhausted):
+                db_limits.timeout_ms_for(left)
+        with self.assertRaises(db_limits.DeadlineExhausted):
+            with db_limits.statement_timeout(0):
+                pass
+        self.assertIsNone(db_limits.STATEMENT_TIMEOUT_MS.get())
 
     def test_registry_passes_the_call_time_to_tools_that_accept_it(self):
         got = {}

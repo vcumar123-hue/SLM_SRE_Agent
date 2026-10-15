@@ -745,7 +745,7 @@ Five tools, each a wrapper in its own module under `agentruntime/tools/`, regist
 | `incident_kb_search(query, top_k<=5)` | `retrieval_engine.retrieve_incidents` | tenant, `client_private` scope, search order and collection are fixed server-side and passed explicitly (retrieval's own default tenant is `client_a` and is never relied on); a private row of another tenant raises `BoundaryViolation` |
 | `ticket_history_lookup(host/service/text, days<=400)` | `client_ticket_records` | tenant is a bound SQL parameter; search terms are bound, wildcard-escaped `ILIKE` parameters; `LIMIT 8`; at least one filter required |
 | `outcome_lookup(classification)` | `resolution_outcome.summarize_outcomes` | strict tenant match in the ledger; an empty ledger returns an explicit "no recorded outcomes" item |
-| `pattern_lookup(classification)` | `knowledge_manager.get_pattern_intelligence` | always called with the trusted tenant; result is flagged `includes_shared_untagged_records` (see finding 2) |
+| `pattern_lookup(classification)` | `knowledge_manager.get_pattern_intelligence(..., strict_tenant=True)` | counts only records tagged with exactly the trusted tenant; untagged, blank and other-tenant records are excluded (section 19.1) |
 | `evidence_lookup(check)` | `data/evidence/tenants/<tenant>/<check>.json` | tenant partition only; absence is returned as an explicit item (see finding 1) |
 
 **Acceptance requirements from the R2-0 review, and how they are met**
@@ -754,7 +754,7 @@ Five tools, each a wrapper in its own module under `agentruntime/tools/`, regist
 |---|---|
 | Cancellation | every tool calls `check_cancel(cancel)` between steps; the registry passes its `CancelToken`; tests cancel before any backend work |
 | Statement timeouts | `db_limits.statement_timeout(timeout_s)` sets a context variable; `postgres_store.get_connection` then connects with `-c statement_timeout=<ms>`, so retrieval, outcome and ticket queries made on the tool's behalf are cancelled by the server. A test confirms a `pg_sleep(5)` is cut off in under 2.5 s and that connections opened outside the block have no limit |
-| Bounded by the remaining deadline | the registry passes the call's `timeout_s` (the runner already clamps it to the remaining run time); the statement timeout is that value minus 0.25 s, never below 100 ms and never zero (zero means "no limit" in PostgreSQL) |
+| Bounded by the remaining deadline | the registry passes the call's `timeout_s` (the runner already clamps it to the remaining run time); the statement timeout is that value minus a margin of min(250 ms, 25% of the time left), so it is always strictly inside the remaining budget and at least 1 ms (zero would mean "no limit" in PostgreSQL); with under 2 ms left the tool raises `DeadlineExhausted` instead of starting a statement |
 | No unmanaged threads | a structural test fails if any module other than `executor.py` creates threads or pools |
 | Tenant only from the trusted context | model arguments `tenant_id`, `knowledge_scope`, `collection_name`, `search_order`, `timeout_s` and `cancel` are rejected by schema; a structural test fails if a tool reads a default tenant |
 | Two-tenant, timeout, cancellation and bounded-result tests per tool | `tests/test_agentruntime_tools.py`; the SQL tool is also tested against a real PostgreSQL |
@@ -765,9 +765,19 @@ A structural test also limits which modules may import retrieval, database, outc
 
 1. **The Safety Gate evidence store is not partitioned by tenant.** `data/evidence/<check>.json` holds one file per check for all tenants, so
    the existing gate can use one client's evidence for another. `evidence_lookup` therefore never reads it; it reads only a tenant partition
-   that does not exist yet and returns "no tenant-scoped evidence" until one is written. Partitioning the gate's own store is a separate change.
-2. **`get_pattern_intelligence` counts records with no tenant tag for every tenant** (shared knowledge). The tool passes the trusted tenant and
-   labels the result, but the counts can include shared records. Tightening this belongs to the knowledge layer, not to Release 2.
+   that does not exist yet and returns "no tenant-scoped evidence" until one is written. This does not block the wrapper, but the gate's own
+   store must be partitioned **before any tenant enters `shadow` or `on`**.
+2. **`get_pattern_intelligence` counts records with no tenant tag for every tenant** by default. Fixed for Release 2 in section 19.1.
 
-**Verification:** 39 tool tests (5 live-PostgreSQL cases); runtime and tool suites 172 tests pass against a throwaway PostgreSQL; full suite 485 pass (55 skipped in the Windows venv, 24 in the container).
+### 19.1 Review fixes (2026-10-14, first R2-1 review)
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | **P1: untagged records could expose another tenant's data.** `pattern_lookup` called the knowledge function in its default mode, which also counts records with no tenant tag, and returned their causes and actions as this tenant's | `get_pattern_intelligence` gained `strict_tenant` (default off, so existing callers are unchanged). In strict mode only records tagged with exactly the tenant count; untagged, blank, whitespace-only and other-tenant tags are excluded, and an empty tenant returns nothing. The tool always passes `strict_tenant=True`, and the result is labelled `tenant_data`. Tests run the real function over a mixed file (own, other tenant, untagged, blank, spaces; resolutions and candidates) and confirm none of the foreign text appears |
+| 2 | **P1: the KB result cap was applied after the whole result was materialised** (`list(rows)[:limit]`) | rows are taken with `itertools.islice` over the backend's iterator, so at most `limit` are read and an endless generator or a very large list is never walked; cancellation is checked per row. Tests use an endless generator and a 10,000-row list that counts reads |
+| 3 | **P2: the 100 ms minimum statement timeout could exceed the remaining budget** | no fixed minimum; see the rule in the table above. Tests check every budget from 2 ms to 45 s stays strictly below the time left and at least 1 ms, and that 0 or negative time raises `DeadlineExhausted` |
+
+The reviewer also noted the legacy Safety Gate store must be partitioned before `shadow` or `on`; that is recorded as a precondition in finding 1.
+
+**Verification:** 47 tool tests (5 skipped without PostgreSQL); runtime and tool suites 180 tests pass against a throwaway PostgreSQL; full suite 493 pass (55 skipped in the Windows venv, 24 in the container).
 **P2 documentation fix:** the executor bound is now stated as stuck threads <= `max_abandoned + max_leaked` and live threads per executor <= `max_workers + max_leaked`, in both the code and section 11.

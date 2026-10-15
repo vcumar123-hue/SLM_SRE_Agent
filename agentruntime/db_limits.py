@@ -12,15 +12,27 @@ from contextvars import ContextVar
 from typing import Iterator, Optional
 
 STATEMENT_TIMEOUT_MS: ContextVar[Optional[int]] = ContextVar("agent_statement_timeout_ms", default=None)
-MARGIN_S = 0.25          # leave room for the wrapper to return before the caller's own timeout fires
-MIN_MS = 100
+MARGIN_MS = 250          # leave room for the wrapper to return before the caller's own timeout fires
+MARGIN_FRACTION = 0.25   # ...but never more than this share of a very short budget
+
+
+class DeadlineExhausted(TimeoutError):
+    """No time is left for a database statement."""
 
 
 def timeout_ms_for(timeout_s: Optional[float]) -> Optional[int]:
-    """The statement timeout, in milliseconds, for a call that has `timeout_s` seconds left (None means no limit was given)."""
+    """The statement timeout, in milliseconds, for a call that has `timeout_s` seconds left (None means no limit was given).
+
+    Always strictly less than the time left, and at least 1 ms (0 means "no limit" in PostgreSQL). With no time left it raises
+    DeadlineExhausted rather than start a statement that cannot finish.
+    """
     if timeout_s is None:
         return None
-    return max(MIN_MS, int((float(timeout_s) - MARGIN_S) * 1000))
+    total_ms = float(timeout_s) * 1000.0
+    if total_ms < 2.0:
+        raise DeadlineExhausted(f"{timeout_s:.3f}s left: too little time to run a statement")
+    margin = min(MARGIN_MS, total_ms * MARGIN_FRACTION)
+    return max(1, int(total_ms - margin))
 
 
 @contextlib.contextmanager

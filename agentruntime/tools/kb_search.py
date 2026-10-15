@@ -7,6 +7,7 @@ nothing may rely on it). Every returned row is checked: a tenant-private row for
 """
 from __future__ import annotations
 
+import itertools
 from typing import Any, Callable, Dict, List, Optional
 
 from agentruntime.context import TrustedContext
@@ -60,7 +61,9 @@ def make_tool(retrieve: Optional[Callable[..., List[Dict[str, Any]]]] = None) ->
                       tenant_id=ctx.tenant_id, knowledge_scope=ctx.knowledge_scopes[0], search_order=None, collection_name=None)
         check_cancel(cancel)
         drafts: List[EvidenceDraft] = []
-        for row in list(rows or [])[:limit]:
+        # take at most `limit` rows from whatever the backend returned, without ever materialising the rest (it may be a generator)
+        for row in itertools.islice(iter(rows or ()), limit):
+            check_cancel(cancel)
             provenance = _provenance(row, ctx.tenant_id)
             row_tenant = str(row.get("tenant_id") or "")
             if provenance == "tenant_data" and row_tenant and row_tenant != ctx.tenant_id:

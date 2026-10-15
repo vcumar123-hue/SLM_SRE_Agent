@@ -834,12 +834,15 @@ def review_playbook(
     raise ValueError(f"Playbook not found: {playbook_id}")
 
 
-def get_pattern_intelligence(classification: str, tenant_id: str = "default") -> Optional[Dict[str, Any]]:
+def get_pattern_intelligence(classification: str, tenant_id: str = "default", strict_tenant: bool = False) -> Optional[Dict[str, Any]]:
     """Aggregate pattern intelligence for a classification from resolutions and candidates.
 
     Returns a dict with dominant root causes, dominant actions, recurrence trend,
     pattern confidence, and a one-line insight. Returns None when no history exists.
     Read-only. No LLM call. No writes.
+
+    `strict_tenant=True` counts only records tagged with exactly this tenant: records with no tenant tag (shared or legacy data) are
+    excluded, and an empty tenant returns None. The default keeps the earlier behaviour for existing callers.
     """
     from collections import Counter
     cls_key = _classification_key(classification)
@@ -847,13 +850,21 @@ def get_pattern_intelligence(classification: str, tenant_id: str = "default") ->
         return None
 
     tid_key = _normalize_tenant(tenant_id) if tenant_id else None
+    if strict_tenant and not tid_key:
+        return None
+
+    def _tenant_ok(record: Dict[str, Any]) -> bool:
+        tagged = record.get("tenant_id")
+        if strict_tenant:
+            return isinstance(tagged, str) and bool(tagged.strip()) and _normalize_tenant(tagged) == tid_key
+        return tid_key is None or not tagged or _normalize_tenant(tagged) == tid_key
 
     # ── Resolutions ───────────────────────────────────────────────────────────
     all_resolutions = _load_list(RESOLUTIONS_FILE)
     resolutions = [
         r for r in all_resolutions
         if _classification_key(r.get("classification")) == cls_key
-        and (tid_key is None or not r.get("tenant_id") or _normalize_tenant(r.get("tenant_id")) == tid_key)
+        and _tenant_ok(r)
     ]
 
     # ── Candidates ────────────────────────────────────────────────────────────
@@ -861,7 +872,7 @@ def get_pattern_intelligence(classification: str, tenant_id: str = "default") ->
     candidates = [
         c for c in all_candidates
         if _classification_key(c.get("classification")) == cls_key
-        and (tid_key is None or not c.get("tenant_id") or _normalize_tenant(c.get("tenant_id")) == tid_key)
+        and _tenant_ok(c)
     ]
 
     total_resolutions = len(resolutions)
