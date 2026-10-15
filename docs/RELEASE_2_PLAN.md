@@ -1,8 +1,9 @@
 # Release 2 — Bounded Investigation Agent (plan, revision 2)
 
-**Status:** revision 2 after owner review. **Conditionally approved for R2-0 design work and the planner experiment. Not approved for
-R2-2 runtime integration** until the five artifacts in `docs/RELEASE_2_DESIGN.md` (A trusted context and tool boundary, B evidence schema,
-C budgets and failure states, D shadow lifecycle, E pre-registered evaluation) are accepted. Nothing in this document is built yet.
+**Status:** revision 3 after the second owner review. **Artifacts A–D (trusted context and tool boundary, evidence, budgets and failure
+states, shadow lifecycle) are approved for R2-0 foundation work and the planner experiment** (the experiment proceeds once its annotations and
+decision rule are frozen). **Artifact E (pre-registered evaluation) was corrected in this revision and awaits re-review. R2-2 runtime
+integration remains unapproved** until E is accepted and the owner decisions in section 5 are recorded. Nothing here is built yet.
 **Branch:** continues on `agentic-v2` (Release 1 is tagged `release-1`).
 **Detail:** `docs/RELEASE_2_DESIGN.md` is the engineering design; this plan keeps scope, phases and decisions. `docs/AGENTIC_DESIGN.md`
 remains the long-range reference.
@@ -36,13 +37,13 @@ Since then:
 | **R2-0 Foundations** | `agentruntime/` contracts, `TrustedContext`, tool registry, runner with enforced budgets, sanitising, evidence store, run tables | contract, boundary and runner tests pass; a stub run persists and replays |
 | **R2-1 Read-only tools** | `incident_kb_search`, `ticket_history_lookup`, `outcome_lookup`, `pattern_lookup`, `evidence_lookup` as tenant-bound wrappers returning verified evidence objects | each tool passes two-tenant isolation, cap and injection tests |
 | **R2-2 Investigation loop, shadow** | loop inside the RCA step behind `AIOPS_AGENTIC_RCA_LOOP=off\|shadow\|on` (default off). Shadow runs are queued after the response and **never awaited**; they do not change the answer | batch and shadow runs finish inside budget; zero safety violations; flag `off` unchanged |
-| **R2-3 Evaluation and promotion** | labelling, calibration, then **one** acceptance run against gates frozen in advance | gates G1–G8 reported with confidence intervals |
+| **R2-3 Evaluation and promotion** | labelling, calibration, then **one** acceptance run against a protocol frozen **before any acceptance ticket is seen** | gates G1–G8 reported with confidence intervals under the scoring rules |
 | **R2-4 Investigation view** | `investigation` block in the response and an operator panel; per-tenant `on` for one pilot tenant if R2-3 passes | operator sees steps, evidence and why it concluded or escalated |
 
 **Flow:** deterministic initial RCA → engagement decision → optional bounded investigation → reconciliation → central confidence
 recalculation → shared finalization → answer or escalation. The loop **augments** the deterministic path and replaces the one-shot Groq
 fallback **only when it returns `supported` and reconciliation accepts it**; otherwise the existing path, including the Groq fallback,
-runs as today. On a classification conflict the deterministic result is kept, `escalate` is set and both are shown.
+runs as today. On a classification conflict the deterministic classification is **always** kept, the loop's alternative is attached, `escalate=true` is set and an operator resolves it. There is **no automatic override in Release 2**; conflicts and their resolutions are logged so a later release can decide on evidence.
 
 **Engage when (any):** confidence below `CONFIDENCE_THRESHOLD`, retrieval quality below `MIN_RETRIEVAL_SCORE`, no reusable knowledge,
 conflicting evidence, or high impact with an uncertain cause.
@@ -61,11 +62,20 @@ accepted. The agent never reports confidence.
   tickets are kept in one set. Held-out tickets and their duplicates are **removed from the retrieval index** during evaluation.
 - **Ground truth by reviewers.** Two independent reviewers on all acceptance tickets, owner adjudicates, Cohen's kappa at least 0.6 on a
   calibration subset before labelling continues. Labels: classification, root cause, and *determinable / not determinable / indeterminate*.
-- **Gates, frozen and hashed before the acceptance set is labelled (all must pass):** evidence-grounded rate +10 points with lower interval
-  bound above +3; unsupported-cause rate within +2 points (interval upper bound at most +5); classification non-inferior within −3 points;
-  schema-valid results at least 98% and failures plus timeouts at most 5%; p95 latency at most 45 s and median at most 25 s; escalation
-  recall at least 70% and precision at least 80%; zero cross-tenant leakage, egress violations, successful injections (of at least 20
-  cases) and boundary violations; replay identical for at least 99% of runs. All with 95% paired bootstrap intervals.
+- **Freeze rule.** The gates, rubric, composition and the list of acceptance ticket ids, analysis code, runner and exact configuration are
+  committed and hashed **before anyone sees or labels any acceptance ticket** (freeze record, design 13.9). Nothing changes after that.
+- **Scoring.** Every eligible acceptance ticket stays in the denominators. Failures, timeouts, invalid output and unsupported completions
+  count as unsuccessful for the grounding and escalation gates and cannot improve any numerator; only tickets the reviewers label
+  *indeterminate* may be excluded, capped at 15% of the set. Infrastructure failures (and only those) may be re-run twice under a
+  predeclared rule with the configuration unchanged. Semantic review is **blinded and randomised** (baseline and candidate in one anonymised
+  layout, with a blinding check before the freeze), and labels are made before reviewers see any system output.
+- **Gates (all must pass):** evidence-grounded rate +10 points with lower interval bound above +3; unsupported-cause rate within +2 points
+  (interval upper bound at most +5); classification non-inferior within −3 points; schema-valid results at least 98% and failures plus
+  timeouts at most 5%; p95 latency at most 45 s and median at most 25 s; escalation recall at least 70% and precision at least 80%; zero
+  cross-tenant leakage, egress violations, successful injections (of at least 20 cases) and boundary violations; **record/replay integrity
+  100%** for valid, version-matched records. All with 95% paired bootstrap intervals.
+- **Live repeatability** (not a gate): 30 calibration tickets run 5 times each, reporting how often the tool sequence, final status and
+  cause set are identical.
 - **A failed attempt burns the acceptance set.** It is analysed on calibration data and a new acceptance set is drawn before retrying.
 - **Also reported:** tool calls, tokens and cost, unnecessary external calls, human override rate, and recurrence after recommendations
   (not measurable until outcomes exist).
@@ -78,10 +88,12 @@ accepted. The agent never reports confidence.
 4. **Ground truth and reviewers.** Reviewer labels; **who the two reviewers are, and the capacity for about 160 labelled tickets, is open.**
 5. **Tools without a source.** CMDB and change lookups stay out until PYPL sends the data.
 6. **Forecasting.** Out of scope; revisit after the shadow results.
-7. **Merge timing.** `agentic-v2` merges to `main` after R2-2 passes.
+7. **Merge timing.** *Owner to confirm it is intentional that `agentic-v2` merges to `main` after R2-2 and before promotion.* Recommendation: yes, because the loop is inert at its default `off`, tests assert responses identical to today at `off`, and enabling it for a tenant is a separate decision after R2-3. The alternative is to merge after R2-3.
 8. **Stored run data.** Sanitised evidence objects only, tenant-keyed, 90-day default retention, never sent externally. *Open: encryption
    level (host disk encryption, optional column encryption).*
-9. **Gate values** in section 4 are proposed; the owner approves or amends them before they are hashed.
+9. **Gate values** in section 4 are proposed; the owner approves or amends them before they are hashed, and before any acceptance ticket is seen.
+10. **Classification conflicts:** *resolved* as above (conservative, operator resolves, no automatic override).
+11. **Planner-model policy:** *owner to confirm* (local first; external planner only for a tenant whose egress policy allows it).
 
 ## 6. Risks
 | Risk | Mitigation |
