@@ -30,7 +30,8 @@ def make_tickets(n: int = 400) -> List[Dict[str, Any]]:
     out = []
     for pool in ("client_c", "client_a"):
         for i in range(n):
-            out.append({"pool": pool, "tenant_id": pool, "ticket_id": f"{pool}-{i}", "text": f"{KINDS[i % len(KINDS)]} problem reported on host{i}",
+            wording = "problem reported on" if pool == "client_c" else "fault noted against"             # the two pools never share a text
+            out.append({"pool": pool, "tenant_id": pool, "ticket_id": f"{pool}-{i}", "text": f"{KINDS[i % len(KINDS)]} {wording} host{i}",
                         "host": f"host{i}", "opened_at": f"2026-0{1 + i % 6}-10 08:00:00"})
     return out
 

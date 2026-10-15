@@ -44,7 +44,9 @@ class FreezeError(Exception):
 
 
 def sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
+    """SHA-256 of the bytes with CRLF read as LF, so the same files hash the same on a Windows (CRLF) and a Linux (LF) checkout; a freeze
+    made on one machine verifies on another. Any other change to the content still changes the hash."""
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def code_files(root: Path = ROOT) -> Dict[str, Path]:

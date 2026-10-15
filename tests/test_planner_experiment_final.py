@@ -92,7 +92,7 @@ class RunOnceAtomicityTests(unittest.TestCase):
         calls = {"n": 0}
         lock = threading.Lock()
 
-        def fake(inputs, planners, ctx_factory, claim=None, drawn_base=None):
+        def fake(inputs, planners, ctx_factory, claim=None):
             with lock:
                 calls["n"] += 1
             threading.Event().wait(delay)
@@ -177,6 +177,9 @@ class NoUnclaimedPathTests(unittest.TestCase):
         self.w = build_world()
         self.w.freeze()
         self.results = self.w.dir / "results"
+        point = patch.object(exp_mod, "_DRAWN_BASE", self.w.base)          # tests point the (module-private) guard at their own draws
+        point.start()
+        self.addCleanup(point.stop)
 
     def spy_runs(self):
         """Patch Runner.run_batch to record, at each executed case, whether the claim file already existed."""
@@ -240,7 +243,7 @@ class NoUnclaimedPathTests(unittest.TestCase):
     def test_the_unfrozen_route_refuses_the_drawn_cases_by_id(self):
         patcher, seen = self.spy_runs()
         with patcher, self.assertRaisesRegex(ExperimentInputError, "drawn into a planner-experiment set"):
-            exp_mod.run_experiment_unfrozen(*self.unfrozen_args(self.w.cases), seed=1, drawn_base=self.w.base)
+            exp_mod.run_experiment_unfrozen(*self.unfrozen_args(self.w.cases), seed=1)
         self.assertEqual(seen, [])
 
     def test_renaming_the_cases_does_not_get_around_it_the_content_hash_matches(self):
@@ -254,7 +257,7 @@ class NoUnclaimedPathTests(unittest.TestCase):
                      for i, a in enumerate(ann_mod.parse(self.w.read("annotations")))}
             args = list(self.unfrozen_args(renamed, rec))
             args[1] = notes
-            exp_mod.run_experiment_unfrozen(*args, seed=1, drawn_base=self.w.base)
+            exp_mod.run_experiment_unfrozen(*args, seed=1)
         self.assertEqual(seen, [])
 
     def test_calling_the_engine_directly_on_unfrozen_inputs_holding_drawn_cases_is_refused_too(self):
@@ -264,14 +267,14 @@ class NoUnclaimedPathTests(unittest.TestCase):
             cases=self.w.cases, annotations={a.case_id: a for a in ann_mod.parse(self.w.read("annotations"))},
             recording=Recording(self.w.read("recording")), injection_cases=[], budgets=exp_mod.Budgets(), seed=1, strict=False, frozen=False)
         with self.assertRaisesRegex(ExperimentInputError, "drawn into a planner-experiment set"):
-            exp_mod._execute(inputs, {m: object for m in exp_mod.MODES}, None, None, self.w.base)
+            exp_mod._execute(inputs, {m: object for m in exp_mod.MODES}, None, None)
 
     def test_a_claim_cannot_be_given_to_unfrozen_inputs(self):
         cases, notes, rec, _f, _c, _i = self.unfrozen_args([{"case_id": "x1", "tenant_id": "t", "ticket_text": "disk full"}])
         inputs = exp_mod.ExperimentInputs(cases=cases, annotations={}, recording=rec, injection_cases=[], budgets=exp_mod.Budgets(), seed=1,
                                           strict=False, frozen=False)
         with self.assertRaisesRegex(ExperimentInputError, "belongs to frozen inputs"):
-            exp_mod._execute(inputs, {}, None, exp_mod._RunClaim(exp_mod._CLAIM_KEY, "a"), self.w.base)
+            exp_mod._execute(inputs, {}, None, exp_mod._RunClaim(exp_mod._CLAIM_KEY, "a"))
 
     def test_cases_that_were_not_drawn_still_run_unfrozen_for_the_harness_self_tests(self):
         from tests.test_planner_experiment import annotation, drafts_for
@@ -286,7 +289,7 @@ class NoUnclaimedPathTests(unittest.TestCase):
             rec.add(c["case_id"], "incident_kb_search", {"query": c["ticket_text"], "top_k": 5}, drafts_for("t", ("incident", "I1", "disk full")))
         out = exp_mod.run_experiment_unfrozen(cases, {c["case_id"]: annotation(c["case_id"]) for c in cases}, rec,
                                               {m: GoodPlanner for m in exp_mod.MODES}, ctx_for,
-                                              injection.build_injection_cases([c["case_id"] for c in cases]), seed=1, drawn_base=self.w.base)
+                                              injection.build_injection_cases([c["case_id"] for c in cases]), seed=1)
         self.assertTrue(out["not_a_result"])
         self.assertFalse(out["claimed"])
 
@@ -295,6 +298,142 @@ class NoUnclaimedPathTests(unittest.TestCase):
         self.assertIn("run_once", text)
         for forbidden in ("run_experiment_unfrozen", "_execute", "_load_frozen_inputs"):
             self.assertNotIn(forbidden, text)
+
+
+class DrawnCaseProtectionBypassTests(unittest.TestCase):
+    """The self-test route must not be able to execute a drawn experiment ticket: not by moving the guard, and not by disguising the case."""
+
+    def setUp(self):
+        self.w = build_world()
+        point = patch.object(exp_mod, "_DRAWN_BASE", self.w.base)
+        point.start()
+        self.addCleanup(point.stop)
+        self.drawn = self.w.cases[0]
+
+    def run_unfrozen(self, cases, **kw):
+        from planner_experiment import injection
+        from planner_experiment.scripted_env import Recording
+        from tests.pe_fake_planners import GoodPlanner
+        from tests.test_planner_experiment import annotation, ctx_for, drafts_for
+
+        rec = Recording()
+        for c in cases:
+            rec.add(c["case_id"], "incident_kb_search", {"query": c["ticket_text"], "top_k": 5}, drafts_for(c["tenant_id"], ("incident", "I1", "disk full")))
+        patcher_calls = []
+        original = exp_mod.Runner.run_batch
+
+        def spy(runner, *a, **k):
+            patcher_calls.append(1)
+            return original(runner, *a, **k)
+
+        with patch.object(exp_mod.Runner, "run_batch", spy):
+            try:
+                exp_mod.run_experiment_unfrozen(cases, {c["case_id"]: annotation(c["case_id"]) for c in cases}, rec, {m: GoodPlanner for m in exp_mod.MODES},
+                                                ctx_for, injection.build_injection_cases([c["case_id"] for c in cases]), seed=1, **kw)
+            except ExperimentInputError as exc:
+                return "refused", len(patcher_calls), str(exc)
+        return "ran", len(patcher_calls), ""
+
+    def minimal(self, text, case_id="x1"):
+        return {"case_id": case_id, "tenant_id": self.drawn["tenant_id"], "ticket_text": text}
+
+    # variant 1: moving the guard
+    def test_the_guard_location_is_not_a_parameter(self):
+        self.assertNotIn("drawn_base", inspect.signature(exp_mod.run_experiment_unfrozen).parameters)
+        self.assertNotIn("drawn_base", inspect.signature(exp_mod._execute).parameters)
+        with self.assertRaises(TypeError):
+            exp_mod.run_experiment_unfrozen([], {}, None, {}, None, [], 1, drawn_base=pathlib.Path(tempfile.mkdtemp()))
+
+    def test_an_empty_or_foreign_folder_cannot_be_substituted_by_the_caller(self):
+        empty = pathlib.Path(tempfile.mkdtemp())
+        outcome = self.run_unfrozen([dict(self.drawn)])
+        self.assertEqual(outcome[:2], ("refused", 0))
+        self.assertEqual(sorted(empty.iterdir()), [])                       # nothing a caller creates changes where the guard looks
+
+    def test_the_default_location_is_the_repositorys_recorded_draws(self):
+        with patch.object(exp_mod, "_DRAWN_BASE", None):
+            self.assertEqual(exp_mod._drawn_base(), steps.BASE)
+
+    # variant 2: disguising the case
+    def test_dropping_every_identifying_field_does_not_hide_a_drawn_ticket(self):
+        self.assertEqual(self.run_unfrozen([self.minimal(self.drawn["ticket_text"])])[:2], ("refused", 0))
+
+    def test_re_casing_spacing_punctuation_and_small_edits_do_not_hide_it(self):
+        text = self.drawn["ticket_text"]
+        words = text.split()
+        disguises = [text.upper(), "  " + text.replace(" ", "   ") + "  ", text + " .", text + "!!", text.replace(" ", ", "),
+                     text + " urgent", "urgent " + text, " ".join(words[:-1])]            # +/- one word on a five-word ticket
+        for variant in disguises:
+            outcome = self.run_unfrozen([self.minimal(variant)])
+            self.assertEqual(outcome[:2], ("refused", 0), variant)
+
+    def test_development_and_other_templated_tickets_are_not_wrongly_refused(self):
+        dev = json.loads(steps.paths(self.w.base)["development"].read_text(encoding="utf-8"))["cases"]
+        by_key = {(t["pool"], t["ticket_id"]): t for t in self.w.tickets}
+        self.assertEqual(len(dev), 10)
+        for d in dev:
+            ticket = by_key[(d["pool"], d["ticket_id"])]
+            outcome = self.run_unfrozen([{"case_id": "dev-" + d["ticket_id"], "tenant_id": ticket["tenant_id"], "ticket_text": ticket["text"]}])
+            self.assertEqual(outcome[0], "ran", (d["case_id"], outcome))
+        drawn_ids = {c["ticket_id"] for c in self.w.cases}
+        drawn_texts = {c["ticket_text"] for c in self.w.cases}              # (the synthetic pools repeat texts: only genuinely different tickets)
+        others = [t for t in self.w.tickets if t["pool"] == "client_c" and t["ticket_id"] not in drawn_ids and t["text"] not in drawn_texts][:30]
+        self.assertGreater(len(others), 10)
+        for t in others:
+            self.assertEqual(self.run_unfrozen([{"case_id": "o-" + t["ticket_id"], "tenant_id": t["tenant_id"], "ticket_text": t["text"]}])[0], "ran", t["text"])
+
+    def test_the_id_pair_and_hash_routes_still_match_on_their_own(self):
+        keep = {k: self.drawn[k] for k in ("pool", "ticket_id")}
+        self.assertEqual(self.run_unfrozen([{**self.minimal("completely different words about printers", "y1"), **keep}])[:2], ("refused", 0))
+        self.assertEqual(self.run_unfrozen([{**self.drawn, "case_id": "renamed"}])[:2], ("refused", 0))
+
+    def test_each_of_the_fifty_drawn_tickets_is_recognised_from_its_text_alone(self):
+        for c in self.w.cases:
+            self.assertEqual(self.run_unfrozen([self.minimal(c["ticket_text"])])[:2], ("refused", 0), c["case_id"])
+
+    def test_unrelated_tickets_still_run(self):
+        outcome = self.run_unfrozen([self.minimal("tape library offline after firmware update on the backup server", "z1")])
+        self.assertEqual(outcome[0], "ran")
+        self.assertGreater(outcome[1], 0)
+
+    def test_the_recorded_draw_stores_hashes_and_sketches_never_text(self):
+        selection = json.loads(steps.round_paths(self.w.base, 1)["selection"].read_text(encoding="utf-8"))
+        texts = [c["ticket_text"] for c in self.w.cases]
+        raw = json.dumps(selection)
+        for text in texts:
+            self.assertNotIn(text, raw)
+        for entry in selection["cases"]:
+            self.assertTrue(entry["text_sketch"] and all(isinstance(h, int) for h in entry["text_sketch"]))
+            self.assertLessEqual(len(entry["text_sketch"]), 32)
+
+    def test_sketch_similarity_behaves(self):
+        from planner_experiment import select_cases as sc
+        a = sc.text_sketch("disk full on the database host at midnight")
+        self.assertEqual(sc.sketch_similarity(a, a), 1.0)
+        self.assertEqual(sc.sketch_similarity(a, sc.text_sketch("DISK FULL on the database HOST at midnight!")), 1.0)
+        self.assertLess(sc.sketch_similarity(sc.text_sketch("disk full on sapdb01"), sc.text_sketch("disk full on sapdb02")), 0.7)   # other host: distinct
+        self.assertLess(sc.sketch_similarity(a, sc.text_sketch("tape library offline after firmware update")), 0.2)
+        self.assertEqual(sc.sketch_similarity([], a), 0.0)
+
+
+class LineEndingTests(unittest.TestCase):
+    """A freeze made on a CRLF checkout must verify on an LF checkout and the other way round (git converts line endings)."""
+
+    def test_hash_ignores_line_endings_but_not_content(self):
+        self.assertEqual(freeze.sha256_bytes(b"a\r\nb\r\n"), freeze.sha256_bytes(b"a\nb\n"))
+        self.assertNotEqual(freeze.sha256_bytes(b"a\nb\n"), freeze.sha256_bytes(b"a\nc\n"))
+        self.assertNotEqual(freeze.sha256_bytes(b"a\n"), freeze.sha256_bytes(b"a \n"))
+
+    def test_a_frozen_file_rewritten_with_the_other_line_endings_still_verifies(self):
+        w = build_world()
+        record = w.freeze()
+        target = w.files["config"]
+        raw = target.read_bytes()
+        target.write_bytes(raw.replace(b"\n", b"\r\n") if b"\r\n" not in raw else raw.replace(b"\r\n", b"\n"))
+        freeze.read_frozen(record, "config")                                   # no error
+        target.write_bytes(raw + b" ")
+        with self.assertRaises(FreezeError):
+            freeze.read_frozen(record, "config")                               # a real change is still caught
 
 
 class ReviewerCapacityTests(unittest.TestCase):

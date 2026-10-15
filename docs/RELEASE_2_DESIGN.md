@@ -900,3 +900,29 @@ unfrozen route; the first execution of the frozen cases is the run of record. If
 freeze (revised planners, fresh set) or a recorded owner decision.
 
 **Verification:** 144 harness tests in four files (28 core, 18 integrity, 69 design, 29 sign-off); full suite 637 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 324 tests, pass against a throwaway PostgreSQL.
+
+### 20.5 Fifth review (2026-10-15): bypasses of the drawn-case protection in the self-test route
+
+**P1: a caller could bypass the drawn-case protection.** The review text for the two variants was collapsed when it reached me (only the title
+and the location, `experiment.py` 285-316, were visible), so these are the two I identified in that code; the follow-up review should confirm
+they are the ones meant.
+
+| Variant | Fix |
+|---|---|
+| 1. **Moving the guard.** `run_experiment_unfrozen(..., drawn_base=...)` let the caller say where the recorded draws are, so an empty or other folder switched the protection off | `drawn_base` is gone from the public function and from the engine. The location is a module-private value (the repository's recorded draws) that a caller cannot pass; tests that need another location patch the private value, and a test confirms the parameter does not exist and a caller supplying it gets a `TypeError` |
+| 2. **Disguising the case.** The check matched by case id, and by content hash only if the case carried a `ticket_id`; a case with only an id, tenant and text, or a renamed one, matched nothing | A case is now refused if **any** of these holds: its case id; its pool and ticket id; its content hash; or a **text similarity of at least 0.7** to a drawn ticket. The last needs none of the other fields. The recorded draw stores, per ticket, a bottom-k sketch (32 hashes of lower-cased words and word pairs) so the text is recognised without being stored; a test checks no draw file contains ticket text. Case, spacing, punctuation, missing fields, renaming, and adding or dropping a word or two are all caught |
+
+**Honest limits.** The guard stops the harness being used, by mistake or by a lazy disguise, to run planners on the drawn tickets before the run of
+record. It cannot stop someone who holds a ticket's text from rewording it heavily or from calling the runner directly with their own code, and a
+reworded ticket is a different ticket. The control that matters is that no result of record exists except through the claim.
+**False positives were checked, because they cost real work:** my first version normalised host names and numbers before comparing, which made every
+ticket of the same template identical and would have refused the development subset. The final version keeps host names and numbers, so
+same-template tickets on other hosts stay distinct; tests run all ten development tickets and thirty other templated tickets and confirm they run.
+Two similar-but-different tickets on a five-word template can sit near the threshold, so very short, highly templated real tickets deserve a look
+when the real development subset is drawn.
+
+**Found on the way: line endings.** Hashing raw bytes meant a freeze made on a CRLF (Windows) checkout would not verify on an LF (Linux) one, and git
+converts line endings. `sha256_bytes` now reads CRLF as LF before hashing, so one freeze verifies on both; any other change still changes the hash.
+Seeded draws were checked to be identical on Windows and Linux.
+
+**Verification:** 157 harness tests in four files (28 core, 18 integrity, 69 design, 42 sign-off); full suite 650 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 337 tests, pass against a throwaway PostgreSQL.

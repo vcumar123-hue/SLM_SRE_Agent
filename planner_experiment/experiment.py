@@ -282,43 +282,68 @@ def run_once(record_path: Path, results_dir: Path) -> Dict[str, Any]:
 
 def run_experiment_unfrozen(cases, annotations: Dict[str, Annotation], recording: Recording, planner_factories, ctx_factory,
                             injection_cases: List[InjectionCase], seed: int, budgets: Optional[Budgets] = None, modes: tuple = MODES,
-                            strict: bool = False, drawn_base: Optional[Path] = None) -> Dict[str, Any]:
-    """For the harness's self-tests only. The result is marked `not_a_result`. Refuses any ticket drawn into a planner-experiment set
-    (`drawn_base` is the folder holding the recorded draws; default: the repository's)."""
+                            strict: bool = False) -> Dict[str, Any]:
+    """For the harness's self-tests only. The result is marked `not_a_result`. Refuses any ticket drawn into a planner-experiment set; the
+    location of the recorded draws is fixed (the repository's), it is not something a caller can choose."""
     inputs = ExperimentInputs(cases=cases, annotations=annotations, recording=recording, injection_cases=injection_cases,
                               budgets=budgets or Budgets(), seed=seed, modes=modes, strict=strict, frozen=False)
     validate_inputs(inputs)
     missing = [m for m in modes if m not in planner_factories]
     if missing:
         raise ExperimentInputError(f"no planner supplied for mode(s) {missing}")
-    return _execute(inputs, planner_factories, ctx_factory, None, drawn_base)
+    return _execute(inputs, planner_factories, ctx_factory, None)
 
 
-def _drawn_experiment_cases(base: Path):
-    """(case ids, content hashes) of every ticket recorded in a planner-experiment draw under `base`."""
-    ids, hashes = set(), set()
-    for p in sorted(Path(base).glob("experiment_selection_round*.json")):
-        for entry in json.loads(p.read_text(encoding="utf-8")).get("cases", []):
-            ids.add(entry["case_id"])
-            hashes.add(entry["content_hash"])
-    return ids, hashes
+_DRAWN_BASE: Optional[Path] = None          # module-private: where the recorded draws live. None means the repository's. NOT a parameter.
+SKETCH_REFUSE_AT = 0.7                      # estimated text similarity to a drawn ticket at or above which a case is treated as that ticket
 
 
-def _refuse_unclaimed_drawn_cases(cases: List[Dict[str, Any]], base: Optional[Path]) -> None:
-    from planner_experiment import select_cases as sc
+def _drawn_base() -> Path:
     from planner_experiment import steps
+    return Path(_DRAWN_BASE) if _DRAWN_BASE is not None else steps.BASE
 
-    ids, hashes = _drawn_experiment_cases(base if base is not None else steps.BASE)
+
+def _drawn_experiment_entries() -> List[Dict[str, Any]]:
+    """Every ticket recorded in any planner-experiment draw (ids, hashes and text sketches; never text)."""
+    out: List[Dict[str, Any]] = []
+    for p in sorted(_drawn_base().glob("experiment_selection_round*.json")):
+        out.extend(json.loads(p.read_text(encoding="utf-8")).get("cases", []))
+    return out
+
+
+def _refuse_unclaimed_drawn_cases(cases: List[Dict[str, Any]]) -> None:
+    """Refuse to execute, outside the run claim, any case that IS a drawn experiment ticket. A case is matched by any of: its case id; its
+    pool and ticket id; its content hash; or a text similarity to a drawn ticket of at least SKETCH_REFUSE_AT. The last needs none of the
+    other fields, so leaving out ids, renaming, re-casing, re-spacing, punctuation, or adding or dropping a few words does not hide a ticket.
+
+    What this is, and is not: it stops the harness being used (by mistake or by a lazy disguise) to run planners on the drawn tickets before
+    the run of record. It cannot stop someone who holds a ticket's text from rewording it heavily, or from calling the Runner directly with their
+    own code; a reworded ticket is a different ticket, and the control that matters is that no result of record exists except through the claim."""
+    from planner_experiment import select_cases as sc
+
+    entries = _drawn_experiment_entries()
+    if not entries:
+        return
+    ids = {e["case_id"] for e in entries}
+    pairs = {(e["pool"], str(e["ticket_id"])) for e in entries}
+    hashes = {e["content_hash"] for e in entries}
+    sketches = [e["text_sketch"] for e in entries if e.get("text_sketch")]
     for c in cases:
-        ticket = {"pool": c.get("pool"), "tenant_id": c.get("tenant_id"), "ticket_id": c.get("ticket_id"), "text": c.get("ticket_text"),
+        text = str(c.get("ticket_text") or "")
+        ticket = {"pool": c.get("pool"), "tenant_id": c.get("tenant_id"), "ticket_id": c.get("ticket_id"), "text": text,
                   "host": c.get("host"), "opened_at": c.get("opened_at")}
-        if c.get("case_id") in ids or (c.get("ticket_id") is not None and sc.content_hash(ticket) in hashes):
-            raise ExperimentInputError(f"{c.get('case_id')} was drawn into a planner-experiment set: it can only be executed under the run "
-                                       f"claim of run_once, never as a dry run")
+        mine = sc.text_sketch(text)
+        matched = (c.get("case_id") in ids
+                   or (c.get("pool"), str(c.get("ticket_id"))) in pairs
+                   or (c.get("ticket_id") is not None and sc.content_hash(ticket) in hashes)
+                   or any(sc.sketch_similarity(mine, other) >= SKETCH_REFUSE_AT for other in sketches))
+        if matched:
+            raise ExperimentInputError(f"{c.get('case_id')} is (or is indistinguishable from) a ticket drawn into a planner-experiment set: "
+                                       f"it can only be executed under the run claim of run_once, never as a dry run")
 
 
 def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[Callable[[Dict[str, Any]], TrustedContext]],
-             claim: Optional[_RunClaim] = None, drawn_base: Optional[Path] = None) -> Dict[str, Any]:
+             claim: Optional[_RunClaim] = None) -> Dict[str, Any]:
     """The only place cases are executed. Frozen inputs need the run claim; anything else may not contain a drawn experiment ticket."""
     if inputs.frozen:
         if not isinstance(claim, _RunClaim) or claim.record_hash != inputs.record_hash:
@@ -326,7 +351,7 @@ def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[
     else:
         if claim is not None:
             raise ExperimentInputError("a run claim belongs to frozen inputs")
-        _refuse_unclaimed_drawn_cases(inputs.cases, drawn_base)
+        _refuse_unclaimed_drawn_cases(inputs.cases)
     claimed = claim is not None
     cases, recording, budgets = inputs.cases, inputs.recording, inputs.budgets
     if ctx_factory is None:

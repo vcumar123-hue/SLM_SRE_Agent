@@ -34,6 +34,7 @@ MAX_TYPE_SHARE = 0.20
 _HOST = re.compile(r"\b[a-z]{2,}[a-z0-9]*\d{1,}[a-z0-9._-]*\b", re.I)
 _DIGITS = re.compile(r"\d+")
 _SPACE = re.compile(r"\s+")
+_WORD = re.compile(r"[a-z0-9#]+")
 
 
 def normalise(text: str) -> str:
@@ -130,6 +131,32 @@ def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, d
             "shortfall": shortfall, "type_counts": dict(type_counts), "other_bucket_tickets_skipped_unread": skipped_other_buckets}
 
 
+SKETCH_K = 32
+
+
+def _tokens(text: str) -> set:
+    words = _WORD.findall(str(text).lower())                    # case, spacing and punctuation do not matter; host names and numbers DO,
+    return set(words) | {f"{a} {b}" for a, b in zip(words, words[1:])}          # so same-template tickets on other hosts stay distinct
+
+
+def text_sketch(text: str, k: int = SKETCH_K) -> List[int]:
+    """A bottom-k sketch of the ticket text: the k smallest 48-bit hashes of its words and word pairs (lower-cased, punctuation ignored). It
+    lets a ticket be recognised later even if it was re-id'd, lost its fields, was re-cased or re-spaced, or had a few words added or removed,
+    and it does not store or reveal the text. Host names and numbers are kept on purpose: normalising them would make every ticket of the same
+    template identical and wrongly block the development subset. For short texts the sketch is the complete set, so similarity is exact."""
+    hashes = sorted({int(hashlib.sha256(t.encode("utf-8")).hexdigest()[:12], 16) for t in _tokens(text)})
+    return hashes[:k]
+
+
+def sketch_similarity(a: Iterable[int], b: Iterable[int], k: int = SKETCH_K) -> float:
+    """Estimated Jaccard similarity of two texts from their bottom-k sketches."""
+    sa, sb = set(a), set(b)
+    if not sa or not sb:
+        return 0.0
+    smallest = sorted(sa | sb)[:k]
+    return sum(1 for h in smallest if h in sa and h in sb) / len(smallest)
+
+
 def case_id_for(ticket: Dict[str, Any]) -> str:
     return f"{ticket.get('pool') or ticket.get('tenant_id')}:{ticket['ticket_id']}"
 
@@ -141,4 +168,5 @@ def case_ids(selection: Dict[str, Any]) -> List[str]:
 def selection_entries(selection: Dict[str, Any]) -> List[Dict[str, Any]]:
     """The recordable form of a draw: ids, clusters, types and content hashes, never ticket text."""
     return [{"case_id": case_id_for(t), "pool": t["pool"], "ticket_id": str(t["ticket_id"]), "cluster_id": t["cluster_id"],
-             "ticket_type": ticket_type(t), "content_hash": content_hash(t)} for t in selection["selected"]]
+             "ticket_type": ticket_type(t), "content_hash": content_hash(t), "text_sketch": text_sketch(str(t.get("text") or ""))}
+            for t in selection["selected"]]
