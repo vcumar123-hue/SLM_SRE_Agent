@@ -111,6 +111,18 @@ class RecordReader:
         return json.loads(self.bytes(name).decode("utf-8"))
 
 
+def check_prior_rounds(selection: Dict[str, Any], rnd: int) -> None:
+    """A round's draw records the earlier rounds it excluded. They must be exactly rounds 1..N-1, each drawn under the same key as this round."""
+    prior = selection.get("prior_rounds")
+    if not isinstance(prior, list) or sorted(p.get("round") for p in prior) != list(range(1, rnd)):
+        raise FreezeError(f"the draw must record exactly the earlier rounds {list(range(1, rnd))} it excluded")
+    for p in prior:
+        if p.get("key_check") != selection.get("key_check"):
+            raise FreezeError(f"round {p.get('round')} was drawn with a different experiment key: all rounds must use one key")
+        if not p.get("selection_hash"):
+            raise FreezeError(f"round {p.get('round')} has no recorded selection hash")
+
+
 def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict[str, Any]:
     """Check that the frozen inputs are consistent with each other. Returns {'reviewers', 'agreement', 'round', 'seed', 'partition_seed', ...}."""
     from planner_experiment import annotations as ann
@@ -189,6 +201,7 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
     if (selection.get("round"), selection.get("planner_freeze_hash"), selection.get("draw_seed"), selection.get("partition_seed")) != (
             rnd, pf["record_hash"], draw["seed"], partition):
         raise FreezeError("the experiment selection was not drawn with this round, planner freeze and these seeds")
+    check_prior_rounds(selection, rnd)
     try:
         from planner_experiment import secrecy
         composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"), key=secrecy.load_key())

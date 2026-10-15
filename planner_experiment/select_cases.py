@@ -89,7 +89,7 @@ def keyed_type(key: bytes, kind: str) -> str:
 
 def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, draw_seed: int, quotas: Optional[Dict[str, int]] = None,
                        exclude_clusters: FrozenSet[str] = frozenset(), exclude_keyed: FrozenSet[str] = frozenset(),
-                       key: Optional[bytes] = None) -> Dict[str, Any]:
+                       key: Optional[bytes] = None, exclude_tickets: FrozenSet[tuple] = frozenset()) -> Dict[str, Any]:
     """Pick tickets from the calibration buckets. `tickets` need: pool (or tenant_id), ticket_id, text, host, opened_at.
 
     `partition_seed` decides which clusters are calibration clusters; `draw_seed` drives the sampling; `exclude_clusters` holds the clusters
@@ -107,6 +107,8 @@ def select_calibration(tickets: Iterable[Dict[str, Any]], partition_seed: int, d
             continue
         if cid in exclude_clusters or (key is not None and keyed_cluster(key, cid) in exclude_keyed):
             continue                                        # `exclude_keyed`: clusters of earlier planner-experiment sets, recorded keyed
+        if (str(t.get("pool") or t.get("tenant_id")), str(t.get("ticket_id"))) in exclude_tickets:
+            continue                                        # defence in depth: an earlier round's tickets, by their plain ids (no key needed)
         pools[str(t.get("pool") or t.get("tenant_id"))][cid].append(t)
 
     rng = random.Random(draw_seed)

@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 from planner_experiment import planner_freeze, reviewers as reviewer_mod, secrecy
 from planner_experiment import seed as seed_mod
 from planner_experiment import select_cases as sc
+from planner_experiment import freeze as freeze_mod
 from planner_experiment.freeze import ROOT
 
 BASE = ROOT / "docs" / "baselines" / "planner_experiment"
@@ -79,6 +80,17 @@ def _used_clusters(base: Path):
             record = json.loads(p.read_text(encoding="utf-8"))
             (keyed if record.get("keyed") else plain).update(e["cluster_id"] for e in record["cases"])
     return frozenset(plain), frozenset(keyed)
+
+
+def _earlier_rounds(base: Path, rnd: int):
+    """[(round number, selection file bytes, record)] for every other recorded planner-experiment draw."""
+    found = []
+    for p in sorted(base.glob("experiment_selection_round*.json")):
+        raw = p.read_bytes()
+        record = json.loads(raw.decode("utf-8"))
+        if record.get("round") != rnd:
+            found.append((record.get("round"), raw, record))
+    return found
 
 
 def _write_selection(path: Path, kind: str, selection: Dict[str, Any], extra: Dict[str, Any], key: Optional[bytes] = None) -> Dict[str, Any]:
@@ -142,12 +154,23 @@ def draw_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], root: P
     if key is None:
         raise StepError("the experiment key is required before a planner-experiment set is drawn: everything recorded about the drawn tickets is keyed "
                         "(cli init-key creates it once, outside the repository)")
+    # One key across ALL rounds. Earlier rounds' clusters are recorded as HMACs under the key they were drawn with; under a different key none of
+    # them would match, so their clusters would silently be eligible again. A mismatching key is therefore refused, before anything is recorded.
+    earlier = _earlier_rounds(base, rnd)
+    wrong = sorted(r for r, _raw, rec in earlier if rec.get("keyed") and rec.get("key_check") != secrecy.key_check(key))
+    if wrong:
+        raise StepError(f"round {rnd} must be drawn with the same experiment key as round(s) {wrong}: every round uses one key, otherwise the "
+                        f"clusters already used could not be excluded (nothing was recorded)")
     plain_used, keyed_used = _used_clusters(base)
-    selection = sc.select_calibration(tickets, partition, draw, sc.EXPERIMENT_QUOTAS, exclude_clusters=plain_used, exclude_keyed=keyed_used, key=key)
+    used_tickets = frozenset((e["pool"], str(e["ticket_id"])) for _r, _raw, rec in earlier for e in rec["cases"])
+    selection = sc.select_calibration(tickets, partition, draw, sc.EXPERIMENT_QUOTAS, exclude_clusters=plain_used, exclude_keyed=keyed_used, key=key,
+                                      exclude_tickets=used_tickets)
     if selection["shortfall"]:
         raise StepError(f"not enough unused eligible tickets for a fresh set: {selection['shortfall']} (nothing was recorded)")
     seed_mod.write_record(rp["seed"], pf["record_hash"], purpose)
-    return _write_selection(rp["selection"], "experiment", selection, {"round": rnd, "planner_freeze_hash": pf["record_hash"]}, key)
+    prior = [{"round": r, "selection_hash": freeze_mod.sha256_bytes(raw), "key_check": rec.get("key_check")} for r, raw, rec in sorted(earlier, key=lambda x: x[0])]
+    return _write_selection(rp["selection"], "experiment", selection,
+                            {"round": rnd, "planner_freeze_hash": pf["record_hash"], "prior_rounds": prior}, key)
 
 
 def build_cases(selection_path: Path, tickets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

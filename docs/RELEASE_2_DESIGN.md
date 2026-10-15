@@ -958,3 +958,28 @@ wrong key is detected; the key is created once, never replaced, git-ignored, dom
 than the repository, and do not copy it to developers' or reviewers' machines.
 
 **Verification:** 176 harness tests in four files (28 core, 18 integrity, 69 design, 61 sign-off); full suite 669 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 356 tests, pass against a throwaway PostgreSQL.
+
+### 20.7 Seventh review (2026-10-15): one key across all experiment rounds
+
+**P1: a different key could silently reuse earlier clusters.** Earlier rounds' clusters are recorded as HMACs under the key they were drawn with.
+Drawing round 2 under a different key would compute new HMACs that match none of them, so the exclusion list would silently match nothing and
+round 1's clusters would be eligible again, defeating "a fresh, previously unused set". (A test reproduces the hazard: under another key, a new draw
+reuses clusters from round 1.)
+
+| Change | Effect |
+|---|---|
+| **`draw_experiment` refuses a key that differs from any earlier round's** | compared by the key check values recorded with each draw, before anything is written: a refused draw leaves no selection and no seed record |
+| **Earlier rounds' tickets are also excluded by their plain ticket ids** | defence in depth that needs no key: even if every keyed comparison failed, no ticket already used can be drawn again (near-duplicates would need the keyed cluster check, which is why the key rule is the primary control) |
+| **A draw records the trail of rounds it excluded** | `prior_rounds`: for each earlier round, its number, the hash of its selection file and its key check value |
+| **The freeze checks the trail** (`check_prior_rounds`) | the recorded rounds must be exactly 1..N-1, each with a selection hash, each drawn under the same key as this round; a round 1 with a predecessor, a missing or extra round, a missing trail, or a different key is refused |
+
+**Verification:** 183 harness tests in four files (28 core, 18 integrity, 69 design, 68 sign-off); the full Windows suite, 676 tests, passes (55 skipped for missing dependencies). **The Linux container and PostgreSQL suites were not re-run for this change: Docker Desktop was not running on the owner's machine and was not started, because that would also start the owner's other containers.** The change touches only the planner-experiment package and its tests, none of which uses PostgreSQL; the last full container and PostgreSQL results (669 and 356 tests) were for the previous commit.
+
+**The sequence the owner set out, and where it now stands**
+1. one-key rule (this section): done, awaiting review;
+2. create the experiment key (`cli init-key`) on the drawing machine and back it up outside the repository: **owner**;
+3. record the two reviewers and their capacity (`cli reviewers`): **owner**;
+4. approve at least 12 calibration golden tickets: **owner / reviewers**;
+5. draw the 10-ticket development subset (`cli select-development`);
+6. build and freeze the three candidate planners (`cli freeze-planners`);
+7. only then draw and label the 50-ticket set (`cli draw-experiment`).

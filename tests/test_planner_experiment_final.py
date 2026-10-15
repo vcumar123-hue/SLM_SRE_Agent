@@ -635,6 +635,126 @@ class KeyCustodyTests(unittest.TestCase):
         self.assertFalse((ROOT / "data" / "planner_experiment.key").exists())
 
 
+class CrossRoundKeyTests(unittest.TestCase):
+    """One experiment key across all rounds. Earlier rounds' clusters are recorded as HMACs under the key they were drawn with; under a different
+    key none would match and their clusters would silently be eligible again."""
+
+    OTHER_KEY_HEX = "cd" * 32
+
+    def setUp(self):
+        from planner_experiment import golden as golden_mod
+        from planner_experiment import seed as seed_mod
+        from tests.pe_world import DEVELOPMENT_ARTIFACT, ENTRYPOINTS, PARTITION_ARTIFACT, make_tickets
+        from tests.test_planner_experiment_design import fake_root
+
+        self.entry, self.dev_artifact = ENTRYPOINTS, DEVELOPMENT_ARTIFACT
+        self.base = pathlib.Path(tempfile.mkdtemp(prefix="pe-rounds-"))
+        steps.record_reviewers(self.base, ["Ann", "Bob"], {"Ann": 50, "Bob": 50}, "owner")
+        seed_mod.write_record(steps.paths(self.base)["partition_seed"], PARTITION_ARTIFACT, "calibration-selection")
+        golden_path = self.base / "g.json"
+        golden_path.write_text(json.dumps(golden_raw()), encoding="utf-8")
+        self.tickets = make_tickets() + golden_mod.load_golden(golden_path, ["Ann", "Bob"])
+        self.root = fake_root()
+        steps.select_development(self.base, self.tickets, DEVELOPMENT_ARTIFACT)
+        steps.freeze_planners(self.base, 1, ENTRYPOINTS, root=self.root, planners_dir=TESTS_DIR)
+        self.round1 = steps.draw_experiment(self.base, 1, self.tickets, root=self.root)
+
+    def revise_and_freeze_round_two(self):
+        (self.root / "agentruntime" / "planners" / "p.py").write_text("RULES = 2\n", encoding="utf-8")       # planners revised on the development subset
+        return steps.freeze_planners(self.base, 2, self.entry, root=self.root, planners_dir=TESTS_DIR)
+
+    def test_a_second_round_drawn_with_a_different_key_is_refused_and_records_nothing(self):
+        self.revise_and_freeze_round_two()
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": self.OTHER_KEY_HEX}):
+            with self.assertRaisesRegex(steps.StepError, "same experiment key"):
+                steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
+        rp = steps.round_paths(self.base, 2)
+        self.assertFalse(rp["selection"].exists())
+        self.assertFalse(rp["seed"].exists())                                    # not even the seed record: a refused draw leaves no trace
+
+    def test_the_same_key_draws_round_two_and_excludes_everything_round_one_used(self):
+        from planner_experiment import secrecy
+        from planner_experiment import select_cases as sc
+        pf2 = self.revise_and_freeze_round_two()
+        second = steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
+        by_key = {(t["pool"], t["ticket_id"]): t for t in self.tickets}
+
+        def plain_clusters(record):
+            return {sc.cluster_id(by_key[(e["pool"], e["ticket_id"])]) for e in record["cases"]}
+
+        self.assertFalse(plain_clusters(self.round1) & plain_clusters(second))
+        self.assertFalse({e["case_id"] for e in self.round1["cases"]} & {e["case_id"] for e in second["cases"]})
+        self.assertEqual(second["planner_freeze_hash"], pf2["record_hash"])
+        self.assertEqual(second["key_check"], self.round1["key_check"])
+        self.assertEqual(second["key_check"], secrecy.key_check(TEST_KEY))
+
+    def test_the_draw_records_the_earlier_rounds_it_excluded(self):
+        from planner_experiment import freeze as freeze_mod
+        self.assertEqual(self.round1["prior_rounds"], [])
+        self.revise_and_freeze_round_two()
+        second = steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
+        (entry,) = second["prior_rounds"]
+        self.assertEqual(entry["round"], 1)
+        self.assertEqual(entry["key_check"], self.round1["key_check"])
+        self.assertEqual(entry["selection_hash"], freeze_mod.sha256_bytes(steps.round_paths(self.base, 1)["selection"].read_bytes()))
+
+    def test_without_the_one_key_rule_a_different_key_really_would_reuse_clusters(self):
+        """Why the rule exists: with another key the keyed exclusion list matches nothing, so earlier clusters come back."""
+        from planner_experiment import select_cases as sc
+        other = bytes.fromhex(self.OTHER_KEY_HEX)
+        by_key = {(t["pool"], t["ticket_id"]): t for t in self.tickets}
+        first_clusters = {sc.cluster_id(by_key[(e["pool"], e["ticket_id"])]) for e in self.round1["cases"]}
+        dev = json.loads(steps.paths(self.base)["development"].read_text(encoding="utf-8"))
+        partition = json.loads(steps.paths(self.base)["partition_seed"].read_text(encoding="utf-8"))["seed"]
+        keyed_used = frozenset(e["cluster_id"] for e in self.round1["cases"])
+        plain_used = frozenset(e["cluster_id"] for e in dev["cases"])
+        unprotected = sc.select_calibration(self.tickets, partition, 999, sc.EXPERIMENT_QUOTAS, exclude_clusters=plain_used, exclude_keyed=keyed_used, key=other)
+        reused = {s["cluster_id"] for s in unprotected["selected"]} & first_clusters
+        self.assertTrue(reused, "a different key should have let earlier clusters back in; the test data would not show the hazard")
+        # defence in depth: excluding the earlier rounds' tickets by their plain ids needs no key and keeps those tickets out
+        used_tickets = frozenset((e["pool"], str(e["ticket_id"])) for e in self.round1["cases"])
+        guarded = sc.select_calibration(self.tickets, partition, 999, sc.EXPERIMENT_QUOTAS, exclude_clusters=plain_used, exclude_keyed=keyed_used, key=other,
+                                        exclude_tickets=used_tickets)
+        self.assertFalse({(s["pool"], str(s["ticket_id"])) for s in guarded["selected"]} & used_tickets)
+
+    def test_the_freeze_requires_the_recorded_trail_of_earlier_rounds(self):
+        from planner_experiment import freeze as freeze_mod
+        ok = {"key_check": "k1", "prior_rounds": [{"round": 1, "key_check": "k1", "selection_hash": "h1"}]}
+        freeze_mod.check_prior_rounds(ok, 2)
+        freeze_mod.check_prior_rounds({"key_check": "k1", "prior_rounds": []}, 1)
+        freeze_mod.check_prior_rounds({"key_check": "k1", "prior_rounds": [{"round": 1, "key_check": "k1", "selection_hash": "a"},
+                                                                             {"round": 2, "key_check": "k1", "selection_hash": "b"}]}, 3)
+        for bad, rnd, pattern in (
+                ({"key_check": "k1", "prior_rounds": [{"round": 1, "key_check": "k2", "selection_hash": "h"}]}, 2, "one key"),         # different key
+                ({"key_check": "k1", "prior_rounds": []}, 2, "exactly the earlier rounds"),                                            # round 1 missing
+                ({"key_check": "k1", "prior_rounds": [{"round": 2, "key_check": "k1", "selection_hash": "h"}]}, 2, "exactly the earlier rounds"),
+                ({"key_check": "k1", "prior_rounds": [{"round": 1, "key_check": "k1", "selection_hash": "h"}]}, 1, "exactly the earlier rounds"),
+                ({"key_check": "k1"}, 2, "exactly the earlier rounds"),                                                               # no trail at all
+                ({"key_check": "k1", "prior_rounds": [{"round": 1, "key_check": "k1"}]}, 2, "selection hash")):
+            with self.assertRaisesRegex(FreezeError, pattern):
+                freeze_mod.check_prior_rounds(bad, rnd)
+
+    def test_the_freeze_of_a_round_with_a_forged_trail_is_refused(self):
+        w = build_world()
+        sel = w.read("experiment_selection")
+        sel["prior_rounds"] = [{"round": 1, "key_check": sel["key_check"], "selection_hash": "forged"}]          # round 1 claiming a predecessor
+        w.write("experiment_selection", sel)
+        with self.assertRaisesRegex(FreezeError, "exactly the earlier rounds"):
+            w.freeze()
+        w = build_world()
+        sel = w.read("experiment_selection")
+        del sel["prior_rounds"]
+        w.write("experiment_selection", sel)
+        with self.assertRaisesRegex(FreezeError, "exactly the earlier rounds"):
+            w.freeze()
+
+    def test_a_missing_key_cannot_start_a_later_round_either(self):
+        self.revise_and_freeze_round_two()
+        with patch.dict(os.environ, {"AIOPS_PE_KEY": ""}):
+            with self.assertRaisesRegex(steps.StepError, "experiment key is required"):
+                steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
+
+
 class ReviewerCapacityTests(unittest.TestCase):
     def record(self, hours):
         return {"reviewers": ["Ann", "Bob"], "capacity_hours": {"Ann": hours[0], "Bob": hours[1]}, "recorded_by": "owner"}

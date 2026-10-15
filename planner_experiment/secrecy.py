@@ -11,6 +11,10 @@ make the draw safe from whoever holds it: with the key, someone can hash candida
 run the same dictionary attack the unkeyed version allowed. So the key must be held only by the machine that draws, freezes and runs the
 experiment (the owner's or a gated CI), never by developers or reviewers, and the code is built for that: a machine without the key fails closed.
 
+One key for the whole study. Every round is drawn, frozen and run under the same key. Earlier rounds' clusters are recorded as HMACs under the key they
+were drawn with, so under a different key none of them would match and their clusters would silently become eligible again; `draw_experiment`
+therefore refuses a key that differs from any earlier round's, and a draw records the earlier rounds it excluded with their key check values.
+
 Custody: the key lives in `data/planner_experiment.key` (git-ignored) or in the environment variable below, on the machine that draws, freezes and
 runs the experiment (the owner's or a gated CI), and nowhere in the repository. A machine without the key can verify nothing keyed and, once a draw
 exists, can run only the development subset outside the run claim (experiment.py). Losing the key means the draw cannot be re-verified, so a lost
