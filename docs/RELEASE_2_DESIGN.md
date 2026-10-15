@@ -1093,3 +1093,26 @@ the voided file stay local (they record plain ticket-type words from real client
 
 **Verification:** 238 harness tests in five files (28 core, 18 integrity, 69 design, 87 sign-off, 36 commands); the full Windows suite, 731 tests, passes
 (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.
+
+### 20.12 Review of the redraw (2026-10-15): selection version, reviewer acknowledgement, local-only drawings, model manifest
+
+The review found the incident-only rule and the recorded redraw defensible, and one provenance gap before planner work: **the selection algorithm version
+was not advanced or enforced.** Both the voided and the redrawn development files were labelled `selection_version: "2"`, although they were produced by
+different algorithms (the redraw by the incident-only one). A recorded draw is only meaningful under the algorithm that made it, so the label has to be true
+and has to be checked.
+
+| # | Requirement | Done |
+|---|---|---|
+| 1 | **Bump and enforce the selection version** | `SELECTION_VERSION` is now `"3"`, with `SELECTION_HISTORY` explaining each version (2: no eligibility rule, drew Change records; 3: incident-only). It is enforced wherever a selection is consumed: `freeze_planners` and `draw_experiment` (development selection and every earlier round) and `build_cases` refuse another version; `freeze.validate_set` refuses an experiment selection, a development selection or a prior-round file recorded under another version. A test fingerprints the selection algorithm's source and constants (`FINGERPRINTS`), so the algorithm cannot change without failing a test that says to advance the version and void older draws. **The mislabelled redraw was itself voided (void 2) and drawn again under version 3**, rather than edited by hand: the selection is identical (same seeds, same algorithm), now correctly labelled |
+| 2 | **Reviewers receive and acknowledge the redraw notice** | `docs/REDRAW_NOTICE_FOR_REVIEWERS.md` covers both voids. `cli acknowledge-void` records an acknowledgement under the reviewer's own name beside the void record (`development_voids.json`); a reviewer outside the reviewer record, or a second acknowledgement of the same void, is refused. **`freeze_planners` is refused until both reviewers have acknowledged every void**, naming what is missing, and the planner freeze records the hash of the void log it was frozen under. **Pending: the acknowledgements have not been given** |
+| 3 | **Record the acknowledgement alongside the void record** | stored in the void log entry (`acknowledged_by`: reviewer, date, note), which is committed because it holds no ticket content |
+| 4 | **Development selection and recordings stay out of Git** | `.gitignore` covers `development_selection.json`, `development_selection_VOID_*.json` and `data/planner_dev/`; tests check with git that these (and the key) are ignored, untracked and never committed, and that the content-free records (void log, seed records) are not ignored |
+| 5 | **Document the model before the planner freeze** | `agentruntime/planners/model_manifest.py`, in the hashed planners folder. It records: served id `google/gemma-3-4b`; publisher, architecture (gemma3), format (GGUF) and quantisation (Q4_K_M); the exact file `lmstudio-community/gemma-3-4b-it-GGUF/gemma-3-4b-it-Q4_K_M.gguf`, **2,489,757,856 bytes, SHA-256 `be49949e48422e4547b00af14179a193d3777eea7fbbd7d6e1b0861304628a01`** (the revision: the file hash identifies a community GGUF uniquely); the inference parameters (temperature 0, top_p 1, fixed seed, n 1, no streaming, strict JSON-schema responses, prompts within 4,096 tokens); the budgets in force, read from `Budgets()` so they cannot drift (model call timeout 15 s, tool timeout 6 s, deadline 40 s, 5 model calls, 300 planner and 900 synthesis tokens, 4,000 per run, 8 steps, 5 tool calls); and prompt versions. **LM Studio loads the model on demand and picks the context length at load**, so that is observed at run time, not frozen. `cli verify-model` checks the manifest against the running server (served, publisher, architecture, quantisation) and the real file (size and SHA-256) and was run against this machine: all checks pass. The manifest is **incomplete until the prompts have versions**, and a production `freeze-planners` is refused until it is complete. Local only: no planner uses an external provider |
+
+**Still pending before planners can be frozen:** the two acknowledgements; prompt versions (written with the planners). **Pending before the hidden 50-ticket
+draw is used:** a tested command to capture the scripted tool recording for the cases (it runs on the key holder's side, because it processes the drawn
+tickets), implemented with held-out tickets and their clusters removed from retrieval. The review approved starting the three candidate planners once items
+1 to 5 are in place.
+
+**Verification:** 267 harness tests in six files (28 core, 18 integrity, 69 design, 87 sign-off, 36 commands, 29 provenance); the full Windows suite, 760
+tests, passes (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.

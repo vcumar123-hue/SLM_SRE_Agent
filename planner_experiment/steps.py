@@ -107,6 +107,52 @@ def _write_selection(path: Path, kind: str, selection: Dict[str, Any], extra: Di
     return record
 
 
+def check_selection_version(record: Dict[str, Any], label: str) -> None:
+    """A draw is only valid under the algorithm that made it: refuse a selection recorded under any other version."""
+    found = record.get("selection_version")
+    if found != sc.SELECTION_VERSION:
+        raise StepError(f"{label} was recorded under selection algorithm version {found!r}, but this code is version {sc.SELECTION_VERSION!r} "
+                        f"({sc.SELECTION_HISTORY.get(sc.SELECTION_VERSION, '')}); it must be voided and drawn again")
+
+
+def _load_voids(base: Path) -> List[Dict[str, Any]]:
+    log_path = Path(base) / "development_voids.json"
+    return json.loads(log_path.read_text(encoding="utf-8")) if log_path.is_file() else []
+
+
+def acknowledge_voids(base: Path, voids: List[int], reviewer: str, note: str = "") -> List[Dict[str, Any]]:
+    """Record that a reviewer has received and acknowledged the notice of a void-and-redraw. A human act: this records it, it cannot make it.
+    The reviewer must be one of the two in the reviewer record; acknowledging the same void twice is refused."""
+    names = _reviewers(base)
+    canonical = next((n for n in names if n.lower() == str(reviewer).strip().lower()), None)
+    if canonical is None:
+        raise StepError(f"{reviewer!r} is not one of the recorded reviewers ({', '.join(names)})")
+    log = _load_voids(base)
+    by_number = {e["void"]: e for e in log}
+    if not voids or len(set(voids)) != len(voids):
+        raise StepError("list each void number once (at least one)")
+    unknown = [v for v in voids if v not in by_number]
+    if unknown:
+        raise StepError(f"no such void: {unknown}")
+    for v in voids:
+        if any(a["reviewer"] == canonical for a in by_number[v].get("acknowledged_by", [])):
+            raise StepError(f"{canonical} has already acknowledged void {v}")
+    for v in voids:
+        by_number[v].setdefault("acknowledged_by", []).append({"reviewer": canonical, "date": time.strftime("%Y-%m-%d", time.gmtime()), "note": note.strip()})
+    (Path(base) / "development_voids.json").write_text(json.dumps(log, indent=1), encoding="utf-8")
+    return [by_number[v] for v in voids]
+
+
+def unacknowledged_voids(base: Path) -> List[str]:
+    """What is still missing: 'void N: <reviewer>' for each reviewer who has not acknowledged each void."""
+    names = _reviewers(base)
+    missing = []
+    for e in _load_voids(base):
+        done = {a["reviewer"] for a in e.get("acknowledged_by", [])}
+        missing.extend(f"void {e['void']}: {n}" for n in names if n not in done)
+    return missing
+
+
 def _ensure_seed_record(path: Path, artifact: str, purpose: str) -> None:
     """Write the seed derivation, or accept an existing one only if it is exactly this derivation (so a void-and-redraw reuses the record)."""
     if path.exists():
@@ -167,9 +213,22 @@ def freeze_planners(base: Path, rnd: int, entrypoints: Dict[str, str], root: Pat
         raise StepError(f"round {rnd - 1} has not been drawn: rounds are consecutive")
     if round_paths(base, rnd)["selection"].is_file():
         raise StepError(f"round {rnd} was already drawn")
+    dev_path = paths(base)["development"]
+    if dev_path.is_file():
+        check_selection_version(json.loads(dev_path.read_text(encoding="utf-8")), "the development selection")
+    missing = unacknowledged_voids(base)
+    if missing:
+        raise StepError("both reviewers must acknowledge every void-and-redraw of the development subset before the planners are frozen; "
+                        f"still missing: {', '.join(missing)}")
+    if planners_dir is None:                                   # a production freeze (the command line); tests pass their own planners folder
+        from agentruntime.planners import model_manifest
+        problems = model_manifest.incomplete()
+        if problems:
+            raise StepError("the model manifest must be complete before the planners are frozen: " + "; ".join(problems))
+    void_log = Path(base) / "development_voids.json"
     try:
-        return planner_freeze.create_planner_freeze(entrypoints, paths(base)["development"], round_paths(base, rnd)["planner_freeze"], base,
-                                                    root, planners_dir)
+        return planner_freeze.create_planner_freeze(entrypoints, dev_path, round_paths(base, rnd)["planner_freeze"], base,
+                                                    root, planners_dir, void_log_path=void_log if void_log.is_file() else None)
     except planner_freeze.PlannerFreezeError as exc:
         raise StepError(str(exc)) from exc
 
@@ -187,6 +246,9 @@ def draw_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], root: P
         raise StepError(str(exc)) from exc
     if not paths(base)["development"].is_file():
         raise StepError("the development subset has not been drawn")
+    check_selection_version(json.loads(paths(base)["development"].read_text(encoding="utf-8")), "the development selection")
+    for earlier_round, _raw, earlier_record in _earlier_rounds(base, rnd):
+        check_selection_version(earlier_record, f"round {earlier_round}'s selection")
     partition = _partition_seed(base)
     purpose = f"planner-experiment-{rnd}"
     draw = seed_mod.derive_seed(pf["record_hash"], purpose)
@@ -297,6 +359,7 @@ def build_cases(selection_path: Path, tickets: List[Dict[str, Any]]) -> List[Dic
     """The case list for a drawn set, with ticket text for the reviewers. Every case is checked against the content hash recorded at the draw,
     so a source that changed since the draw is refused instead of silently producing different cases."""
     selection = json.loads(Path(selection_path).read_text(encoding="utf-8"))
+    check_selection_version(selection, "this selection")
     key = None
     if selection.get("keyed"):
         key = secrecy.load_key()

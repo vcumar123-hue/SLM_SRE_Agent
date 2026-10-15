@@ -169,6 +169,10 @@ def check_prior_selection_files(selection: Dict[str, Any], rnd: int, prior_files
             raise FreezeError(f"round {n} was drawn with a different experiment key (or unkeyed): all rounds must use one key")
         if record.get("planner_freeze_hash") == selection.get("planner_freeze_hash"):
             raise FreezeError(f"round {n} was drawn for the same planners: a new round needs revised planners")
+        from planner_experiment import select_cases as _sc
+        if record.get("selection_version") != _sc.SELECTION_VERSION:
+            raise FreezeError(f"round {n} was recorded under selection algorithm version {record.get('selection_version')!r}; this code is "
+                              f"version {_sc.SELECTION_VERSION!r}")
         theirs = record.get("cases", [])
         if my_ids & {e["case_id"] for e in theirs} or my_pairs & {(e["pool"], str(e["ticket_id"])) for e in theirs}:
             raise FreezeError(f"this round shares a ticket with round {n}: a fresh set cannot reuse earlier tickets")
@@ -263,6 +267,11 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
             rnd, pf["record_hash"], draw["seed"], partition):
         raise FreezeError("the experiment selection was not drawn with this round, planner freeze and these seeds")
     check_prior_rounds(selection, rnd)
+    from planner_experiment import select_cases as _sc
+    for label, record in (("the experiment selection", selection), ("the development selection", reader.json("development_selection"))):
+        if record.get("selection_version") != _sc.SELECTION_VERSION:
+            raise FreezeError(f"{label} was recorded under selection algorithm version {record.get('selection_version')!r}; this code is "
+                              f"version {_sc.SELECTION_VERSION!r}")
     prior_numbers = {prior_round_of(k): reader.bytes(k) for k in prior_keys}          # canonical names only, so no two keys can mean one round
     if len(prior_numbers) != len(prior_keys):
         raise FreezeError("two prior-selection inputs stand for the same round")

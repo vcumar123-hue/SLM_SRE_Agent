@@ -81,3 +81,8 @@ data/planner_experiment.key
 
 # Planner development working files (ticket text from the development subset; never commit)
 data/planner_dev/
+
+# Development-subset draws and recordings: they hold text from real client tickets, so they stay out of git
+docs/baselines/planner_experiment/development_selection.json
+docs/baselines/planner_experiment/development_selection_VOID_*.json
+data/planner_dev/

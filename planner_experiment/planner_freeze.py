@@ -53,7 +53,7 @@ def resolve_entrypoint(spec: str, planners_dir: Optional[Path] = None):
 
 
 def _record_hash(record: Dict[str, Any]) -> str:
-    body = {k: record[k] for k in ("entrypoints", "runtime_code", "development_selection_hash")}
+    body = {k: record[k] for k in ("entrypoints", "runtime_code", "development_selection_hash", "void_log_hash")}
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()
 
 
@@ -67,7 +67,7 @@ def used_planner_hashes(base: Path) -> List[str]:
 
 
 def create_planner_freeze(entrypoints: Dict[str, str], development_selection_path: Path, out_path: Path, base: Path,
-                          root: Path = ROOT, planners_dir: Optional[Path] = None) -> Dict[str, Any]:
+                          root: Path = ROOT, planners_dir: Optional[Path] = None, void_log_path: Optional[Path] = None) -> Dict[str, Any]:
     if tuple(sorted(entrypoints)) != tuple(sorted(MODES)):
         raise PlannerFreezeError(f"entry points are needed for exactly {MODES}")
     for spec in entrypoints.values():
@@ -79,7 +79,9 @@ def create_planner_freeze(entrypoints: Dict[str, str], development_selection_pat
     if out_path.exists():
         raise PlannerFreezeError(f"{out_path} already exists: a planner freeze is recorded once; revise the planners and write a new round")
     record = {"frozen_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "entrypoints": dict(sorted(entrypoints.items())),
-              "runtime_code": runtime_hashes(root), "development_selection_hash": sha256_bytes(dev_path.read_bytes())}
+              "runtime_code": runtime_hashes(root), "development_selection_hash": sha256_bytes(dev_path.read_bytes()),
+              # the void-and-redraw log (with the reviewers' acknowledgements) the planners were frozen under; None if the draw was never voided
+              "void_log_hash": sha256_bytes(Path(void_log_path).read_bytes()) if void_log_path is not None else None}
     record["record_hash"] = _record_hash(record)
     if record["record_hash"] in used_planner_hashes(base):
         raise PlannerFreezeError("these planners are identical to a planner freeze already used by a round: revise them (on the development "

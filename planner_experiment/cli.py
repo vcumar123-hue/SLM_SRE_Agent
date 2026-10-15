@@ -6,6 +6,8 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli seed --artifact <40-character git commit id>               (partition seed, recorded once)
     python -m planner_experiment.cli select-development --artifact <40-character git commit id>
     python -m planner_experiment.cli void-development --reason "..." --authorised-by "..."     (a recorded departure; refused once planners are frozen)
+    python -m planner_experiment.cli acknowledge-void --voids 1 2 --by "Reviewer Name" [--note "..."]   (each reviewer, after receiving the notice)
+    python -m planner_experiment.cli verify-model                                              (the served model and its file against the manifest)
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
     python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>
@@ -65,6 +67,11 @@ def main(argv=None) -> int:
     vd = sub.add_parser("void-development")
     vd.add_argument("--reason", required=True)
     vd.add_argument("--authorised-by", required=True)
+    av = sub.add_parser("acknowledge-void")
+    av.add_argument("--voids", type=int, nargs="+", required=True)
+    av.add_argument("--by", required=True)
+    av.add_argument("--note", default="")
+    sub.add_parser("verify-model")
     fp = sub.add_parser("freeze-planners")
     fp.add_argument("--round", type=int, required=True)
     fp.add_argument("--planner", action="append", required=True, help="mode=module:Class (rules_only, rules_then_model, model)")
@@ -106,6 +113,16 @@ def main(argv=None) -> int:
             print(json.dumps({"cases": len(rec["cases"]), "draw_seed": rec["draw_seed"]}, indent=1))
         elif args.cmd == "void-development":
             print(json.dumps(steps.void_development(base, args.reason, args.authorised_by), indent=1))
+        elif args.cmd == "acknowledge-void":
+            entries = steps.acknowledge_voids(base, args.voids, args.by, args.note)
+            print(json.dumps([{"void": e["void"], "acknowledged_by": [a["reviewer"] for a in e["acknowledged_by"]]} for e in entries], indent=1))
+            still = steps.unacknowledged_voids(base)
+            print("still to acknowledge:", still if still else "nothing: all voids are acknowledged by both reviewers")
+        elif args.cmd == "verify-model":
+            from agentruntime.planners import model_manifest
+            report = model_manifest.verify()
+            print(json.dumps(report, indent=1))
+            return 0 if report["ok"] else 2
         elif args.cmd == "freeze-planners":
             entry = dict(item.split("=", 1) for item in args.planner)
             rec = steps.freeze_planners(base, args.round, entry)

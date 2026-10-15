@@ -6,5 +6,13 @@
   "reason": "The first development draw took four PFG Change (CHG) records: the ticket pool had no incident-only eligibility rule (PFG: 2029 INC, 1000 CHG, 855 SCTASK, 145 PRB). No planner, recording or freeze existed. Redrawn under the INC-only rule.",
   "authorised_by": "project owner, approved in the working session on 2026-10-15",
   "date": "2026-10-15"
+ },
+ {
+  "void": 2,
+  "file": "development_selection_VOID_2.json",
+  "sha256": "8485b37cf9eff3cc786bb9a2753419d5bfed47330cd6018c001bb806123131a8",
+  "reason": "selection_version was not advanced when the eligibility rule changed: the redrawn file was produced by the incident-only algorithm but labelled version 2. Version advanced to 3 and enforced; redrawn so the label is true. Algorithm and seeds unchanged.",
+  "authorised_by": "project owner, instruction 'review and fix as per the feedback' in the working session on 2026-10-15",
+  "date": "2026-10-15"
  }
 ]

@@ -64,6 +64,16 @@ approved file: `data/golden_tickets.json` does not exist and the draw tooling wi
   --reason "..." --authorised-by "..."` keeps the old draw (renamed), logs the void and permits a redraw with the same seed record. It is refused once
   planners are frozen. Tell the reviewers whenever it is used.
 
+## Voids, acknowledgements and the model manifest
+
+* Every void of the development draw must be acknowledged by **both** reviewers before `freeze-planners` will run: send them
+  `docs/REDRAW_NOTICE_FOR_REVIEWERS.md`, then record each reply with `python -m planner_experiment.cli acknowledge-void --voids 1 2 --by "Reviewer Name" --note "..."`.
+* A selection is valid only under the algorithm version that made it (`selection_version`, currently 3). If selection logic changes, a test fails until the
+  version is advanced; older draws must then be voided and drawn again.
+* `python -m planner_experiment.cli verify-model` checks the model manifest (`agentruntime/planners/model_manifest.py`) against the running LM Studio and the
+  model file. A production `freeze-planners` needs the manifest complete (prompt versions filled in).
+* The development selection files and `data/planner_dev/` stay out of git (they contain text from real client tickets).
+
 ## What not to do
 
 * Do not copy the key to a developer or reviewer machine, paste it into chat, or put it in the repository. With the key, the recorded draw can be

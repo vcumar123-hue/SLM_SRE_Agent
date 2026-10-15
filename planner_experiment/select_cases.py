@@ -25,7 +25,14 @@ from typing import Any, Dict, FrozenSet, Iterable, List, Optional
 
 from planner_experiment import secrecy
 
-SELECTION_VERSION = "2"
+SELECTION_VERSION = "3"
+# Every change to how tickets are selected must advance this, because a recorded draw is only meaningful under the algorithm that made it.
+# freeze.validate_set and the steps refuse a selection recorded under any other version, and a test fingerprints the algorithm's source so a change
+# cannot be made without noticing.
+SELECTION_HISTORY = {
+    "2": "keyed draws, one case per cluster, type cap; NO eligibility rule (drew Change records; superseded)",
+    "3": "as 2, plus incident-only eligibility: real tickets must be exactly INC + ASCII digits (design 20.11)",
+}
 CALIBRATION_BUCKETS = range(0, 40)
 ACCEPTANCE_BUCKETS = range(40, 80)          # reserved; never read by this module
 EXPERIMENT_QUOTAS = {"client_c": 20, "client_a": 20, "golden": 10}
