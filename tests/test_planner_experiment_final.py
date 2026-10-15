@@ -777,6 +777,81 @@ class PriorRoundFileTests(unittest.TestCase):
             sel["prior_rounds"][0]["selection_hash"] = freeze.sha256_bytes(prior_path.read_bytes())
             w.write("experiment_selection", sel)
 
+    # -- input-name aliases ------------------------------------------------------------------------------------------------------------------
+    ALIASES = ["prior_selection:01", "prior_selection:001", "prior_selection: 1", "prior_selection:1 ", " prior_selection:1", "prior_selection:+1",
+               "prior_selection:1_0", "prior_selection:\uff11", "prior_selection:\u0661", "prior_selection:\u06f1", "Prior_Selection:1", "PRIOR_SELECTION:1",
+               "prior_selection:1\n", "prior_selection:1\t", "prior_selection:0", "prior_selection:-1", "prior_selection::1", "prior_selection:1:",
+               "prior_selection", "prior_selection:", "xprior_selection:1", "prior_selection:1x", "prior_selection:1.0", "prior_selection:0x1",
+               "prior_selection:\u00b9", "prior_selection:\u2460"]
+
+    def freeze_with(self, files):
+        return freeze.create_freeze(files, self.world.reviewer_files, self.world.out, root=self.world.code_root)
+
+    @property
+    def world(self):
+        return self.base_world
+
+    def test_only_the_canonical_name_is_a_valid_prior_selection(self):
+        self.assertEqual(freeze.prior_round_of("prior_selection:1"), 1)
+        self.assertEqual(freeze.prior_round_of("prior_selection:12"), 12)
+        for alias in self.ALIASES:
+            with self.assertRaises(FreezeError, msg=repr(alias)):
+                freeze.prior_round_of(alias)
+
+    def test_an_alias_cannot_stand_beside_the_real_prior_selection(self):
+        genuine = self.world.files["prior_selection:1"]
+        for alias in self.ALIASES:
+            files = dict(self.world.files)
+            files[alias] = genuine
+            with self.assertRaises(FreezeError, msg=repr(alias)):
+                self.freeze_with(files)
+
+    def test_an_alias_cannot_replace_the_real_prior_selection(self):
+        genuine = self.world.files["prior_selection:1"]
+        for alias in self.ALIASES:
+            files = {k: v for k, v in self.world.files.items() if k != "prior_selection:1"}
+            files[alias] = genuine
+            with self.assertRaises(FreezeError, msg=repr(alias)):
+                self.freeze_with(files)
+
+    def test_an_alias_pointing_at_a_doctored_file_cannot_hide_the_real_one(self):
+        doctored = self.world.dir / "doctored_prior.json"
+        record = json.loads(self.world.files["prior_selection:1"].read_text(encoding="utf-8"))
+        record["cases"] = []                                                    # a prior round that "used" nothing: nothing would be excluded
+        doctored.write_text(json.dumps(record), encoding="utf-8")
+        for alias in ("prior_selection:01", "prior_selection:\uff11", "prior_selection:1 "):
+            files = dict(self.world.files)
+            files[alias] = doctored
+            with self.assertRaises(FreezeError, msg=repr(alias)):
+                self.freeze_with(files)
+            files = {k: v for k, v in self.world.files.items() if k != "prior_selection:1"}
+            files[alias] = doctored
+            with self.assertRaises(FreezeError, msg=repr(alias)):
+                self.freeze_with(files)
+
+    def test_reviewer_input_names_are_strict_too(self):
+        files = dict(self.world.files)
+        for alias in ("reviewer: Ann", "reviewer:Ann ", "reviewer::Ann", "Reviewer:Ann", "reviewer:", "reviewer:Ann:x"):
+            reviewers = dict(self.world.reviewer_files)
+            reviewers[alias] = self.world.reviewer_files["Ann"]
+            with self.assertRaises(FreezeError, msg=repr(alias)):
+                freeze.create_freeze(files, {**reviewers}, self.world.out, root=self.world.code_root)
+        with self.assertRaises(FreezeError):                                                # a differently-cased duplicate of a real reviewer
+            freeze.create_freeze(files, {**self.world.reviewer_files, "ann": self.world.reviewer_files["Ann"]}, self.world.out, root=self.world.code_root)
+
+    def test_the_genuine_names_still_work_after_the_tightening(self):
+        self.freeze_with(dict(self.world.files))
+
+    def test_a_tampered_record_with_an_alias_cannot_verify(self):
+        w = self.fresh()
+        record = w.freeze()
+        record["files"]["prior_selection:01"] = record["files"]["prior_selection:1"]
+        record["paths"]["prior_selection:01"] = record["paths"]["prior_selection:1"]
+        record["record_hash"] = freeze._record_hash(record)                           # even with the record's own hash repaired
+        w.out.write_text(json.dumps(record), encoding="utf-8")
+        with self.assertRaises(FreezeError):
+            freeze.verify_freeze(w.out, root=w.code_root)
+
     def test_a_genuine_two_round_freeze_verifies(self):
         w = self.fresh()
         record = w.freeze()

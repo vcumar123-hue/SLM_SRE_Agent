@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List
@@ -125,6 +126,21 @@ def check_prior_rounds(selection: Dict[str, Any], rnd: int) -> None:
             raise FreezeError(f"round {p.get('round')} has no recorded selection hash")
 
 
+PRIOR_KEY = re.compile(r"prior_selection:([1-9][0-9]*)", re.ASCII)
+REVIEWER_KEY = re.compile(r"reviewer:([^\s:][^:]*[^\s:]|[^\s:])", re.ASCII | re.DOTALL)
+
+
+def prior_round_of(key: str) -> int:
+    """The round number in an input named `prior_selection:<round>`. Only the canonical spelling is accepted: ASCII digits, no leading zero, no
+    sign, no underscore, no space or other character, exact lower case. Anything looser (`01`, ` 1`, `+1`, `1_0`, full-width or other-script
+    digits, `Prior_Selection:1`) would let two different names stand for the same round, and one could silently replace the other."""
+    m = PRIOR_KEY.fullmatch(key)
+    if m is None:
+        raise FreezeError(f"'{key!r}' is not a valid prior-selection input name: it must be exactly prior_selection:<round> with ASCII digits, "
+                          f"no leading zero, sign, space or underscore")
+    return int(m.group(1))
+
+
 def check_prior_selection_files(selection: Dict[str, Any], rnd: int, prior_files: Dict[int, bytes]) -> None:
     """Verify the recorded trail against the earlier rounds' selection files themselves, which are frozen inputs of this round.
 
@@ -167,9 +183,16 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
     from planner_experiment import seed as seed_mod
 
     present = set(reader.names())
+    # input names are strict: a key that mentions a reserved prefix in any spelling must be the canonical spelling, or the freeze is refused
+    for k in present:
+        low = k.lower()
+        if "prior_selection" in low:
+            prior_round_of(k)
+        if "reviewer:" in low and REVIEWER_KEY.fullmatch(k) is None:
+            raise FreezeError(f"'{k!r}' is not a valid reviewer input name: it must be exactly reviewer:<name> (no surrounding space, no extra colon)")
     reviewer_keys = sorted(k for k in present if k.startswith("reviewer:"))
     missing = [k for k in REQUIRED_FILES if k not in present]
-    prior_keys = sorted(k for k in present if k.startswith("prior_selection:"))
+    prior_keys = sorted((k for k in present if "prior_selection" in k.lower()), key=prior_round_of)
     unknown = sorted(present - set(REQUIRED_FILES) - set(reviewer_keys) - set(prior_keys))
     if missing or unknown:
         raise FreezeError(f"frozen inputs must be exactly {REQUIRED_FILES} plus one reviewer file each; missing {missing}, unknown {unknown}")
@@ -240,10 +263,9 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
             rnd, pf["record_hash"], draw["seed"], partition):
         raise FreezeError("the experiment selection was not drawn with this round, planner freeze and these seeds")
     check_prior_rounds(selection, rnd)
-    try:
-        prior_numbers = {int(k.split(":", 1)[1]): reader.bytes(k) for k in prior_keys}
-    except ValueError as exc:
-        raise FreezeError("a prior selection input must be named prior_selection:<round number>") from exc
+    prior_numbers = {prior_round_of(k): reader.bytes(k) for k in prior_keys}          # canonical names only, so no two keys can mean one round
+    if len(prior_numbers) != len(prior_keys):
+        raise FreezeError("two prior-selection inputs stand for the same round")
     check_prior_selection_files(selection, rnd, prior_numbers)
     try:
         from planner_experiment import secrecy

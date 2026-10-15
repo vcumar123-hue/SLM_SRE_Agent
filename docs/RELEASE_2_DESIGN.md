@@ -1012,3 +1012,26 @@ tune the three planners on it only; freeze them; draw the 50-ticket set; build t
 adjudication with written rationale (kappa at least 0.6); capture the recordings and injection cases; create the complete experiment freeze; run
 `run_once` exactly once; apply the frozen rule; if a planner passes, promote it unchanged into R2-2 with the loop `off` by default; then the 100-ticket
 acceptance evaluation and R2-3 before `on` is enabled for any tenant.
+
+### 20.9 Ninth review (2026-10-15): input-name aliases for a prior-round input
+
+**P1.** The prior-round inputs were recognised by `int(key.split(":", 1)[1])`. Python's `int` accepts far more than a plain round number: `01`, `001`,
+a leading or trailing space, `+1`, a trailing newline or tab, `1_0` (which is **round 10**), and full-width, Arabic-Indic and Persian digits. So
+several different names could stand for the same round, and in the dictionary built from them one silently replaced another: a doctored file
+under `prior_selection:01` could displace the genuine `prior_selection:1`, and a prior round that "used" nothing would exclude nothing.
+
+| Change | Effect |
+|---|---|
+| **One canonical spelling** | `prior_round_of` accepts only `prior_selection:<round>` with ASCII digits, no leading zero, no sign, underscore, space or other character, exact lower case. A match is by full-string regular expression, never `int()` |
+| **Any key that mentions the prefix must be canonical** | a key containing `prior_selection` in any case or position (`Prior_Selection:1`, `xprior_selection:1`, `prior_selection`, `prior_selection:`) that is not exactly canonical is refused, rather than ignored or treated as an unknown input |
+| **No two names for one round** | the round numbers are checked for duplicates after parsing; with a strict parser that cannot happen, but it is asserted |
+| **Reviewer input names are strict as well** | `reviewer:<name>` must have no surrounding space and no extra colon; case variants of a real reviewer are counted as extra reviewers and refused |
+
+Tests: 26 alias spellings, each (a) rejected by the parser, (b) refused when added **beside** the genuine file, (c) refused when used **instead of**
+it, and, for three of them, (d) refused when pointing at a **doctored** prior file with its cases removed; a record edited to add an alias, with its
+own hash repaired, fails verification; the reviewer-name variants are refused; the genuine names still work. Of the 26, 17 parse to an integer under the old
+`int()` logic (the rest were already refused or ignored by other checks).
+
+**Verification:** 201 harness tests in four files (28 core, 18 integrity, 69 design, 86 sign-off); the full Windows suite, 694 tests, passes (55
+skipped for missing dependencies). Container and PostgreSQL suites remain to be run when Docker is intentionally available and before the release
+gate (last run for `38a48e6`: 669 and 356).
