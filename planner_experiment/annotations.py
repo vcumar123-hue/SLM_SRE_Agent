@@ -48,6 +48,8 @@ class Annotation(BaseModel):
     def check(self) -> None:
         if self.end_state == "supported" and not any(self.cause_keywords):
             raise ValueError(f"{self.case_id}: a 'supported' end state needs cause_keywords")
+        if self.end_state == "supported" and not self.required_evidence:
+            raise ValueError(f"{self.case_id}: a 'supported' end state needs at least one required_evidence reference")
         if self.end_state == "escalate" and self.cause_keywords:
             raise ValueError(f"{self.case_id}: an 'escalate' end state has no cause")
         for ref in self.required_evidence:
@@ -83,6 +85,11 @@ def cohen_kappa(a: Sequence[str], b: Sequence[str]) -> Optional[float]:
     return 1.0 if expected == 1.0 else (observed - expected) / (1.0 - expected)
 
 
+def _cause_signature(a: Annotation) -> frozenset:
+    """The cause an annotation expects, independent of group order, word order and case: a set of word-sets."""
+    return frozenset(frozenset(w.strip().lower() for w in group if w.strip()) for group in a.cause_keywords if group)
+
+
 def agreement(first: List[Annotation], second: List[Annotation]) -> Dict[str, Any]:
     """Agreement between two reviewers on the cases both annotated, and the list of disagreements for adjudication."""
     b = {a.case_id: a for a in second}
@@ -97,6 +104,8 @@ def agreement(first: List[Annotation], second: List[Annotation]) -> Dict[str, An
             diffs.append("acceptable_first_tools")
         if set(a.required_evidence) != set(o.required_evidence):
             diffs.append("required_evidence")
+        if _cause_signature(a) != _cause_signature(o):
+            diffs.append("cause_keywords")
         if diffs:
             disagreements.append({"case_id": a.case_id, "fields": diffs})
     return {"cases_compared": len(shared),

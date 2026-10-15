@@ -109,6 +109,7 @@ class BoundedExecutor:
         self._abandoned: Dict[_Job, float] = {}
         self._leaked: Set[_Job] = set()
         self._started = 0
+        self._closed = False
 
     # -- introspection (used by tests and monitoring) -------------------------------------------------------------------------
 
@@ -126,6 +127,19 @@ class BoundedExecutor:
     def live_threads(self) -> int:
         with self._lock:
             return sum(1 for w in self._workers if w.is_alive())
+
+    def close(self) -> None:
+        """Stop the workers and refuse new work. Idle workers exit now; a worker still inside a call exits when that call returns.
+        For executors created per experiment or per test; the shared module-level pools are never closed."""
+        with self._lock:
+            self._closed = True
+            workers = [w for w in self._workers if w.is_alive()]
+        for _ in workers:
+            self._queue.put(None)
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
 
     # -- internals ------------------------------------------------------------------------------------------------------------
 
@@ -162,6 +176,8 @@ class BoundedExecutor:
     def run(self, fn: Callable[[CancelToken], Any], timeout_s: float) -> Any:
         self._reap()
         with self._lock:
+            if self._closed:
+                raise ExecutorFailed("the executor is closed")
             if len(self._leaked) >= self.max_leaked:
                 raise ExecutorFailed(f"{len(self._leaked)} stuck call(s) have not returned; refusing all work")
             if len(self._abandoned) >= self.max_abandoned:

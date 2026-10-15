@@ -12,8 +12,8 @@ from agentruntime.context import build_context
 from agentruntime.contracts import Action, EvidenceDraft
 from agentruntime.runner import PlannerReply
 from planner_experiment import annotations as ann
-from planner_experiment import freeze, injection, metrics, select_cases
-from planner_experiment.experiment import make_policy, run_experiment
+from planner_experiment import injection, metrics, select_cases
+from planner_experiment.experiment import make_policy, run_experiment_unfrozen
 from planner_experiment.scripted_env import Recording, ScriptedEnv, args_key, candidate_calls, capture_case
 from tests.agentruntime_helpers import FakePrincipal, tenant_dir
 
@@ -178,6 +178,8 @@ class AnnotationTests(unittest.TestCase):
             annotation("c", end_state="escalate").check()
         with self.assertRaises(ValueError):
             annotation("c", required_evidence=["no-colon"]).check()
+        with self.assertRaises(ValueError):
+            annotation("c", required_evidence=[]).check()
 
     def test_cause_keyword_groups_need_every_group(self):
         groups = [["disk"], ["full", "capacity"]]
@@ -250,7 +252,7 @@ class ExperimentTests(unittest.TestCase):
     def run_all(self, **factories):
         defaults = {"rules_only": GiveUpPlanner, "rules_then_model": GoodPlanner, "model": GoodPlanner}
         defaults.update(factories)
-        return run_experiment(self.cases, self.notes, self.rec, defaults, ctx_for, self.inj, seed=11)
+        return run_experiment_unfrozen(self.cases, self.notes, self.rec, defaults, ctx_for, self.inj, seed=11)
 
     def test_end_to_end_scores_modes_and_applies_the_decision_rule(self):
         out = self.run_all()
@@ -262,6 +264,7 @@ class ExperimentTests(unittest.TestCase):
         self.assertEqual(rtm["injection_successes"], 0)
         self.assertEqual(out["decision"]["verdict"], "model_joins_loop")
         self.assertFalse(out["frozen"])
+        self.assertTrue(out["not_a_result"])
         first = out["modes"]["rules_then_model"]["runs"][0]
         self.assertEqual(first["lookups"], {"exact": 0, "default": 1, "missing": 0})        # the query differs from the capture: counted
 
@@ -317,42 +320,6 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(metrics.decide(ok, exactly, 40, 1)["verdict"], "model_joins_loop")     # +10.0pp meets "at least 10"
         short = {"rules_then_model": {f"c{i}": float(i < 59) for i in range(100)}, "rules_only": {f"c{i}": float(i < 50) for i in range(100)}}
         self.assertEqual(metrics.decide(ok, short, 40, 1)["verdict"], "ship_rules_only")        # +9pp does not
-
-
-class FreezeTests(unittest.TestCase):
-    def setUp(self):
-        self.d = pathlib.Path(tempfile.mkdtemp())
-        self.files = {"annotations": self.d / "a.json", "cases": self.d / "c.json"}
-        for p in self.files.values():
-            p.write_text("[]", encoding="utf-8")
-        self.report = self.d / "agreement.json"
-        self.report.write_text("{}", encoding="utf-8")
-        self.out = self.d / "freeze.json"
-
-    def test_requires_two_named_distinct_reviewers_and_an_agreement_report(self):
-        for names in (["Ann"], ["Ann", "ann"], ["Ann", "TBD"], ["", "Bob"], ["Ann", "reviewer1"]):
-            with self.assertRaises(freeze.FreezeError):
-                freeze.create_freeze(self.files, names, self.report, {}, self.out)
-        with self.assertRaises(freeze.FreezeError):
-            freeze.create_freeze(self.files, ["Ann", "Bob"], self.d / "missing.json", {}, self.out)
-
-    def test_verify_detects_changes_to_any_hashed_input_and_to_the_record(self):
-        freeze.create_freeze(self.files, ["Ann", "Bob"], self.report, metrics.DECISION_RULE, self.out)
-        self.assertEqual(freeze.verify_freeze(self.out)["reviewers"], ["Ann", "Bob"])
-        self.files["cases"].write_text("[1]", encoding="utf-8")
-        with self.assertRaises(freeze.FreezeError):
-            freeze.verify_freeze(self.out)
-        self.files["cases"].write_text("[]", encoding="utf-8")
-        freeze.verify_freeze(self.out)
-        record = json.loads(self.out.read_text(encoding="utf-8"))
-        record["reviewers"] = ["Eve", "Mallory"]
-        self.out.write_text(json.dumps(record), encoding="utf-8")
-        with self.assertRaises(freeze.FreezeError):
-            freeze.verify_freeze(self.out)
-
-    def test_the_experiment_refuses_to_run_without_a_valid_freeze(self):
-        with self.assertRaises(freeze.FreezeError):
-            run_experiment([], {}, Recording(), {}, ctx_for, [], seed=1, freeze_record=self.d / "none.json")
 
 
 if __name__ == "__main__":

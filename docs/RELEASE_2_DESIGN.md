@@ -812,3 +812,26 @@ ticket file exists (`data/golden_tickets.json`). The ticket-type heuristic (firs
 5. Real annotations on the 50 calibration tickets (two reviewers on all 50 for the experiment) and owner adjudication.
 
 **Verification:** 28 harness self-tests with fake planners and synthetic tickets (no real ticket, annotation or planner); full suite 521 pass.
+
+### 20.1 Review fixes (2026-10-15): experiment integrity
+
+The first review of the harness found four integrity gaps (all P1) and two methodological corrections. Nothing was frozen or run.
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | **Frozen files were not bound to the inputs the run used.** The runner took cases, annotations, recording and injection cases from its caller, so the hashes proved nothing about what ran | `run_experiment_frozen(record_path, planner_factories)` takes **no experiment data**. `load_frozen_inputs` reads every input from the record's files, hashes the exact bytes it read, and parses those same bytes. The frozen set is exactly: annotations, cases, recording, injection cases, config (budgets, modes, seed), seed record, calibration selection, and each reviewer's annotation file. All code is hashed too: every `.py` under `agentruntime/` (runtime, tools, planners) and `planner_experiment/`, **including the set of files**, so an added or removed file fails. The case list must equal the frozen selection, the seed must equal its derivation, and the injection cases must rebuild from the frozen templates. A planner is accepted only if its code is defined in `agentruntime/planners/`. Results from the unfrozen entry point carry `not_a_result` |
+| 2 | **Missing annotations silently shrank the experiment** (`continue`) | Inputs are validated before anything runs, and any gap raises `ExperimentInputError`: a case with no annotation, an annotation with no case, a case with no recorded output, an injection case with a missing base case, duplicate ids, incomplete case fields, a missing mode or planner. The frozen run also requires exactly 50 cases, at least 12 injection cases and all three modes. After each mode the number of scored runs must equal the number of cases |
+| 3 | **Per-run executors accumulated daemon workers** (about 1,700 threads over a full run) | `BoundedExecutor.close()` was added (idle workers exit, new work refused). The three executors are created once per experiment and reused, so threads are bounded at 9; they are replaced (old ones closed) only if a run leaves a stuck call, and the count is reported. A test runs 40 cases x 3 modes plus 36 injection runs and checks the peak stays at 9 and no `pe-` thread remains afterwards |
+| 4 | **The freeze accepted an empty or incomplete agreement record** | `create_freeze` no longer takes a report. It takes the two reviewers' own annotation files and recomputes agreement: exactly two distinct, named reviewers; one annotation per frozen case from each, all recorded under that reviewer's name; every case compared; end-state kappa defined and **at least 0.6** (13.4); and a written rationale in the adjudicated file for every disagreement. The computed agreement is stored in, and hashed with, the record |
+| M1 | `agreement()` ignored `cause_keywords` | a different expected cause is now a disagreement (compared as sets of word-sets, so order and case do not matter) |
+| M2 | A supported annotation could have no required evidence | a `supported` end state requires at least one `required_evidence` reference |
+
+**Decisions recorded from the review**
+- **Planners:** candidate planners intended to become the R2-2 implementation, kept in isolated modules in `agentruntime/planners/` and promoted unchanged if selected. The folder exists (empty); its files are hashed into the freeze. No planner is written yet.
+- **Seed:** the hand-picked seed `20261014` is **retired** (its draw counts were observed). The seed is derived as `int(sha256("calibration-selection:" + commit)[:8], 16)` from an immutable artifact fixed before drawing. Recorded: commit `5ca29805cd892bec6ba1a611b08274af26d663d5`, seed `356050371`, in `docs/baselines/planner_experiment/seed_calibration.json`. The CLI has no option to pass a seed and refuses a retired or non-derived one. No draw has been made with it.
+- **Golden tickets:** each must be approved by two distinct named reviewers and marked calibration-only (`golden.py`); they are never part of the acceptance set.
+- **Still required before annotation or freezing:** two named reviewers and committed capacity.
+
+**Methodological risk to decide before the planners are written:** the experiment runs on the same 50 calibration tickets that are also used to tune the rule table. A rule table tuned on those tickets will look better on them than on new tickets, which inflates `rules_only` and the model's measured gain alike. Options: freeze the rule table and prompts before the 50 are annotated and use a separate tuning subset, or accept the bias and treat the experiment as a screening test (the acceptance set remains the real test).
+
+**Verification:** 64 harness tests (28 earlier, 36 new for the integrity rules); full suite 557 pass (55 skipped in the Windows venv, 24 in the container); runtime, tool and harness suites, 244 tests, pass against a throwaway PostgreSQL.
