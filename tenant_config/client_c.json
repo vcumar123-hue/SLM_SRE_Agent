@@ -56,5 +56,14 @@
   },
   "created_at": "2026-08-17T00:00:00.000000+00:00",
   "updated_at": "2026-08-17T00:00:00.000000+00:00",
-  "deployment_stage": "pilot"
+  "deployment_stage": "pilot",
+  "external_llm_policy": {
+    "allow_external_llm": true,
+    "allowed_llm_providers": [
+      "groq"
+    ],
+    "external_llm_redaction": "basic",
+    "approved_by": "project owner (chat, 2026-10-14)",
+    "note": "PYPL fallback to Groq for broader knowledge. Ticket text sent externally is redacted (basic) and every call is audited in egress_audit."
+  }
 }

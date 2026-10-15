@@ -184,5 +184,35 @@ class PlaybookEgressTests(EgressBase):
         self.assertEqual(out["resolution_playbook"], [])
 
 
+class ShippedTenantPolicyTests(unittest.TestCase):
+    """External model use is opt-in per tenant. This guards against enabling it by accident in a shipped config."""
+
+    def policies(self):
+        root = pathlib.Path(__file__).resolve().parent.parent / "tenant_config"
+        out = {}
+        for path in sorted(root.glob("*.json")):
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            if data.get("tenant_id") and "{{" not in data["tenant_id"]:
+                out[data["tenant_id"]] = data.get("external_llm_policy") or {}
+        return out
+
+    def test_only_explicitly_approved_tenants_allow_external_llm(self):
+        allowed = {tid for tid, pol in self.policies().items() if pol.get("allow_external_llm")}
+        self.assertEqual(allowed, {"client_c"})
+
+    def test_an_opt_in_names_its_provider_and_a_redaction_mode(self):
+        for tid, pol in self.policies().items():
+            if pol.get("allow_external_llm"):
+                self.assertEqual(pol.get("allowed_llm_providers"), ["groq"], tid)
+                self.assertIn(pol.get("external_llm_redaction"), {"basic", "strict"}, tid)
+
+    def test_the_opted_in_tenant_is_allowed_to_reach_groq_and_others_are_denied(self):
+        with patch.object(egress_policy, "AUDIT_FILE", pathlib.Path(tempfile.mkdtemp()) / "audit.jsonl"),                 patch.object(egress_policy, "_write_pg", lambda row: False),                 patch.dict(os.environ, {"GROQ_API_KEY": "test-key"}):
+            allowed = egress_policy.evaluate_external_llm("client_c", "rca_fallback", GROQ_URL)
+            denied = egress_policy.evaluate_external_llm("client_a", "rca_fallback", GROQ_URL)
+        self.assertTrue(allowed.allowed)
+        self.assertFalse(denied.allowed)
+
+
 if __name__ == "__main__":
     unittest.main()

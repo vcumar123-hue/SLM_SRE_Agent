@@ -56,7 +56,7 @@ when evidence is insufficient or contradictory. **Confidence stays owned by the 
 
 ## 5. Decisions needed from you (with my recommendation)
 1. **Planner model.** Recommend the local Gemma model with schema-constrained output, shadow mode first. An external model only for a
-   tenant whose egress policy allows it (none do today).
+   tenant whose egress policy allows it (as of 2026-10-14 only PYPL / `client_c` does, for Groq with basic redaction, approved by the owner).
 2. **Hosting.** Recommend synchronous with a 45–60 s timeout in Release 2; an asynchronous job later if the latency data demands it.
 3. **Shadow first.** Recommend yes: no change to what operators see until R2-3 passes.
 4. **Evaluation ground truth.** Which PYPL and PFG tickets may be used, and who confirms the real cause and fix?
