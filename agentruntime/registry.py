@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Tuple
 
 from agentruntime.context import TrustedContext
 from agentruntime.contracts import EvidenceDraft, ToolSpec
-from agentruntime.executor import CallTimeout, CancelToken, ExecutorBusy, TOOL_EXECUTOR, BoundedExecutor
+from agentruntime.executor import CallTimeout, CancelToken, ExecutorBusy, ExecutorFailed, TOOL_EXECUTOR, BoundedExecutor
 
 FORBIDDEN_ARG_NAMES = frozenset({
     "tenant", "tenant_id", "client", "client_id", "knowledge_scope", "scope", "search_order", "collection", "collection_name",
@@ -167,7 +167,7 @@ class ToolRegistry:
             raw = self._executor.run(job, timeout_s)
         except CallTimeout as exc:
             raise ToolTimeout(f"tool '{name}' exceeded {timeout_s:.0f}s") from exc
-        except ExecutorBusy as exc:
+        except (ExecutorBusy, ExecutorFailed) as exc:
             raise ToolBusy(str(exc)) from exc
         drafts: List[EvidenceDraft] = []
         for item in raw:

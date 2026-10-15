@@ -108,3 +108,20 @@ class FakeClock:
 
     def advance(self, seconds: float):
         self.t += seconds
+
+
+def write_waiver_file(directory=None, **override):
+    """A recorded waiver file, as an owner would create it. Returns its path."""
+    root = pathlib.Path(directory) if directory else pathlib.Path(tempfile.mkdtemp())
+    data = {"approved_by": "owner", "reason": "client policy accepts infrastructure encryption alone", "reference": "POLICY-7",
+            "approved_at": "2026-10-14", "threat_model_reviewed": True}
+    data.update(override)
+    path = root / "agent_data_encryption_waiver.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def real_waiver(**override):
+    """A verified waiver, obtained the only way production does: by loading the recorded file."""
+    from agentruntime import crypto
+    return crypto.load_waiver(write_waiver_file(**override))

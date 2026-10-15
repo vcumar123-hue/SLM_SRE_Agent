@@ -32,7 +32,7 @@ from agentruntime.sanitize import render_data_block, sanitize_text, wrap_untrust
 from agentruntime.verifier import compute_grounding, is_stale, verify_evidence_id, verify_hypotheses
 from tests.agentruntime_helpers import (
     FakeClock, FakePrincipal, KB_SCHEMA, ScriptedPlanner, batch_env, draft, finish_action, make_ctx, make_registry, policy,
-    tenant_dir, tool_action,
+    real_waiver, tenant_dir, tool_action,
 )
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -97,8 +97,7 @@ class BudgetAndConfigTests(unittest.TestCase):
             mode, reason = config.resolve_mode("shadow")
         self.assertEqual(mode, "off")
         self.assertIn("cannot be protected", reason)
-        waiver = crypto.Waiver("owner", "client policy accepts infrastructure encryption", "POLICY-7", "2026-10-14")
-        with patch.object(crypto, "load_waiver", return_value=waiver):
+        with patch.object(crypto, "load_waiver", return_value=real_waiver()):
             self.assertEqual(config.resolve_mode("on")[0], "on")     # a recorded waiver
         with patch.dict(os.environ, {"AIOPS_AGENT_DATA_ENCRYPTION": "off"}),                 patch.object(crypto, "_load_key", return_value=None), patch.object(crypto, "load_waiver", return_value=None):
             self.assertEqual(config.resolve_mode("on")[0], "off")    # an environment variable alone is not a waiver
@@ -202,8 +201,7 @@ class CryptoTests(unittest.TestCase):
         with patch.object(crypto, "_load_key", return_value=None), patch.object(crypto, "load_waiver", return_value=None):
             with self.assertRaises(crypto.KeyMissing):
                 crypto.get_cipher()
-        waiver = crypto.Waiver("owner", "reason", "POLICY-7", "2026-10-14")
-        with patch.object(crypto, "load_waiver", return_value=waiver):
+        with patch.object(crypto, "load_waiver", return_value=real_waiver()):
             self.assertIsNone(crypto.get_cipher())
 
     def test_generated_keys_are_usable(self):

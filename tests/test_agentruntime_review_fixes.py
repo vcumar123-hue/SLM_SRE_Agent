@@ -22,7 +22,7 @@ from pydantic import ValidationError
 from agentruntime import config, crypto
 from agentruntime.context import ContextError, build_context
 from agentruntime.contracts import Action, AgentPolicy, Budgets, EvidenceDraft, EvidenceItem, ToolSpec, evidence_hash
-from agentruntime.executor import BoundedExecutor, CallTimeout, ExecutorBusy
+from agentruntime.executor import BoundedExecutor, CallTimeout, CancelToken, ExecutorBusy, ExecutorFailed
 from agentruntime.gateway import ModelBudgetError, ModelGateway, ModelOverLimit, ModelResponse, ModelTimeoutError, ModelUsage
 from agentruntime.registry import ToolBusy, ToolRegistry, ToolTimeout
 from agentruntime.replay import replay
@@ -32,7 +32,7 @@ from agentruntime.store import RunStore, StoreError
 from agentruntime.verifier import compute_grounding
 from tests.agentruntime_helpers import (
     FakeClock, FakePrincipal, KB_SCHEMA, ScriptedPlanner, batch_env, draft, finish_action, make_ctx, make_registry, policy,
-    tenant_dir, tool_action,
+    real_waiver, tenant_dir, tool_action, write_waiver_file,
 )
 
 
@@ -64,15 +64,20 @@ class GatewayPlanner:
         self.seen_max_tokens = []
 
     def next_action(self, state):
-        def call(max_tokens):
+        def call(max_tokens, timeout_s, cancel):
             self.seen_max_tokens.append(max_tokens)
-            return self.model_fn(max_tokens)
+            return self.model_fn(max_tokens, timeout_s, cancel)
         state.gateway.request(call, self.kind)
         return PlannerReply(action=self.then)
 
 
+def make_runner(reg=None, planner_executor=None, model_executor=None):
+    return Runner(reg or make_registry(), clock=FakeClock(), planner_executor=planner_executor or BoundedExecutor(4, 2, "t-planner"),
+                  model_executor=model_executor or BoundedExecutor(4, 2, "t-model"))
+
+
 def run_batch(planner, reg=None, pol=None, runner=None):
-    runner = runner or Runner(reg or make_registry(), clock=FakeClock(), model_executor=BoundedExecutor(4, 2, "t-model"))
+    runner = runner or make_runner(reg)
     with batch_env():
         return runner.run_batch(make_ctx(), pol or policy(), {"ticket_text": "t"}, planner)
 
@@ -81,12 +86,11 @@ def run_batch(planner, reg=None, pol=None, runner=None):
 class ModelBudgetEnforcementTests(unittest.TestCase):
     def test_a_planner_that_blocks_is_bounded_by_the_model_timeout(self):
         release = threading.Event()
-        executor = BoundedExecutor(4, 2, "t-model")
+        executor = BoundedExecutor(4, 2, "t-planner")
         planner = BlockingPlanner(release)
         started = time.monotonic()
         try:
-            res = run_batch(planner, pol=policy(model_call_timeout_s=1, max_model_calls=1),
-                            runner=Runner(make_registry(), clock=FakeClock(), model_executor=executor))
+            res = run_batch(planner, pol=policy(model_call_timeout_s=1, max_model_calls=1), runner=make_runner(planner_executor=executor))
             took = time.monotonic() - started
             self.assertEqual(res.status, "failed_model")
             self.assertLess(took, 6)
@@ -101,26 +105,28 @@ class ModelBudgetEnforcementTests(unittest.TestCase):
 
     def test_repeated_blocking_does_not_create_unbounded_threads(self):
         release = threading.Event()
-        executor = BoundedExecutor(4, 2, "t-model-bound")
+        executor = BoundedExecutor(4, 2, "t-planner-bound")
         before = threading.active_count()
         try:
             for _ in range(3):
                 run_batch(BlockingPlanner(release), pol=policy(model_call_timeout_s=1, max_model_calls=1, max_steps=3),
-                          runner=Runner(make_registry(), clock=FakeClock(), model_executor=executor))
+                          runner=make_runner(planner_executor=executor))
             self.assertLessEqual(threading.active_count() - before, 4)
         finally:
             release.set()
 
     def test_the_gateway_enforces_the_per_call_timeout(self):
-        planner = GatewayPlanner(lambda max_tokens: time.sleep(3) or ModelResponse("late"))
+        planner = GatewayPlanner(lambda max_tokens, timeout_s, cancel: time.sleep(3) or ModelResponse("late"))
         res = run_batch(planner, pol=policy(model_call_timeout_s=1, max_model_calls=1, max_steps=2))
         self.assertTrue(res.steps[0].error.startswith("timeout"), res.steps[0].error)
 
     def test_the_gateway_passes_the_per_kind_token_limit_to_the_model(self):
         seen = {}
 
-        def model(max_tokens):
+        def model(max_tokens, timeout_s, cancel):
             seen["n"] = max_tokens
+            seen["timeout"] = timeout_s
+            seen["cancel"] = cancel
             return ModelResponse("ok", tokens_in=5, tokens_out=5)
 
         usage = ModelUsage()
@@ -132,11 +138,16 @@ class ModelBudgetEnforcementTests(unittest.TestCase):
         small = ModelGateway(Budgets(max_tokens_run=500), ModelUsage(tokens_in=300), lambda: 30, BoundedExecutor(2, 1, "g"))
         small.request(model, "synthesis")
         self.assertEqual(seen["n"], 200)                 # never more than the tokens left in the run budget
+        self.assertIsInstance(seen["cancel"], CancelToken)
+        self.assertEqual(seen["timeout"], Budgets().model_call_timeout_s)
+        short = ModelGateway(Budgets(), ModelUsage(), lambda: 3.0, BoundedExecutor(2, 1, "g"))
+        short.request(model, "planner")
+        self.assertEqual(seen["timeout"], 3.0)           # the remaining deadline is passed down when it is shorter
 
     def test_an_oversized_single_reply_is_discarded_and_its_action_never_runs(self):
         calls = []
         reg = make_registry(kb_fn=lambda ctx, query, top_k=3: calls.append(1) or [])
-        planner = GatewayPlanner(lambda max_tokens: ModelResponse("long", tokens_in=10, tokens_out=Budgets().max_tokens_planner + 1))
+        planner = GatewayPlanner(lambda max_tokens, timeout_s, cancel: ModelResponse("long", tokens_in=10, tokens_out=Budgets().max_tokens_planner + 1))
         res = run_batch(planner, reg=reg)
         self.assertEqual(res.status, "failed_model")
         self.assertTrue(res.steps[0].error.startswith("over_limit"))
@@ -171,7 +182,7 @@ class ModelBudgetEnforcementTests(unittest.TestCase):
     def test_the_gateway_refuses_requests_the_budget_cannot_cover(self):
         made = []
 
-        def model(max_tokens):
+        def model(max_tokens, timeout_s, cancel):
             made.append(1)
             return ModelResponse("ok", tokens_in=1, tokens_out=1)
 
@@ -190,12 +201,12 @@ class ModelBudgetEnforcementTests(unittest.TestCase):
         usage = ModelUsage()
         gw = ModelGateway(Budgets(model_call_timeout_s=1), usage, lambda: 30, BoundedExecutor(2, 1, "g"))
         with self.assertRaises(ModelTimeoutError):
-            gw.request(lambda m: time.sleep(2) or ModelResponse("x"))
+            gw.request(lambda m, timeout_s, cancel: time.sleep(2) or ModelResponse("x"))
         self.assertEqual(usage.calls, 1)
         usage2 = ModelUsage(tokens_in=5900)
         gw2 = ModelGateway(Budgets(max_tokens_run=6000), usage2, lambda: 30, BoundedExecutor(2, 1, "g"))
         with self.assertRaises(ModelBudgetError):
-            gw2.request(lambda m: ModelResponse("x", tokens_in=100, tokens_out=100))
+            gw2.request(lambda m, timeout_s, cancel: ModelResponse("x", tokens_in=100, tokens_out=100))
         self.assertEqual(usage2.tokens, 6100)             # counted before the reply was refused
 
 
@@ -239,7 +250,7 @@ class ToolExecutionBoundsTests(unittest.TestCase):
             with self.assertRaises(ToolBusy):
                 reg.call(make_ctx(), "incident_kb_search", {"query": "q3"}, 0.1)
             self.assertEqual(threading.active_count(), threads_after_two)           # no extra thread for the refused call
-            self.assertLessEqual(threads_after_two - before, 2)
+            self.assertLessEqual(threads_after_two - before, 4)                      # the fixed pool size, never more
         finally:
             release.set()
         deadline = time.monotonic() + 5
@@ -418,7 +429,7 @@ class ReplayVersionTests(unittest.TestCase):
 # ---------------------------------------------------------------------------------------------------------------------------------
 class OffAtTheBoundaryTests(unittest.TestCase):
     def runner(self):
-        return Runner(make_registry(), clock=FakeClock(), model_executor=BoundedExecutor(4, 2, "t-off"))
+        return make_runner()
 
     def test_a_policy_is_off_unless_it_opts_in(self):
         self.assertEqual(AgentPolicy(allowed_tools=["incident_kb_search"]).mode, "off")
@@ -513,39 +524,177 @@ class HardeningTests(unittest.TestCase):
             self.assertFalse(crypto.Waiver(*incomplete).valid())
 
     def test_the_waiver_file_must_be_complete_and_confirm_the_threat_model_review(self):
-        import pathlib
-        root = tenant_dir()
-        path = pathlib.Path(root) / "w.json"
-        self.assertIsNone(crypto.load_waiver(path))                       # no file: not waived
-        full = {"approved_by": "owner", "reason": "client policy", "reference": "POLICY-1", "approved_at": "2026-10-14",
-                "threat_model_reviewed": True}
-        path.write_text(json.dumps(full), encoding="utf-8")
-        self.assertIsNotNone(crypto.load_waiver(path))
-        for broken in ({**full, "threat_model_reviewed": False}, {**full, "reference": ""}, {k: v for k, v in full.items() if k != "approved_by"}):
-            path.write_text(json.dumps(broken), encoding="utf-8")
-            self.assertIsNone(crypto.load_waiver(path))
+        path = write_waiver_file()
+        self.assertIsNone(crypto.load_waiver(path.parent / "missing.json"))      # no file: not waived
+        self.assertTrue(crypto.load_waiver(path).verified)
+        for broken in ({"threat_model_reviewed": False}, {"reference": ""}, {"approved_by": ""}, {"approved_at": " "}):
+            self.assertIsNone(crypto.load_waiver(write_waiver_file(**broken)))
         path.write_text("{not json", encoding="utf-8")
         self.assertIsNone(crypto.load_waiver(path))
 
-    def test_plaintext_storage_needs_a_waiver_object_not_a_flag(self):
-        with self.assertRaises(StoreError):
-            RunStore(connect=lambda: None, waiver=crypto.Waiver("", "reason", "ref", "date"))
+    def test_a_caller_created_waiver_can_never_disable_encryption(self):
+        forged = crypto.Waiver("owner", "reason", "POLICY-1", "2026-10-14", record_hash="abc")
+        self.assertFalse(forged.verified)
+        self.assertFalse(crypto.Waiver("owner", "reason", "POLICY-1", "2026-10-14", "abc", object()).verified)
+        for waiver in (forged, crypto.Waiver("owner", "reason", "POLICY-1", "2026-10-14", "abc", object())):
+            with self.assertRaises(StoreError):
+                RunStore(connect=lambda: None, waiver_loader=lambda w=waiver: w)
+        with self.assertRaises(TypeError):
+            RunStore(connect=lambda: None, waiver=forged)                        # the object-accepting parameter no longer exists
+        with self.assertRaises(TypeError):
+            RunStore(connect=lambda: None, encrypt=False)
+
+    def test_an_environment_variable_alone_is_not_a_waiver(self):
         with patch.object(crypto, "_load_key", return_value=None), patch.object(crypto, "load_waiver", return_value=None):
             with self.assertRaises(crypto.KeyMissing):
                 RunStore(connect=lambda: None)
             with patch.dict(os.environ, {"AIOPS_AGENT_DATA_ENCRYPTION": "off"}):
-                with self.assertRaises(crypto.KeyMissing):                    # an environment variable alone is not a waiver
+                with self.assertRaises(crypto.KeyMissing):
                     RunStore(connect=lambda: None)
-        with self.assertRaises(TypeError):
-            RunStore(connect=lambda: None, encrypt=False)                      # the free flag no longer exists
-        store = RunStore(connect=lambda: None, waiver=crypto.Waiver("owner", "reason", "POLICY-1", "2026-10-14"))
-        self.assertEqual(store.encryption_record()["mode"], "waived")
-        self.assertEqual(store.encryption_record()["reference"], "POLICY-1")
+
+    def test_a_waiver_loaded_from_the_record_is_accepted_and_audited_with_its_hash(self):
+        path = write_waiver_file()
+        store = RunStore(connect=lambda: None, waiver_loader=lambda: crypto.load_waiver(path))
+        record = store.encryption_record()
+        self.assertEqual(record["mode"], "waived")
+        self.assertEqual((record["approved_by"], record["reference"], record["approved_at"]), ("owner", "POLICY-7", "2026-10-14"))
+        self.assertEqual(len(record["record_hash"]), 64)
+        other = write_waiver_file(reason="a different reason")
+        self.assertNotEqual(crypto.load_waiver(other).record_hash, record["record_hash"])   # any edit changes the hash
 
 
 def time_now():
     from datetime import datetime, timezone
     return datetime.now(timezone.utc)
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+class ExecutorSeparationAndRecoveryTests(unittest.TestCase):
+    def test_a_runner_refuses_to_use_one_pool_for_planners_and_models(self):
+        shared = BoundedExecutor(4, 2, "shared")
+        with self.assertRaises(ValueError):
+            Runner(make_registry(), planner_executor=shared, model_executor=shared)
+
+    def test_concurrent_planners_that_all_call_the_gateway_do_not_starve_each_other(self):
+        """Eight planners wait at a barrier, then all call the model at once: with separate pools none of them can fail."""
+        planner_pool, model_pool = BoundedExecutor(8, 4, "t-planner-c"), BoundedExecutor(4, 2, "t-model-c")
+        barrier = threading.Barrier(8, timeout=10)
+
+        class Concurrent:
+            prompt_version = "p"
+            ruleset_version = "r"
+            model_id = "m"
+
+            def next_action(self, state):
+                barrier.wait()
+                state.gateway.request(lambda max_tokens, timeout_s, cancel: ModelResponse("ok", tokens_in=1, tokens_out=1), "planner")
+                return PlannerReply(action=Action(kind="escalate", reason="done"))
+
+        results = []
+
+        def one():
+            results.append(run_batch(Concurrent(), runner=make_runner(planner_executor=planner_pool, model_executor=model_pool),
+                                     pol=policy(model_call_timeout_s=5)))
+
+        threads = [threading.Thread(target=one) for _ in range(8)]
+        for t_ in threads:
+            t_.start()
+        for t_ in threads:
+            t_.join(20)
+        self.assertEqual(len(results), 8)
+        self.assertEqual({r.status for r in results}, {"escalated_insufficient"}, [r.reason for r in results])
+
+    def test_the_old_shared_pool_design_would_have_starved(self):
+        """Documents why the pools are separate: planners that fill one small pool leave no worker for their own model requests."""
+        pool = BoundedExecutor(4, 2, "shared-demo")
+        barrier = threading.Barrier(4, timeout=5)
+        outcomes = []
+
+        def planner_job(token):
+            barrier.wait()
+            try:
+                pool.run(lambda t2: "model reply", 0.5)          # a nested request on the SAME pool
+                outcomes.append("ok")
+            except Exception as exc:  # noqa: BLE001
+                outcomes.append(type(exc).__name__)
+
+        threads = [threading.Thread(target=lambda: pool.run(planner_job, 5)) for _ in range(4)]
+        for t_ in threads:
+            t_.start()
+        for t_ in threads:
+            t_.join(10)
+        self.assertIn("CallTimeout", outcomes)
+
+    def test_model_adapters_receive_a_cancel_token_that_is_set_when_the_call_times_out(self):
+        seen = {}
+
+        def cooperative(max_tokens, timeout_s, cancel):
+            while not cancel.cancelled:
+                time.sleep(0.01)
+            seen["cancelled"] = True
+            return ModelResponse("late")
+
+        pool = BoundedExecutor(4, 2, "t-coop")
+        gw = ModelGateway(Budgets(model_call_timeout_s=1), ModelUsage(), lambda: 30, pool)
+        with self.assertRaises(ModelTimeoutError):
+            gw.request(cooperative)
+        deadline = time.monotonic() + 3
+        while pool.abandoned and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertTrue(seen.get("cancelled"))
+        self.assertEqual(pool.abandoned, 0)
+
+    def test_a_permanently_blocked_model_call_is_replaced_and_the_executor_recovers(self):
+        release = threading.Event()
+        pool = BoundedExecutor(3, 2, "t-stuck", leak_after_s=0.3, max_leaked=4)
+        try:
+            for _ in range(2):                                   # two requests that never return
+                with self.assertRaises(CallTimeout):
+                    pool.run(lambda token: release.wait(30), 0.1)
+            self.assertEqual(pool.abandoned, 2)
+            with self.assertRaises(ExecutorBusy):                # refused while they are merely abandoned
+                pool.run(lambda token: "x", 0.5)
+            time.sleep(0.45)                                     # long enough to be declared leaked
+            self.assertEqual(pool.run(lambda token: "recovered", 2), "recovered")
+            self.assertEqual((pool.leaked, pool.abandoned), (2, 0))
+            self.assertLessEqual(pool.live_threads, 3 + 2)       # replacements, never unbounded growth
+        finally:
+            release.set()
+        deadline = time.monotonic() + 5
+        while (pool.leaked or pool.abandoned) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual((pool.leaked, pool.abandoned), (0, 0))  # the stuck calls finally returned
+        self.assertEqual(pool.run(lambda token: "still fine", 2), "still fine")
+
+    def test_stuck_calls_are_capped_and_the_executor_then_refuses_work(self):
+        release = threading.Event()
+        pool = BoundedExecutor(3, 2, "t-cap", leak_after_s=0.2, max_leaked=3)
+        try:
+            refused = False
+            for _ in range(8):
+                try:
+                    pool.run(lambda token: release.wait(30), 0.1)
+                except CallTimeout:
+                    pass
+                except ExecutorBusy:
+                    time.sleep(0.3)                              # let abandoned calls be declared leaked
+                except ExecutorFailed:
+                    refused = True
+                    break
+            self.assertTrue(refused)
+            self.assertLessEqual(pool.live_threads, 3 + 3 + 2)   # max_workers + max_leaked + max_abandoned, however long it goes on
+        finally:
+            release.set()
+        deadline = time.monotonic() + 5
+        while (pool.leaked or pool.abandoned) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual(pool.run(lambda token: "back", 2), "back")
+
+    def test_workers_are_daemon_threads_so_a_stuck_call_cannot_block_exit(self):
+        pool = BoundedExecutor(2, 1, "t-daemon")
+        pool.run(lambda token: None, 1)
+        self.assertTrue(all(t_.daemon for t_ in threading.enumerate() if t_.name.startswith("t-daemon")))
 
 
 if __name__ == "__main__":

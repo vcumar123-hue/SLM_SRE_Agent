@@ -18,7 +18,8 @@ from agentruntime.replay import replay
 from agentruntime.runner import Runner, build_versions
 from agentruntime.store import RunStore, StoreError
 from tests.agentruntime_helpers import (
-    FakeClock, FakePrincipal, ScriptedPlanner, batch_env, draft, finish_action, make_registry, policy, tenant_dir, tool_action,
+    FakeClock, FakePrincipal, ScriptedPlanner, batch_env, draft, finish_action, make_registry, policy, real_waiver, tenant_dir,
+    tool_action, write_waiver_file,
 )
 from agentruntime.context import build_context
 
@@ -55,7 +56,7 @@ class StoreBase(unittest.TestCase):
             raise unittest.SkipTest("the cryptography package is not installed")
         cls.cipher = crypto.Cipher(b"s" * 32) if cls.encrypted else None
         cls.store = (RunStore(cipher=cls.cipher) if cls.encrypted
-                     else RunStore(waiver=crypto.Waiver("owner", "client policy accepts infrastructure encryption", "POLICY-1", "2026-10-14")))
+                     else RunStore(waiver_loader=lambda: crypto.load_waiver(write_waiver_file())))
         cls.store.ensure_schema()
 
     def setUp(self):
@@ -197,6 +198,7 @@ class SharedStoreTests(StoreBase):
         self.store.save_run(result)
         versions = self.store.load_run(t, result.run_id).versions
         self.assertEqual(versions["encryption"]["mode"], "aes-256-gcm")
+        self.assertNotIn("record_hash", versions["encryption"])
         for key in ("schema", "runtime", "tools", "prompt", "ruleset", "model", "policy_hash"):
             self.assertIn(key, versions)
 
@@ -222,6 +224,10 @@ class PlaintextWaiverTests(StoreBase):
         text = " ".join(str(r) for r in self.raw("SELECT item::text FROM agent_evidence WHERE tenant_id = %s", (t,)))
         self.assertIn("plain", text)
         self.assertEqual(self.store.load_run(t, result.run_id).status, "supported")
+        encryption = self.store.load_run(t, result.run_id).versions["encryption"]
+        self.assertEqual(encryption["mode"], "waived")
+        self.assertEqual(encryption["reference"], "POLICY-7")
+        self.assertEqual(len(encryption["record_hash"]), 64)             # the waiver record travels with the run for audit
 
 
 @unittest.skipUnless(LIVE, "set AIOPS_TEST_AGENT_PG=1 with a reachable PostgreSQL to run")

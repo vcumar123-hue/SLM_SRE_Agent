@@ -54,7 +54,9 @@ def _hash(text: str) -> str:
 
 class RunStore:
     def __init__(self, connect: Optional[Callable[[], Any]] = None, cipher: Optional[Cipher] = None,
-                 waiver: Optional[Waiver] = None):
+                 waiver_loader: Optional[Callable[[], Optional[Waiver]]] = None):
+        """Production code passes nothing: encryption is on, or a recorded waiver file permits plaintext. `waiver_loader` lets a test point
+        at a waiver file of its own; whatever it returns must still be `verified` (loaded from a record), never a hand-built object."""
         if connect is None:
             import postgres_store
             connect = postgres_store.get_connection
@@ -63,23 +65,19 @@ class RunStore:
         self.waiver: Optional[Waiver] = None
         if cipher is not None:
             self._cipher = cipher
-        elif waiver is not None:
-            if not waiver.valid():
-                raise StoreError("a plaintext-storage waiver must name who approved it, why, the policy reference and the date")
-            self.waiver = waiver
         else:
-            self._cipher = get_cipher()           # raises KeyMissing when encryption is required and no key exists
-            if self._cipher is None:              # only a valid recorded waiver file gets here
-                self.waiver = load_waiver()
-                if self.waiver is None:
-                    raise StoreError("no cipher and no valid waiver: refusing to store run data")
+            loader = waiver_loader or load_waiver
+            self._cipher = get_cipher(loader)       # raises KeyMissing when encryption is required and no key exists
+            if self._cipher is None:                # only a recorded waiver gets here
+                self.waiver = loader()
+                if self.waiver is None or not self.waiver.verified:
+                    raise StoreError("plaintext storage needs a waiver loaded from the recorded waiver file; refusing to store run data")
         self._encrypt = self._cipher is not None
 
     def encryption_record(self) -> Dict[str, Any]:
         if self._cipher is not None:
             return {"mode": "aes-256-gcm", "key_id": self._cipher.key_id}
-        return {"mode": "waived", "reference": self.waiver.reference if self.waiver else "",
-                "approved_by": self.waiver.approved_by if self.waiver else ""}
+        return {"mode": "waived", **(self.waiver.record() if self.waiver else {})}
 
     # -- encoding of sensitive JSON ---------------------------------------------------------------------------------------
 

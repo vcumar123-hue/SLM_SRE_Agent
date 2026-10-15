@@ -5,7 +5,8 @@ AES-256-GCM with a key that lives outside the database: AIOPS_AGENT_DATA_KEY (ba
 Ciphertexts are bound to their tenant, run and field through the authenticated data, so a ciphertext moved to another tenant or
 field does not decrypt. Encryption is on by default; the only way off is a valid, recorded waiver (see Waiver).
 If encryption is required and no key is available, persistence is refused and the mode resolves to `off`.
-Plaintext storage needs a recorded Waiver file (who, why, the policy and threat-model reference); an environment variable alone is not one.
+Plaintext storage needs a recorded waiver **file** (who, why, the policy reference, the date, threat model reviewed) loaded by
+`load_waiver`; a Waiver built by a caller is never accepted, and an environment variable alone is not one.
 """
 from __future__ import annotations
 
@@ -14,9 +15,9 @@ import hashlib
 import json
 import os
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 try:  # pragma: no cover - exercised where the package is installed
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -34,20 +35,34 @@ class DecryptionError(Exception):
     """A ciphertext failed authentication (wrong key, wrong tenant, wrong field, or tampering)."""
 
 
+_LOADED = object()      # proves a Waiver came from load_waiver(); a caller cannot supply it from outside this module
+
+
 @dataclass(frozen=True)
 class Waiver:
     """An auditable decision to store run data without application-level encryption (owner decision 3).
 
-    It must name who approved it, why, and the client policy and threat-model references it rests on. An environment variable alone
-    is never a waiver.
+    A usable waiver exists only if it was **loaded from the recorded waiver file** by `load_waiver`: that proves the file exists, names who
+    approved it, why, the client policy reference and the date, and that the threat model was reviewed. A Waiver built by a caller is
+    never `verified`, and storage refuses it. `record_hash` is the SHA-256 of the file content, kept with every run for audit.
     """
     approved_by: str
     reason: str
     reference: str            # the client policy or threat-model document that permits infrastructure encryption alone
     approved_at: str
+    record_hash: str = ""
+    _token: object = field(default=None, repr=False, compare=False)
 
     def valid(self) -> bool:
         return all(isinstance(v, str) and v.strip() for v in (self.approved_by, self.reason, self.reference, self.approved_at))
+
+    @property
+    def verified(self) -> bool:
+        return self._token is _LOADED and self.valid() and bool(self.record_hash)
+
+    def record(self) -> dict:
+        return {"approved_by": self.approved_by, "reason": self.reason, "reference": self.reference,
+                "approved_at": self.approved_at, "record_hash": self.record_hash}
 
 
 def waiver_path() -> Path:
@@ -55,21 +70,22 @@ def waiver_path() -> Path:
 
 
 def load_waiver(path: Optional[Path] = None) -> Optional[Waiver]:
-    """The recorded waiver, or None when there is none or it is incomplete (incomplete means not waived)."""
+    """The recorded, verified waiver, or None when there is none or it is incomplete (incomplete means not waived)."""
     p = path or waiver_path()
     try:
         if not p.is_file():
             return None
-        data = json.loads(p.read_text(encoding="utf-8-sig"))
+        raw = p.read_bytes()
+        data = json.loads(raw.decode("utf-8-sig"))
         waiver = Waiver(str(data.get("approved_by", "")), str(data.get("reason", "")), str(data.get("reference", "")),
-                        str(data.get("approved_at", "")))
+                        str(data.get("approved_at", "")), hashlib.sha256(raw).hexdigest(), _LOADED)
         return waiver if waiver.valid() and data.get("threat_model_reviewed") is True else None
     except (OSError, ValueError, AttributeError):
         return None
 
 
-def encryption_required() -> bool:
-    return load_waiver() is None
+def encryption_required(waiver_loader: Optional[Callable[[], Optional[Waiver]]] = None) -> bool:
+    return (waiver_loader or load_waiver)() is None
 
 
 def _load_key() -> Optional[bytes]:
@@ -130,9 +146,12 @@ class Cipher:
             raise DecryptionError(str(exc)) from exc
 
 
-def get_cipher() -> Optional[Cipher]:
-    """The cipher when encryption is on and a key exists; None when encryption is waived; KeyMissing when required but absent."""
-    if not encryption_required():
+def get_cipher(waiver_loader: Optional[Callable[[], Optional[Waiver]]] = None) -> Optional[Cipher]:
+    """The cipher when encryption is on and a key exists; None only under a recorded waiver; KeyMissing when required but absent.
+
+    `waiver_loader` exists so tests can point at a waiver file of their own; production code uses the default loader.
+    """
+    if not encryption_required(waiver_loader):
         return None
     key = _load_key()
     if key is None or AESGCM is None:

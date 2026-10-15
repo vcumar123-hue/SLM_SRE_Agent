@@ -3,7 +3,8 @@ The only way a planner may call a model (design 7.1 and review finding "model bu
 
 Every request goes through ModelGateway.request, which enforces, before and after the call:
   * the run's model-call and token budgets (a request that would exceed them is refused before it is made);
-  * `model_call_timeout_s`, bounded also by the run's remaining deadline, on the shared bounded executor;
+  * `model_call_timeout_s`, bounded also by the run's remaining deadline, on the shared bounded **model** executor (a pool of its own,
+    never the one a planner runs on); the effective timeout and a cancel token are passed to the model adapter so a stuck call can stop;
   * the per-call output limit (`max_tokens_planner` or `max_tokens_synthesis`), passed to the model as its max_tokens and checked
     against the tokens it reports: an over-limit reply is discarded, never returned to the planner;
   * the run-wide token budget: usage is counted before the reply is handed back.
@@ -16,7 +17,7 @@ from dataclasses import dataclass
 from typing import Callable, Literal, Optional
 
 from agentruntime.contracts import Budgets
-from agentruntime.executor import CallTimeout, ExecutorBusy, MODEL_EXECUTOR, BoundedExecutor
+from agentruntime.executor import CallTimeout, CancelToken, ExecutorBusy, ExecutorFailed, MODEL_EXECUTOR, BoundedExecutor
 
 
 @dataclass
@@ -62,7 +63,10 @@ class ModelGateway:
         self._remaining_s = remaining_s
         self._executor = executor
 
-    def request(self, fn: Callable[[int], ModelResponse], kind: Literal["planner", "synthesis"] = "planner") -> ModelResponse:
+    def request(self, fn: Callable[[int, float, CancelToken], ModelResponse],
+                kind: Literal["planner", "synthesis"] = "planner") -> ModelResponse:
+        """Make one model request. `fn(max_tokens, timeout_s, cancel)` is the model adapter: it must apply `timeout_s` at the HTTP-client
+        level, stop when `cancel` is set where it can, and return a ModelResponse. The gateway still bounds the wait itself."""
         b = self._budgets
         if self.usage.calls >= b.max_model_calls:
             raise ModelBudgetError("model call budget used")
@@ -76,10 +80,11 @@ class ModelGateway:
             raise ModelBudgetError("deadline reached")
         self.usage.calls += 1                      # a request that times out still used a call
         try:
-            response = self._executor.run(lambda token: fn(max_tokens), timeout)
+            response = self._executor.run(lambda token: fn(max_tokens, timeout, token), timeout)
         except CallTimeout as exc:
             raise ModelTimeoutError(str(exc)) from exc
-        except ExecutorBusy as exc:
+        except (ExecutorBusy, ExecutorFailed) as exc:
+            self.usage.calls -= 1                  # refused before it started: not a used call
             raise ModelUnavailable(str(exc)) from exc
         if not isinstance(response, ModelResponse):
             raise ModelUnavailable("the model call did not return a ModelResponse")

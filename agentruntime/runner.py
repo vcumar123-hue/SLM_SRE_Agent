@@ -25,7 +25,7 @@ from agentruntime.context import TrustedContext
 from agentruntime.contracts import (
     Action, AgentPolicy, AgentRunResult, AgentStep, EvidenceDraft, EvidenceItem, Hypothesis, evidence_hash,
 )
-from agentruntime.executor import MODEL_EXECUTOR, BoundedExecutor, CallTimeout, ExecutorBusy
+from agentruntime.executor import MODEL_EXECUTOR, PLANNER_EXECUTOR, BoundedExecutor, CallTimeout, ExecutorBusy, ExecutorFailed
 from agentruntime.gateway import (
     ModelBudgetError, ModelGateway, ModelOverLimit, ModelTimeoutError, ModelUnavailable, ModelUsage,
 )
@@ -124,12 +124,16 @@ class Runner:
         *,
         clock: Callable[[], float] = time.monotonic,
         now_fn: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        planner_executor: BoundedExecutor = PLANNER_EXECUTOR,
         model_executor: BoundedExecutor = MODEL_EXECUTOR,
     ) -> None:
+        if planner_executor is model_executor:
+            raise ValueError("planner decisions and model requests must use different executors (nested calls would starve one pool)")
         self.registry = registry
         self.clock = clock
         self.now_fn = now_fn
-        self.model_executor = model_executor
+        self.planner_executor = planner_executor     # the outer safety boundary around a planner decision
+        self.model_executor = model_executor         # the pool the gateway uses for the actual model requests
 
     # -- entry points -----------------------------------------------------------------------------------------------------
 
@@ -266,7 +270,7 @@ class Runner:
                 planner_error: Optional[str] = None
                 over_budget: Optional[str] = None
                 try:
-                    reply = self.model_executor.run(lambda token: planner.next_action(state), outer)
+                    reply = self.planner_executor.run(lambda token: planner.next_action(state), outer)
                     if not isinstance(reply, PlannerReply) or not isinstance(reply.action, Action):
                         raise PlannerError("the planner returned something that is not an action")
                 except ModelBudgetError as exc:
@@ -279,7 +283,7 @@ class Runner:
                     break
                 except (ModelTimeoutError, CallTimeout) as exc:
                     planner_error = "timeout: " + sanitize_text(str(exc), 200)[0]
-                except (ModelUnavailable, ExecutorBusy) as exc:
+                except (ModelUnavailable, ExecutorBusy, ExecutorFailed) as exc:
                     planner_error = "unavailable: " + sanitize_text(str(exc), 200)[0]
                 except Exception as exc:  # noqa: BLE001 - any planner failure is recorded, never raised
                     planner_error = "planner_error: " + sanitize_text(str(exc), 200)[0]
