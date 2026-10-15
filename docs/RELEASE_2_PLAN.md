@@ -1,9 +1,9 @@
-# Release 2 — Bounded Investigation Agent (plan, revision 2)
+# Release 2 — Bounded Investigation Agent (plan, revision 3)
 
-**Status:** revision 3 after the second owner review. **Artifacts A–D (trusted context and tool boundary, evidence, budgets and failure
-states, shadow lifecycle) are approved for R2-0 foundation work and the planner experiment** (the experiment proceeds once its annotations and
-decision rule are frozen). **Artifact E (pre-registered evaluation) was corrected in this revision and awaits re-review. R2-2 runtime
-integration remains unapproved** until E is accepted and the owner decisions in section 5 are recorded. Nothing here is built yet.
+**Status:** revision 3, after the third owner review. **Artifacts A–E are all approved.** Release 2 proceeds with R2-0, R2-1 and the frozen
+planner experiment. R2-2 implementation may begin after R2-1 and the planner decision, **with the loop `off` by default; no tenant is
+switched to `shadow` or `on` until a separate recorded decision, and `on` is blocked until R2-3 passes.** The owner decisions and the
+approved sequence are recorded in `docs/RELEASE_2_DESIGN.md` section 17.
 **Branch:** continues on `agentic-v2` (Release 1 is tagged `release-1`).
 **Detail:** `docs/RELEASE_2_DESIGN.md` is the engineering design; this plan keeps scope, phases and decisions. `docs/AGENTIC_DESIGN.md`
 remains the long-range reference.
@@ -80,20 +80,25 @@ accepted. The agent never reports confidence.
 - **Also reported:** tool calls, tokens and cost, unnecessary external calls, human override rate, and recurrence after recommendations
   (not measurable until outcomes exist).
 
-## 5. Decisions (recommendation, status)
-1. **Planner model.** Rules first, the local model only for judgement if the experiment supports it; external only for a tenant whose
-   egress policy allows it (only PYPL today: Groq, basic redaction, approved by the owner). *Open: confirm.*
-2. **Hosting.** Synchronous with a 40 s deadline in Release 2. *Open.*
-3. **Shadow.** Queued after the response, never awaited; evaluation uses a separate batch runner. *Proposed.*
-4. **Ground truth and reviewers.** Reviewer labels; **who the two reviewers are, and the capacity for about 160 labelled tickets, is open.**
+## 5. Decisions (recorded 2026-10-14; details in design section 17)
+1. **Planner model — approved.** Rules first; the local model only if the trajectory experiment passes its fixed decision rule; `rules_only`
+   fallback on any model failure; an external planner only with explicit per-tenant permission naming the planner purpose, provider,
+   redaction and audit. PYPL's existing Groq permission is **not** assumed to cover planner traffic.
+2. **Hosting — approved.** Synchronous `on` with a 40 s default and 45 s hard deadline; `shadow` queued and non-blocking.
+3. **Shadow — approved.** Queued after the response, never awaited; evaluation uses the batch runner.
+4. **Reviewers — process approved, names open.** Reviewer 1 an SRE/ITSM expert; Reviewer 2 a client/domain expert; the owner or technical
+   lead adjudicates; the agent's developer is not the sole reviewer. About 290 review decisions, 73–121 reviewer-hours. **The owner must
+   supply names and reserve the capacity before acceptance labelling.**
 5. **Tools without a source.** CMDB and change lookups stay out until PYPL sends the data.
 6. **Forecasting.** Out of scope; revisit after the shadow results.
-7. **Merge timing.** *Owner to confirm it is intentional that `agentic-v2` merges to `main` after R2-2 and before promotion.* Recommendation: yes, because the loop is inert at its default `off`, tests assert responses identical to today at `off`, and enabling it for a tenant is a separate decision after R2-3. The alternative is to merge after R2-3.
-8. **Stored run data.** Sanitised evidence objects only, tenant-keyed, 90-day default retention, never sent externally. *Open: encryption
-   level (host disk encryption, optional column encryption).*
-9. **Gate values** in section 4 are proposed; the owner approves or amends them before they are hashed, and before any acceptance ticket is seen.
-10. **Classification conflicts:** *resolved* as above (conservative, operator resolves, no automatic override).
-11. **Planner-model policy:** *owner to confirm* (local first; external planner only for a tenant whose egress policy allows it).
+7. **Merge timing — approved** after R2-2 and before promotion, only if: the default mode is `off`; bad or missing configuration resolves to
+   `off`; CI proves `off` changes nothing; migrations are backward-compatible; no tenant enables `shadow` or `on` as part of the merge;
+   `shadow` is a separate recorded deployment decision; `on` is blocked until R2-3 passes; a rollback switch is tested.
+8. **Stored run data — decided.** Sanitised evidence only, tenant-keyed, 90-day default retention, never sent externally. Infrastructure
+   encryption now; application-level encryption of `agent_evidence.item` and `agent_run_events.output_json` by default (waivable only with a
+   recorded client policy and threat model).
+9. **Gates G1–G8 — approved without amendment** and frozen before any acceptance ticket is exposed.
+10. **Classification conflicts — resolved:** conservative, operator resolves, no automatic override.
 
 ## 6. Risks
 | Risk | Mitigation |

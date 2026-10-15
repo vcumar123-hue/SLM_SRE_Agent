@@ -5,9 +5,10 @@
 | Item | Status |
 |---|---|
 | Artifacts A (trusted context and tool boundary), B (evidence), C (budgets and failure states), D (shadow lifecycle) | **Approved** for R2-0 foundation work and the planner experiment |
-| Artifact E (pre-registered evaluation) | **Corrected in this revision** (freeze point, denominators and blinding, G8, conflict policy); awaiting re-review |
-| Planner experiment (section 12) | **Approved to proceed** once its annotations and decision rule are frozen |
-| R2-2 runtime integration | **Not approved** until Artifact E is accepted and the owner decisions in section 16 are recorded |
+| Artifact E (pre-registered evaluation) | **Approved** (third review) |
+| Planner experiment (section 12) | **Approved to proceed** once its annotations, cases and decision rule are hashed |
+| R2-0 foundation, R2-1 tools | **Approved to proceed** |
+| R2-2 runtime integration | May begin after R2-1 and the planner decision, **with the loop `off` by default**; **no tenant `shadow` or `on` until deployed by a separate recorded decision, and `on` is blocked until R2-3 passes** (section 17) |
 
 Nothing here is built. Companions: `docs/RELEASE_2_PLAN.md` (scope, phases, decisions), `docs/AGENTIC_DESIGN.md` (principles, long-range roadmap).
 
@@ -453,7 +454,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_runs_expiry ON agent_runs (expires_at);
 | Raw or sanitised? | **Sanitised only.** Raw tool output is never persisted. The run stores EvidenceItems (bounded excerpt + facts) by reference, plus sanitised model outputs |
 | Ticket text? | **Not stored.** `ticket_ref` points to the source record; `ticket_hash` detects change |
 | Redaction at write | the egress `basic` redaction plus secret patterns (API keys, bearer tokens, private-key blocks, `password=` style values), email addresses and phone numbers; hostnames are kept because they are operational evidence. Names are kept only as present in already-anonymised source data |
-| Encryption | **Open decision (16, #9).** Today the database volume is not application-encrypted. Proposed minimum: host-level disk encryption confirmed by the owner; optional column encryption (`pgcrypto`) for `agent_evidence.item` if PYPL or PFG require it |
+| Encryption | **Decided (section 17):** infrastructure encryption now (host disk, encrypted backups and snapshots, TLS to the database, restricted role, keys held outside the database) **and** application-level encryption of `agent_evidence.item` and `agent_run_events.output_json` by default; waivable only with a recorded client policy and threat model. Key from `AIOPS_AGENT_DATA_KEY` or `AIOPS_AGENT_DATA_KEY_FILE`; if encryption is required and no key is available, persistence is refused and the mode resolves to `off` |
 | Access control | all reads and writes go through a tenant-scoped data layer (tenant is a mandatory argument); a dedicated database role limited to the `agent_*` tables; no API returns another tenant's runs; operators see only their active tenant's runs |
 | Lookup keys | `(tenant_id, run_id)` everywhere; replay by `run_id` alone is impossible |
 | Retention | `expires_at = created_at + retention`; default **90 days**, per-tenant override `agent_run_retention_days` in tenant config; a daily purge job deletes expired runs (cascade) |
@@ -634,7 +635,7 @@ and a review after the first 100 live runs. Anything beyond L1 needs its own evi
 | **Now** | artifacts A–D approved; Artifact E (13) re-review; run the planner experiment (12) after its annotations and decision rule are frozen (hashed) | owner review of revision 3 | Artifact E accepted; experiment result recorded; decision rule applied |
 | **R2-0** | `agentruntime/` contracts, TrustedContext, registry, runner, budgets, sanitising, evidence store, migrations | artifacts accepted | contract, boundary and runner tests pass; a stub run persists and replays |
 | **R2-1** | the five tools and their isolation tests | R2-0 | each tool passes isolation, cap and injection tests |
-| **R2-2** | rule planner, model planner (per experiment), verifier, reconciliation, `shadow` wiring | R2-1 and **owner approval for runtime integration** | shadow and batch runs complete inside budget; zero safety-gate violations; `off` unchanged |
+| **R2-2** | rule planner, model planner (per experiment), verifier, reconciliation, `shadow` wiring, rollback switch | R2-1 and the planner decision; **mode stays `off` by default** | shadow and batch runs complete inside budget; zero safety-gate violations; `off` unchanged |
 | **R2-3** | labelling, calibration, then the one-time acceptance run | freeze record complete (hashes) **before any acceptance ticket is shown to a reviewer** | gates G1–G8 reported with intervals under the 13.5 scoring rules; promotion decision |
 | **R2-4** | `investigation` block and UI panel; per-tenant `on` for one pilot tenant if R2-3 passes | R2-3 passed | operator sees steps, evidence and why it concluded or escalated |
 
@@ -644,19 +645,19 @@ and a review after the first 100 live runs. Anything beyond L1 needs its own evi
 
 | # | Decision | Assumed default |
 |---|---|---|
-| 1 | Planner model | rules first, local model for judgement if the experiment supports it; external only where the tenant allows |
-| 2 | Hosting | synchronous with a 40 s deadline (hard 45 s); asynchronous job later |
+| 1 | Planner model | **Approved** (section 17, decision 4): rules first; local model only if the experiment passes its decision rule; `rules_only` fallback; external planner per-tenant opt-in for the planner purpose |
+| 2 | Hosting | **Approved**: synchronous with a 40 s deadline (hard 45 s); shadow queued; reconsider async after R2-3 |
 | 3 | Shadow first | yes, queued after the response, never awaited |
 | 4 | Ground truth | reviewer labels (closure notes are not usable); two reviewers on the acceptance set; who they are is **open** |
 | 5 | CMDB and change tools | out until PYPL sends data |
 | 6 | Forecasting | out of scope |
-| 7 | Merge timing | **Owner to confirm that merging before promotion is intentional.** Recommendation: merge `agentic-v2` to `main` after R2-2, because the loop is inert at its default `off`, tests assert responses identical to today at `off`, and turning the loop on for any tenant is a separate per-tenant decision after R2-3. The alternative is to merge after R2-3 |
+| 7 | Merge timing | **Approved** after R2-2 and before promotion, subject to the eight controls in section 17 |
 | 8 | Retention | 90 days, per-tenant override |
-| 9 | Encryption of stored evidence | **open**: host disk encryption confirmed, column encryption optional |
-| 10 | Gate values in 13.6 | proposed here; owner to approve or amend before they are hashed (before any acceptance ticket is seen) |
-| 11 | Labelling effort | about 60 calibration + 100 acceptance tickets, 2 reviewers on the acceptance set: owner to confirm capacity |
+| 9 | Encryption of stored evidence | **Decided**: infrastructure encryption required now; column encryption of `agent_evidence.item` and `agent_run_events.output_json` by default unless waived (section 17) |
+| 10 | Gate values in 13.6 | **Approved without amendment**; frozen before any acceptance ticket is exposed |
+| 11 | Labelling effort | process approved; **names and reserved capacity (about 290 decisions, 73-121 reviewer-hours) still required** |
 | 12 | Classification conflicts | **Resolved (conservative):** keep deterministic, attach the alternative, `escalate=true`, operator resolves; no automatic override in Release 2 |
-| 13 | Planner-model policy | **Owner to confirm:** local first; an external planner only for a tenant whose egress policy allows it (PYPL today); the planner experiment decides how far the local model is used |
+| 13 | Planner-model policy | **Approved** (see 1); PYPL's Groq permission does not automatically cover planner traffic |
 | 14 | Freeze rule | **Resolved:** everything in 13.1 is frozen and hashed before any acceptance ticket is seen or labelled |
 
 **Risks.** Small-model reliability (mitigated by rules first and the experiment); labelling effort and rater disagreement (kappa gate,
@@ -667,3 +668,34 @@ and retried with a fresh acceptance set).
 
 **Not verified:** behaviour of other local models; Groq planner quality; operator reaction to the investigation panel; whether 60 + 100
 labelled tickets can be produced in a reasonable time.
+
+## 17. Owner decisions record (2026-10-14, third review)
+
+Artifact E is **approved**. Artifacts A–E are all approved. Release 2 may proceed with R2-0, R2-1 and the frozen planner experiment.
+R2-2 implementation may begin after R2-1 and the planner decision, **with the loop `off` by default**. **No tenant is switched to
+`shadow` or `on` as part of any merge; `on` is blocked until R2-3 passes.**
+
+| # | Decision | Outcome |
+|---|---|---|
+| 1 | Reviewers and labelling capacity | **Process approved; names and committed capacity are still required before acceptance-set labelling.** Reviewer 1: an SRE/operations or ITSM expert experienced in incident diagnosis. Reviewer 2: a client or domain expert who knows PYPL and PFG systems or ticket conventions. Adjudicator: the owner or technical lead, separate from the two initial judgments when practical. The agent's primary developer must not be the sole reviewer. Workload: about 60 calibration reviews + 30 for agreement + 200 acceptance reviews (100 tickets x 2) = **about 290 review decisions, roughly 73-121 reviewer-hours** at 15-25 minutes each, plus adjudication, blinding checks and corrections. Proceed only after named reviewers reserve the capacity |
+| 2 | Gates G1-G8 | **Approved as written, without amendment**, and frozen before any acceptance ticket is exposed. A gate is never weakened after acceptance results: if one proves unrealistic the set is burned, the protocol is revised on calibration evidence and a fresh acceptance set is drawn |
+| 3 | Encryption of stored evidence | **Infrastructure encryption is required immediately:** host disk encryption, encrypted database backups and snapshots, TLS for database connections, a dedicated restricted database role, tenant-scoped access control, tested retention and deletion, and encryption keys stored outside the database. **Default: application-level (column) encryption of `agent_evidence.item` and `agent_run_events.output_json`**, unless both client policy and a documented threat model allow infrastructure encryption alone; a waiver must be recorded |
+| 4 | Planner-model policy | **Approved:** (1) deterministic rules first; (2) the local model only if the trajectory experiment passes its fixed decision rule; (3) automatic fallback to `rules_only` on any model failure; (4) an external planner only with explicit per-tenant permission, an allowed provider, a redaction policy and successful audit logging; (5) no external planner for a tenant without that authorisation; (6) **PYPL's existing Groq permission is not assumed to cover planner traffic**: the tenant policy must name the planner purpose and its data classes before any external planning |
+| 5 | Merge timing | **Approved: merge `agentic-v2` into `main` after R2-2 and before R2-3 promotion, subject to all of:** the default mode is `off` (hard-coded or configured); missing or invalid configuration resolves to `off`; CI proves `off` causes no response or behaviour change; database migrations are backward-compatible; no tenant configuration enables `shadow` or `on` as part of the merge; enabling `shadow` is a separate recorded deployment decision; enabling `on` is blocked until R2-3 passes; a rollback switch is tested before the merge |
+| 6 | Hosting | **Approved:** synchronous `on` mode with a 40-second default and 45-second hard deadline for Release 2; `shadow` remains queued and non-blocking. Reconsider asynchronous production execution if R2-3 latency or abandonment measurements show synchronous operation is unsuitable |
+
+### Approved sequence and status
+| Step | Status |
+|---|---|
+| 1. Correct the plan's revision number | done |
+| 2. Record the owner decisions | done (this section) |
+| 3. Name the reviewers and reserve labelling capacity | **open: owner to supply names and capacity** |
+| 4. Freeze and hash the planner experiment (annotations, cases, decision rule) | blocked on step 3 (annotations need two reviewers); the harness, ticket selection and injection cases can be prepared meanwhile |
+| 5. Run the planner experiment | after step 4 |
+| 6. Implement and verify R2-0 | **in progress** |
+| 7. Implement and verify R2-1 | after step 6 |
+| 8. Select the planner from the experiment result | after step 5 |
+| 9. Implement R2-2 with the mode remaining `off` | after steps 7 and 8 |
+| 10. Merge after R2-2 controls pass (decision 5) | after step 9 |
+| 11. Complete calibration, create the freeze record, only then expose acceptance tickets | after step 10 |
+| 12. Run R2-3 once and decide whether one pilot tenant may enter L1 | after step 11 |
