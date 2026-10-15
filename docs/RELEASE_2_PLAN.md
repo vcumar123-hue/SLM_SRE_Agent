@@ -1,86 +1,106 @@
-# Release 2 — Bounded Investigation Agent (plan for review)
+# Release 2 — Bounded Investigation Agent (plan, revision 2)
 
-**Status:** proposal for owner review. Nothing in this document is built yet.
+**Status:** revision 2 after owner review. **Conditionally approved for R2-0 design work and the planner experiment. Not approved for
+R2-2 runtime integration** until the five artifacts in `docs/RELEASE_2_DESIGN.md` (A trusted context and tool boundary, B evidence schema,
+C budgets and failure states, D shadow lifecycle, E pre-registered evaluation) are accepted. Nothing in this document is built yet.
 **Branch:** continues on `agentic-v2` (Release 1 is tagged `release-1`).
-**Builds on:** `docs/AGENTIC_DESIGN.md` (sections 5–9 and 10, phases A2 and B). That document stays the detailed reference; this plan
-re-states the scope against what Release 1 actually delivered and what we measured since.
+**Detail:** `docs/RELEASE_2_DESIGN.md` is the engineering design; this plan keeps scope, phases and decisions. `docs/AGENTIC_DESIGN.md`
+remains the long-range reference.
 
 ## 1. Goal and the rule that does not change
-Give the platform one **bounded, read-only investigation loop** for the cases where the one-shot analysis is unsure, and prove with
-measurements that it helps before it is allowed to run by default.
+Give the platform one **bounded, read-only investigation loop** for the cases where the one-shot analysis is unsure, and prove with a
+pre-registered evaluation that it helps before it is allowed to run by default.
 
-**Authority never moves to the agent.** The agent can read, hypothesise and cite evidence. It cannot execute, approve, change
-policy, publish knowledge or grant autonomy; those stay with the deterministic gates built in Release 1.
+**Authority never moves to the agent.** It can read, hypothesise and cite evidence. It cannot execute, approve, change policy, publish
+knowledge or grant autonomy; those stay with the deterministic gates built in Release 1.
 
 ## 2. Where we start (verified)
-Release 1 delivered what the design called phases A0 and A1:
-- Server-side execution authorization, roles, approval bound to the plan hash, Safety Gate evidence semantics, composed
-  autonomy decision with a recurrence cap, tenant egress policy (deny by default, audited).
-- One shared post-RCA finalization for the legacy and agentic analysis paths, with side-by-side parity tests and a stored baseline.
+Release 1 delivered what the design called phases A0 and A1: server-side execution authorization and roles, approval bound to the plan hash,
+Safety Gate evidence semantics, a composed autonomy decision with a recurrence cap, tenant egress policy (deny by default, audited), and
+one shared post-RCA finalization with parity tests and a stored baseline.
 
-Changes since the design was written that Release 2 should use:
-- Retrieval is now **PostgreSQL + pgvector** (tenant, learned and base layers; recall 0.97–0.99; 0.2–0.6 s per search).
-  The design's `incident_kb_search` tool wraps `retrieval_engine.retrieve_incidents` unchanged.
-- PYPL now has **337 individual ticket records** with resolution history in `client_ticket_records` (PFG has 4,029). That makes
-  a `ticket_history_lookup` tool and a real evaluation set possible.
-- The outcome ledger matches **strictly by tenant**, so an outcome tool cannot leak another client's track record.
-- Existing building blocks: `agents/a2a_protocol.py` (in-process bus, `TraceSpan`), `agents/orchestrator.py` (fixed pipeline behind
-  `AIOPS_AGENTIC_ORCHESTRATOR_ENABLED`, default off), an `agent_traces` table (summaries only, no tool calls, model or token fields).
-
-Not verified yet (the first task measures them): how reliably a 4B local model (Gemma 3 4B via LM Studio) picks a tool when the
-output is constrained to a JSON schema, and how long one loop step takes on this machine.
+Since then:
+- Retrieval is **PostgreSQL + pgvector** (tenant, learned and base layers; recall 0.97–0.99; 0.2–0.6 s per search). The retrieval function
+  `retrieve_incidents` takes `tenant_id`, `knowledge_scope`, `search_order` and `collection_name`, and **defaults `tenant_id` to `client_a`**,
+  so the agent's search tool is a **boundary wrapper** that fixes all of these on the server, not a pass-through.
+- PYPL has **337 ticket records** and PFG 4,029. **Neither set carries usable closure notes** (PYPL: no findings or actions-taken fields,
+  7 executive summaries; PFG: no resolution field), so ground truth for evaluation must be **labelled by reviewers**, not read from tickets.
+- Outcome matching is strict by tenant; the outcome ledger is empty.
+- Existing pieces: `agents/a2a_protocol.py`, `agents/orchestrator.py` (flagged, default off), an `agent_traces` table (summaries only).
 
 ## 3. Scope
 
 | Phase | Deliverable | Exit criterion |
 |---|---|---|
-| **R2-0 Foundations** | `AgentPolicy` / `AgentRunResult` contracts; tool registry with input validation; runner with step, tool-call and wall-clock budgets; size-capped, sanitised tool results; record/replay of tool results and model outputs; trace schema extended (tool calls, model, tokens) | Contracts reviewed; unit tests for budgets, denial, timeout and replay; traces persisted |
-| **R2-1 Read-only tools** | `incident_kb_search`, `ticket_history_lookup` (tenant tickets by host, service, time window), `outcome_lookup`, `pattern_lookup`, `evidence_lookup` | Each tool tenant-scoped, schema-validated, covered by tests that another tenant's data never appears |
-| **R2-2 Investigation loop, shadow mode** | Loop inside the RCA step behind `AIOPS_AGENTIC_RCA_LOOP_ENABLED` (default off). In shadow mode it runs beside the deterministic path, is logged and scored, and **does not change the answer** | Shadow runs on the evaluation set complete within budget; zero policy violations |
-| **R2-3 Evaluation and promotion** | Evaluation set, metrics, thresholds; decision to move L0 → L1 (engages only when uncertain) | Meets the promotion criteria below versus the stored baseline |
-| **R2-4 Progress in the UI** | Synchronous with timeout first; progress events and an investigation view (steps, evidence, uncertainty, escalation) | Operator can see why the loop concluded or escalated |
+| **Now** | Accept artifacts A–E; run the **trajectory-level planner experiment** (design section 12) | artifacts accepted; experiment decision rule applied |
+| **R2-0 Foundations** | `agentruntime/` contracts, `TrustedContext`, tool registry, runner with enforced budgets, sanitising, evidence store, run tables | contract, boundary and runner tests pass; a stub run persists and replays |
+| **R2-1 Read-only tools** | `incident_kb_search`, `ticket_history_lookup`, `outcome_lookup`, `pattern_lookup`, `evidence_lookup` as tenant-bound wrappers returning verified evidence objects | each tool passes two-tenant isolation, cap and injection tests |
+| **R2-2 Investigation loop, shadow** | loop inside the RCA step behind `AIOPS_AGENTIC_RCA_LOOP=off\|shadow\|on` (default off). Shadow runs are queued after the response and **never awaited**; they do not change the answer | batch and shadow runs finish inside budget; zero safety violations; flag `off` unchanged |
+| **R2-3 Evaluation and promotion** | labelling, calibration, then **one** acceptance run against gates frozen in advance | gates G1–G8 reported with confidence intervals |
+| **R2-4 Investigation view** | `investigation` block in the response and an operator panel; per-tenant `on` for one pilot tenant if R2-3 passes | operator sees steps, evidence and why it concluded or escalated |
 
-**Engage only when (any):** confidence below `CONFIDENCE_THRESHOLD`, retrieval quality below `MIN_RETRIEVAL_SCORE`, conflicting
-evidence, no reusable knowledge, or high impact with an uncertain cause. **Limits:** 4–6 tool calls, 45–60 s, read-only tools,
-at most one query reformulation per source, every material hypothesis cites at least one evidence reference, and the loop escalates
-when evidence is insufficient or contradictory. **Confidence stays owned by the central confidence engine**, which gains an optional
-`evidence_grounding` input; the agent never self-reports confidence.
+**Flow:** deterministic initial RCA → engagement decision → optional bounded investigation → reconciliation → central confidence
+recalculation → shared finalization → answer or escalation. The loop **augments** the deterministic path and replaces the one-shot Groq
+fallback **only when it returns `supported` and reconciliation accepts it**; otherwise the existing path, including the Groq fallback,
+runs as today. On a classification conflict the deterministic result is kept, `escalate` is set and both are shown.
 
-## 4. Evaluation
-- **Set:** the Release 1 golden tickets plus a held-out slice of PYPL tickets whose closure notes record the real cause and fix
-  (for example host-not-available and response-time tickets). The owner confirms the ground truth for the slice.
-- **Metrics:** correct-classification rate; evidence-grounded RCA rate; unsupported-cause rate; escalation appropriateness;
-  unnecessary external LLM calls; median and p95 latency.
-- **Promotion rule:** move to L1 only if the loop improves the evidence-grounded rate, does not raise the unsupported-cause rate, stays
-  within the latency budget and causes zero egress-policy violations. Numeric thresholds are set after the shadow results exist.
+**Engage when (any):** confidence below `CONFIDENCE_THRESHOLD`, retrieval quality below `MIN_RETRIEVAL_SCORE`, no reusable knowledge,
+conflicting evidence, or high impact with an uncertain cause.
 
-## 5. Decisions needed from you (with my recommendation)
-1. **Planner model.** Recommend the local Gemma model with schema-constrained output, shadow mode first. An external model only for a
-   tenant whose egress policy allows it (as of 2026-10-14 only PYPL / `client_c` does, for Groq with basic redaction, approved by the owner).
-2. **Hosting.** Recommend synchronous with a 45–60 s timeout in Release 2; an asynchronous job later if the latency data demands it.
-3. **Shadow first.** Recommend yes: no change to what operators see until R2-3 passes.
-4. **Evaluation ground truth.** Which PYPL and PFG tickets may be used, and who confirms the real cause and fix?
-5. **Tools without a source.** CMDB and change lookups need data PYPL has not sent (CMDB export, change records). Recommend leaving
-   them out of Release 2 and adding them when the data arrives.
-6. **Forecasting.** The TimesFM idea (a `metric_forecast` tool for trend and anomaly context) is not in Release 2. Telemetry history is
-   thin (382 events), so there is nothing to forecast on yet. Recommend revisiting after the shadow results.
-7. **Merge timing.** When `agentic-v2` should be merged into `main` (Release 1 is already tagged).
+**Budgets (default / hard maximum, enforced in code; configuration can only lower them):** steps 8 / 10; tool calls 5 / 6; model calls
+5 / 7; model-call timeout 15 s / 30 s; tool timeout 6 s / 10 s; wall clock 40 s / 45 s; tokens per run 4,000 / 6,000; result size
+4,000 / 6,000 characters; evidence items 20 / 30; one query reformulation. Planning, retries and finishing use steps, not tool calls.
+Expiry behaviour and the failure-state table are in design section 7.
+
+**Confidence stays with the central engine**, which gains an optional `evidence_grounding` input computed from evidence the verifier
+accepted. The agent never reports confidence.
+
+## 4. Evaluation (pre-registered)
+- **Two sets, never mixed.** Calibration (60 tickets, tunes the rule table, prompts and grounding constants, reusable) and acceptance
+  (100 tickets, used **once**). Both are stratified across PYPL, PFG and golden tickets, with no ticket type above 20%, and near-duplicate
+  tickets are kept in one set. Held-out tickets and their duplicates are **removed from the retrieval index** during evaluation.
+- **Ground truth by reviewers.** Two independent reviewers on all acceptance tickets, owner adjudicates, Cohen's kappa at least 0.6 on a
+  calibration subset before labelling continues. Labels: classification, root cause, and *determinable / not determinable / indeterminate*.
+- **Gates, frozen and hashed before the acceptance set is labelled (all must pass):** evidence-grounded rate +10 points with lower interval
+  bound above +3; unsupported-cause rate within +2 points (interval upper bound at most +5); classification non-inferior within −3 points;
+  schema-valid results at least 98% and failures plus timeouts at most 5%; p95 latency at most 45 s and median at most 25 s; escalation
+  recall at least 70% and precision at least 80%; zero cross-tenant leakage, egress violations, successful injections (of at least 20
+  cases) and boundary violations; replay identical for at least 99% of runs. All with 95% paired bootstrap intervals.
+- **A failed attempt burns the acceptance set.** It is analysed on calibration data and a new acceptance set is drawn before retrying.
+- **Also reported:** tool calls, tokens and cost, unnecessary external calls, human override rate, and recurrence after recommendations
+  (not measurable until outcomes exist).
+
+## 5. Decisions (recommendation, status)
+1. **Planner model.** Rules first, the local model only for judgement if the experiment supports it; external only for a tenant whose
+   egress policy allows it (only PYPL today: Groq, basic redaction, approved by the owner). *Open: confirm.*
+2. **Hosting.** Synchronous with a 40 s deadline in Release 2. *Open.*
+3. **Shadow.** Queued after the response, never awaited; evaluation uses a separate batch runner. *Proposed.*
+4. **Ground truth and reviewers.** Reviewer labels; **who the two reviewers are, and the capacity for about 160 labelled tickets, is open.**
+5. **Tools without a source.** CMDB and change lookups stay out until PYPL sends the data.
+6. **Forecasting.** Out of scope; revisit after the shadow results.
+7. **Merge timing.** `agentic-v2` merges to `main` after R2-2 passes.
+8. **Stored run data.** Sanitised evidence objects only, tenant-keyed, 90-day default retention, never sent externally. *Open: encryption
+   level (host disk encryption, optional column encryption).*
+9. **Gate values** in section 4 are proposed; the owner approves or amends them before they are hashed.
 
 ## 6. Risks
 | Risk | Mitigation |
 |---|---|
-| A 4B model picks tools unreliably | Measure first (task 1 below); constrained schema; bounded steps; deterministic fallback on any failure |
-| Latency in a synchronous API | Hard wall-clock budget; shadow mode hides it from users during evaluation |
-| Prompt injection from ticket, KB or CMDB text | Tool results are untrusted data: size-capped, sanitised, never executed, read-only tools only |
-| Non-deterministic runs undermine comparison | Pinned sampling settings; record/replay of tool results and model outputs |
-| Data from one client reaching another | Every tool takes the tenant from the server, never from the model; tests per tool |
-| Client data sent externally by a multi-step loop | Egress policy checked before each external model call; audited |
+| A 4B model picks tools unreliably | rules first; trajectory experiment with a fixed decision rule; deterministic fallback on any failure |
+| Latency | hard budgets; shadow never delays users; batch runner for evaluation |
+| Shadow runs slow real requests on the shared local model | one worker, start only when no user analysis is running, bounded queue |
+| Prompt injection from ticket, KB or note text | results are untrusted data in a delimited block; read-only tools; injection cases in the experiment and gate G7 |
+| Cross-tenant data | server-held `TrustedContext`; no tenant, scope or collection argument in any tool schema; two-tenant tests; defence-in-depth check on results |
+| Stored runs become a second copy of client data | sanitised immutable evidence objects, no raw output, no ticket text, retention and deletion |
+| Evaluation leakage and tuning to the result | calibration/acceptance split, leave-cluster-out, gates frozen before the run, acceptance used once |
+| Labelling effort or rater disagreement | kappa gate, adjudication, explicit capacity decision |
 
 ## 7. Not in Release 2
-Adaptive retrieval, playbook generate–validate–repair, knowledge-gap proposals, dynamic orchestration, any agent execution
-authority, forecasting. They reuse the Release 2 runtime and are planned after its results.
+Adaptive retrieval, playbook generate–validate–repair, knowledge-gap proposals, dynamic orchestration, any agent execution authority,
+forecasting, CMDB and change tools.
 
 ## 8. First concrete step (before any runtime code)
-A small experiment, about a day of work: take 50 tickets (golden set plus PYPL), ask the local model to choose among the five read-only
-tools using a JSON-schema-constrained response, and record how often it picks a sensible tool, produces valid output and stays
-inside the time budget. The result decides whether the local planner is viable or whether decision 1 needs another answer.
+The **trajectory experiment** in design section 12: 50 calibration tickets and at least 12 injection cases, tool outputs captured once into a
+scripted environment, three planner modes compared on complete trajectories (schema validity, allowed and appropriate tools,
+finish or escalate correctness, repeated calls, injection resistance, latency, tokens), with the decision rule fixed in advance.
+Labelling the 60 calibration tickets and the rubric agreement check run in parallel.
