@@ -26,3 +26,4 @@ pymupdf==1.27.2.2
 xlrd==2.0.2
 xlsxwriter==3.2.9
 lxml==6.1.0
+cryptography==50.0.2

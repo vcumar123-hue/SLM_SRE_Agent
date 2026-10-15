@@ -1,0 +1,183 @@
+"""
+Run storage (design 11): sanitised, tenant-keyed, encrypted by default, expiring.
+
+What is stored: the run summary (no ticket text, only a reference and a hash), each evidence item (sanitised, immutable, encrypted),
+and each step as an event (encrypted). Raw tool output is never stored. Every function takes the tenant; there is no read that spans
+tenants. Encryption follows owner decision 3: on unless waived, and persistence is refused if it is required and no key exists.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable, Dict, List, Optional
+
+from agentruntime.contracts import AgentRunResult, AgentStep, EvidenceItem, Hypothesis
+from agentruntime.crypto import Cipher, get_cipher
+from agentruntime.sanitize import sanitize_text
+
+SCHEMA_SQL = """
+ALTER TABLE IF EXISTS agent_traces ADD COLUMN IF NOT EXISTS tenant_id TEXT;
+ALTER TABLE IF EXISTS agent_traces ADD COLUMN IF NOT EXISTS run_id TEXT;
+
+CREATE TABLE IF NOT EXISTS agent_runs (
+  run_id TEXT NOT NULL, tenant_id TEXT NOT NULL, request_id TEXT, mode TEXT NOT NULL,
+  status TEXT NOT NULL, reason TEXT, ticket_ref TEXT, ticket_hash TEXT,
+  counters JSONB, versions JSONB, policy_hash TEXT, duration_ms INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now(), expires_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (tenant_id, run_id));
+CREATE TABLE IF NOT EXISTS agent_evidence (
+  tenant_id TEXT NOT NULL, run_id TEXT NOT NULL, evidence_id TEXT NOT NULL,
+  item JSONB NOT NULL, content_hash TEXT NOT NULL,
+  PRIMARY KEY (tenant_id, run_id, evidence_id),
+  FOREIGN KEY (tenant_id, run_id) REFERENCES agent_runs (tenant_id, run_id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS agent_run_events (
+  tenant_id TEXT NOT NULL, run_id TEXT NOT NULL, step INTEGER NOT NULL, kind TEXT NOT NULL,
+  input_hash TEXT NOT NULL, evidence_refs TEXT[], output_json JSONB,
+  model TEXT, prompt_version TEXT, tokens_in INTEGER, tokens_out INTEGER, latency_ms INTEGER,
+  PRIMARY KEY (tenant_id, run_id, step, kind),
+  FOREIGN KEY (tenant_id, run_id) REFERENCES agent_runs (tenant_id, run_id) ON DELETE CASCADE);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_expiry ON agent_runs (expires_at);
+"""
+
+SUMMARY_STEP = -1    # the event that carries hypotheses, analysis and flags
+
+
+class StoreError(Exception):
+    pass
+
+
+def _hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+class RunStore:
+    def __init__(self, connect: Optional[Callable[[], Any]] = None, cipher: Optional[Cipher] = None, *, encrypt: Optional[bool] = None):
+        if connect is None:
+            import postgres_store
+            connect = postgres_store.get_connection
+        self._connect = connect
+        if encrypt is None:
+            cipher = cipher or get_cipher()       # raises KeyMissing when required and absent: persistence is refused
+        self._cipher = cipher
+        self._encrypt = (cipher is not None) if encrypt is None else encrypt
+        if self._encrypt and self._cipher is None:
+            raise StoreError("encryption requested without a cipher")
+
+    # -- encoding of sensitive JSON ---------------------------------------------------------------------------------------
+
+    def _pack(self, obj: Any, tenant: str, run: str, field: str) -> str:
+        text = json.dumps(obj, default=str, sort_keys=True)
+        if self._encrypt:
+            return json.dumps({"enc": self._cipher.encrypt(text, tenant, run, field)})   # type: ignore[union-attr]
+        return json.dumps({"plain": obj}, default=str)
+
+    def _unpack(self, stored: Any, tenant: str, run: str, field: str) -> Any:
+        data = stored if isinstance(stored, dict) else json.loads(stored)
+        if "enc" in data:
+            if self._cipher is None:
+                raise StoreError("the data is encrypted but no key is available")
+            return json.loads(self._cipher.decrypt(data["enc"], tenant, run, field))
+        return data["plain"]
+
+    # -- schema ------------------------------------------------------------------------------------------------------------
+
+    def ensure_schema(self) -> None:
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(SCHEMA_SQL)
+
+    # -- write -------------------------------------------------------------------------------------------------------------
+
+    def save_run(self, result: AgentRunResult, *, ticket_ref: str = "", ticket_text: str = "", request_id: str = "",
+                 retention_days: int = 90, duration_ms: int = 0) -> None:
+        tenant, run = result.tenant_id, result.run_id
+        if not tenant:
+            raise StoreError("a run needs a tenant")
+        expires = datetime.now(timezone.utc) + timedelta(days=retention_days)
+        reason = sanitize_text(result.reason, 200)[0]
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO agent_runs (run_id, tenant_id, request_id, mode, status, reason, ticket_ref, ticket_hash, counters,"
+                " versions, policy_hash, duration_ms, expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s,%s)",
+                (run, tenant, request_id, result.mode, result.status, reason, ticket_ref, _hash(ticket_text) if ticket_text else "",
+                 json.dumps(result.counters, default=str), json.dumps(result.versions, default=str),
+                 str(result.versions.get("policy_hash", "")), duration_ms or int(float(result.counters.get("elapsed_s", 0)) * 1000),
+                 expires))
+            for item in result.evidence:
+                cur.execute(
+                    "INSERT INTO agent_evidence (tenant_id, run_id, evidence_id, item, content_hash) VALUES (%s,%s,%s,%s::jsonb,%s)",
+                    (tenant, run, item.evidence_id,
+                     self._pack(item.model_dump(mode="json"), tenant, run, f"agent_evidence.item:{item.evidence_id}"),
+                     item.content_hash))
+            summary = {"hypotheses": [h.model_dump(mode="json") for h in result.hypotheses], "analysis": result.analysis,
+                       "flags": result.flags, "evidence_grounding": result.evidence_grounding, "reason": reason}
+            cur.execute(
+                "INSERT INTO agent_run_events (tenant_id, run_id, step, kind, input_hash, evidence_refs, output_json)"
+                " VALUES (%s,%s,%s,'model',%s,%s,%s::jsonb)",
+                (tenant, run, SUMMARY_STEP, _hash("summary"), [],
+                 self._pack(summary, tenant, run, f"agent_run_events.output_json:{SUMMARY_STEP}:model")))
+            for step in result.steps:
+                cur.execute(
+                    "INSERT INTO agent_run_events (tenant_id, run_id, step, kind, input_hash, evidence_refs, output_json, model,"
+                    " prompt_version, tokens_in, tokens_out, latency_ms) VALUES (%s,%s,%s,'model',%s,%s,%s::jsonb,%s,%s,%s,%s,%s)",
+                    (tenant, run, step.n, _hash(f"plan:{step.n}"), step.evidence_added,
+                     self._pack(step.model_dump(mode="json"), tenant, run, f"agent_run_events.output_json:{step.n}:model"),
+                     step.model, str(result.versions.get("prompt", "")), step.tokens_in, step.tokens_out, step.duration_ms))
+                if step.kind == "tool" and not step.skipped:
+                    cur.execute(
+                        "INSERT INTO agent_run_events (tenant_id, run_id, step, kind, input_hash, evidence_refs, output_json, latency_ms)"
+                        " VALUES (%s,%s,%s,'tool',%s,%s,%s::jsonb,%s)",
+                        (tenant, run, step.n, _hash(json.dumps(step.tool_input, sort_keys=True, default=str)), step.evidence_added,
+                         self._pack({"tool": step.tool, "evidence": step.evidence_added, "error": step.error}, tenant, run,
+                                    f"agent_run_events.output_json:{step.n}:tool"), step.duration_ms))
+
+    # -- read --------------------------------------------------------------------------------------------------------------
+
+    def load_run(self, tenant_id: str, run_id: str) -> Optional[AgentRunResult]:
+        if not tenant_id:
+            raise StoreError("a tenant is required to read a run")
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("SELECT status, reason, mode, counters, versions FROM agent_runs WHERE tenant_id = %s AND run_id = %s",
+                        (tenant_id, run_id))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            status, reason, mode, counters, versions = row
+            cur.execute("SELECT evidence_id, item FROM agent_evidence WHERE tenant_id = %s AND run_id = %s", (tenant_id, run_id))
+            evidence = [EvidenceItem(**self._unpack(item, tenant_id, run_id, f"agent_evidence.item:{eid}"))
+                        for eid, item in cur.fetchall()]
+            cur.execute("SELECT step, output_json FROM agent_run_events WHERE tenant_id = %s AND run_id = %s AND kind = 'model'"
+                        " ORDER BY step", (tenant_id, run_id))
+            steps: List[AgentStep] = []
+            summary: Dict[str, Any] = {}
+            for step_no, stored in cur.fetchall():
+                data = self._unpack(stored, tenant_id, run_id, f"agent_run_events.output_json:{step_no}:model")
+                if step_no == SUMMARY_STEP:
+                    summary = data
+                else:
+                    steps.append(AgentStep(**data))
+        evidence.sort(key=lambda e: int(e.evidence_id[1:]))
+        return AgentRunResult(
+            run_id=run_id, tenant_id=tenant_id, status=status, reason=summary.get("reason", reason or ""),
+            hypotheses=[Hypothesis(**h) for h in summary.get("hypotheses", [])], evidence=evidence, steps=steps,
+            analysis=summary.get("analysis"), evidence_grounding=summary.get("evidence_grounding"),
+            counters=counters or {}, versions=versions or {}, mode=mode, flags=summary.get("flags", []))
+
+    # -- retention and deletion ---------------------------------------------------------------------------------------------
+
+    def purge_expired(self, now: Optional[datetime] = None) -> int:
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM agent_runs WHERE expires_at < %s", (now or datetime.now(timezone.utc),))
+            return cur.rowcount
+
+    def delete_tenant(self, tenant_id: str) -> int:
+        if not tenant_id:
+            raise StoreError("a tenant is required")
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM agent_runs WHERE tenant_id = %s", (tenant_id,))
+            return cur.rowcount
+
+    def count_runs(self, tenant_id: str) -> int:
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM agent_runs WHERE tenant_id = %s", (tenant_id,))
+            return int(cur.fetchone()[0])

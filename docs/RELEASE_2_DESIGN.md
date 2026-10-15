@@ -692,7 +692,7 @@ R2-2 implementation may begin after R2-1 and the planner decision, **with the lo
 | 3. Name the reviewers and reserve labelling capacity | **open: owner to supply names and capacity** |
 | 4. Freeze and hash the planner experiment (annotations, cases, decision rule) | blocked on step 3 (annotations need two reviewers); the harness, ticket selection and injection cases can be prepared meanwhile |
 | 5. Run the planner experiment | after step 4 |
-| 6. Implement and verify R2-0 | **in progress** |
+| 6. Implement and verify R2-0 | **done 2026-10-14**: `agentruntime/` (contracts, trusted context, sanitising, AES-GCM encryption, tool registry and boundary, verifier and grounding, runner with enforced budgets, run store with retention and deletion, record/replay) and 83 tests, 13 of them against a real PostgreSQL. Exit criterion met: a stub run persists encrypted and replays identically. No tools or planner yet (R2-1, R2-2); the loop is not wired into the application |
 | 7. Implement and verify R2-1 | after step 6 |
 | 8. Select the planner from the experiment result | after step 5 |
 | 9. Implement R2-2 with the mode remaining `off` | after steps 7 and 8 |
