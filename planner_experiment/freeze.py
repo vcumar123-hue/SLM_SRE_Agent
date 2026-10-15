@@ -2,17 +2,21 @@
 Freeze record for the planner experiment (design 12, 13.1).
 
 What is frozen, together, before the experiment runs:
-  * the inputs the run actually reads: adjudicated annotations, case list, recording, injection cases, config (budgets, modes, seed,
-    expected counts), the seed derivation record and the calibration selection;
+  * the inputs the run reads: adjudicated annotations, case list, recording, injection cases, config (round, seed, modes, planner entry
+    points, budgets), the partition and draw seed records, the experiment selection, the development selection, the planner freeze, the
+    reviewer record, the approved golden tickets, and each reviewer's own annotation file;
   * all code under test: every `.py` file in `agentruntime/` (runtime, tools and the planners in `agentruntime/planners/`) and in
     `planner_experiment/` (harness, scoring and the decision rule). The set of files is frozen too, so an added or removed file fails.
 
-`create_freeze` takes the two reviewers' own annotation files and recomputes their agreement itself (it never trusts a report): two
-distinct named reviewers, one annotation per frozen case from each, every case compared, end-state kappa at least 0.6, and a written
-rationale for every disagreement in the adjudicated file. The agreement result is stored in, and hashed with, the record. The experiment does not take its
-inputs from the caller: `load_frozen_inputs` reads each input file once, checks that exact byte string against its recorded hash, and
-parses it from those same bytes, so what was verified is what is used. A planner is accepted only if its code lives in the frozen
-`agentruntime/planners/` folder (experiment.py checks this).
+One function, `validate_set`, checks that these inputs are consistent with each other. It runs when the freeze is created (reading the files)
+and again when the experiment is loaded (reading the hash-verified bytes of the same files), so what was checked at the freeze is exactly
+what is checked at run time:
+  * reviewers: the two named reviewers of the reviewer record, each with an annotation per frozen case, kappa >= 0.6, rationale for every
+    disagreement; golden tickets approved by exactly those two reviewers;
+  * composition (composition.py): 20 PYPL / 20 PFG / 10 golden, one case per cluster, calibration buckets, type cap, content hashes tied
+    to the draw, disjoint from the development subset;
+  * seeds: the draw seed is derived from the planner-freeze hash, the partition seed from its own record; the draw selection records both;
+  * planners: the config's planner entry points are the planner freeze's, and the planner and runtime code is unchanged since that freeze.
 """
 from __future__ import annotations
 
@@ -20,14 +24,17 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, List
+
+from planner_experiment.freeze_names import PLACEHOLDER_NAMES  # noqa: F401  (re-exported for existing callers)
 
 ROOT = Path(__file__).resolve().parent.parent
-PLACEHOLDER_NAMES = {"", "tbd", "todo", "unknown", "reviewer", "reviewer1", "reviewer2", "adjudicated"}
-REQUIRED_FILES = ("annotations", "cases", "recording", "injection_cases", "config", "seed_record", "calibration_selection")
-OPTIONAL_FILES = ("golden",)
+REQUIRED_FILES = ("annotations", "cases", "recording", "injection_cases", "config", "seed_record", "partition_seed_record",
+                  "experiment_selection", "development_selection", "planner_freeze", "reviewers", "golden")
 CODE_ROOTS = ("agentruntime", "planner_experiment")
 PLANNERS_DIR = ROOT / "agentruntime" / "planners"
+MIN_KAPPA = 0.6          # design 13.4: end-state kappa must be at least 0.6
+MODES = ("rules_only", "rules_then_model", "model")
 
 
 class FreezeError(Exception):
@@ -66,68 +73,140 @@ def _resolve(stored: str) -> Path:
     return p if p.is_absolute() else ROOT / p
 
 
-MIN_KAPPA = 0.6          # design 13.4: end-state kappa must be at least 0.6
+# -- readers: the same validation over files (at the freeze) and over verified bytes (at run time) ------------------------------------------
+
+class PathReader:
+    def __init__(self, files: Dict[str, Path]) -> None:
+        self.files = {k: Path(v) for k, v in files.items()}
+
+    def names(self) -> List[str]:
+        return list(self.files)
+
+    def bytes(self, name: str) -> bytes:
+        if name not in self.files:
+            raise FreezeError(f"input '{name}' is missing")
+        return self.files[name].read_bytes()
+
+    def json(self, name: str) -> Any:
+        return json.loads(self.bytes(name).decode("utf-8"))
 
 
-def check_reviewers(files: Dict[str, Path], reviewer_files: Dict[str, Path]) -> Dict[str, Any]:
-    """Recompute reviewer agreement from the two reviewers' own annotation files; never trust a report. Returns the agreement report.
+class RecordReader:
+    """Reads the files named in a freeze record, each verified against its recorded hash at the moment it is read."""
 
-    Requires: exactly two distinct, named reviewers; each file holds one annotation per frozen case, all by that reviewer, no extras;
-    every case compared; end-state kappa defined and at least MIN_KAPPA; and for every disagreement the adjudicated annotation carries a
-    non-empty rationale in `notes`.
-    """
+    def __init__(self, record: Dict[str, Any]) -> None:
+        self.record = record
+
+    def names(self) -> List[str]:
+        return list(self.record["files"])
+
+    def bytes(self, name: str) -> bytes:
+        return read_frozen(self.record, name)
+
+    def json(self, name: str) -> Any:
+        return json.loads(self.bytes(name).decode("utf-8"))
+
+
+def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict[str, Any]:
+    """Check that the frozen inputs are consistent with each other. Returns {'reviewers', 'agreement', 'round', 'seed', 'partition_seed', ...}."""
     from planner_experiment import annotations as ann
+    from planner_experiment import composition, golden, planner_freeze, reviewers as reviewer_mod
+    from planner_experiment import seed as seed_mod
 
-    names = [str(n).strip() for n in reviewer_files]
-    if len(names) != 2 or len({n.lower() for n in names}) != 2 or any(n.lower() in PLACEHOLDER_NAMES for n in names):
-        raise FreezeError("exactly two distinct, named reviewers are required before the experiment inputs can be frozen")
-    case_ids = {c["case_id"] for c in json.loads(Path(files["cases"]).read_text(encoding="utf-8"))}
-    if not case_ids:
-        raise FreezeError("the case list is empty")
+    present = set(reader.names())
+    reviewer_keys = sorted(k for k in present if k.startswith("reviewer:"))
+    missing = [k for k in REQUIRED_FILES if k not in present]
+    unknown = sorted(present - set(REQUIRED_FILES) - set(reviewer_keys))
+    if missing or unknown:
+        raise FreezeError(f"frozen inputs must be exactly {REQUIRED_FILES} plus one reviewer file each; missing {missing}, unknown {unknown}")
+
+    # reviewers: the recorded names, golden approvals, and the reviewers' own annotation files
+    try:
+        names = reviewer_mod.validate(reader.json("reviewers"))
+        golden_items = golden.parse_golden(reader.json("golden"), names)
+    except (reviewer_mod.ReviewerRecordError, golden.GoldenError) as exc:
+        raise FreezeError(str(exc)) from exc
+    if sorted(k.split(":", 1)[1].lower() for k in reviewer_keys) != sorted(n.lower() for n in names):
+        raise FreezeError("the reviewer annotation files must be exactly those of the two reviewers in the reviewer record")
+    cases = reader.json("cases")
+    case_ids = {c["case_id"] for c in cases}
     loaded: Dict[str, List[Any]] = {}
-    for name, path in reviewer_files.items():
-        items = ann.load(Path(path))
+    for key in reviewer_keys:
+        name = key.split(":", 1)[1]
+        items = ann.parse(reader.json(key))
         ids = [a.case_id for a in items]
         if len(ids) != len(set(ids)) or set(ids) != case_ids:
             raise FreezeError(f"reviewer '{name}' must annotate exactly the {len(case_ids)} frozen cases, once each")
         if any(a.reviewer.strip().lower() != name.strip().lower() for a in items):
             raise FreezeError(f"reviewer '{name}': every annotation must be recorded under that reviewer's name")
         loaded[name] = items
-    first, second = (loaded[n] for n in reviewer_files)
+    first, second = (loaded[k.split(":", 1)[1]] for k in reviewer_keys)
     report = ann.agreement(first, second)
     if report["cases_compared"] != len(case_ids):
         raise FreezeError(f"agreement covers {report['cases_compared']} of {len(case_ids)} cases")
     kappa = report["end_state_kappa"]
     if kappa is None or kappa < MIN_KAPPA:
         raise FreezeError(f"end-state kappa {kappa} is below the required {MIN_KAPPA}")
-    adjudicated = {a.case_id: a for a in ann.load(Path(files["annotations"]))}
+    adjudicated = {a.case_id: a for a in ann.parse(reader.json("annotations"))}
     if set(adjudicated) != case_ids:
         raise FreezeError("the adjudicated annotations must cover exactly the frozen cases")
     for d in report["disagreements"]:
         if not adjudicated[d["case_id"]].notes.strip():
             raise FreezeError(f"{d['case_id']}: a disagreement ({', '.join(d['fields'])}) needs an adjudication rationale in notes")
-    return report
+
+    # seeds and planners
+    config = reader.json("config")
+    rnd = config.get("round")
+    if not isinstance(rnd, int) or rnd < 1:
+        raise FreezeError("config.round must be a positive integer")
+    try:
+        partition = seed_mod.check_record(reader.json("partition_seed_record"), "calibration-selection")["seed"]
+        draw = seed_mod.check_record(reader.json("seed_record"), f"planner-experiment-{rnd}")
+        pf = planner_freeze.check_record(reader.json("planner_freeze"))
+    except (ValueError, KeyError, planner_freeze.PlannerFreezeError) as exc:
+        raise FreezeError(f"seed or planner-freeze record invalid: {exc}") from exc
+    if config.get("seed") != draw["seed"]:
+        raise FreezeError("config.seed is not the derived draw seed")
+    if draw["artifact"] != pf["record_hash"]:
+        raise FreezeError("the draw seed must be derived from the planner-freeze hash (the planners were not frozen before the draw)")
+    if sha256_bytes(reader.bytes("development_selection")) != pf["development_selection_hash"]:
+        raise FreezeError("the development selection is not the one the planners were frozen against")
+    if config.get("planners") != pf["entrypoints"]:
+        raise FreezeError("config.planners must be exactly the planner freeze's entry points")
+    if tuple(config.get("modes", ())) != MODES:
+        raise FreezeError(f"config.modes must be {MODES}")
+    runtime_now = {k: v for k, v in code_hashes.items() if k.startswith("code/agentruntime/")}
+    if runtime_now != pf["runtime_code"]:
+        changed = sorted({k for k in set(runtime_now) | set(pf["runtime_code"]) if runtime_now.get(k) != pf["runtime_code"].get(k)})
+        raise FreezeError(f"planner or runtime code differs from the planner freeze: {changed[:5]}")
+
+    # the drawn set
+    selection = reader.json("experiment_selection")
+    if (selection.get("round"), selection.get("planner_freeze_hash"), selection.get("draw_seed"), selection.get("partition_seed")) != (
+            rnd, pf["record_hash"], draw["seed"], partition):
+        raise FreezeError("the experiment selection was not drawn with this round, planner freeze and these seeds")
+    try:
+        composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"))
+    except composition.CompositionError as exc:
+        raise FreezeError(f"composition: {exc}") from exc
+    return {"reviewers": names, "agreement": report, "round": rnd, "seed": draw["seed"], "partition_seed": partition,
+            "planner_freeze_hash": pf["record_hash"]}
 
 
 def create_freeze(files: Dict[str, Path], reviewer_files: Dict[str, Path], decision: Dict[str, Any], out_path: Path,
                   root: Path = ROOT) -> Dict[str, Any]:
-    missing = [k for k in REQUIRED_FILES if k not in files]
-    unknown = [k for k in files if k not in REQUIRED_FILES + OPTIONAL_FILES]
-    if missing or unknown:
-        raise FreezeError(f"frozen inputs must be exactly {REQUIRED_FILES} (optionally {OPTIONAL_FILES}); missing {missing}, unknown {unknown}")
-    for k, p in {**files, **{f"reviewer:{n}": p for n, p in reviewer_files.items()}}.items():
+    every = {**files, **{f"reviewer:{n}": p for n, p in reviewer_files.items()}}
+    for k, p in every.items():
         if not Path(p).is_file():
             raise FreezeError(f"input '{k}' does not exist: {p}")
-    report = check_reviewers(files, reviewer_files)
-    names = [str(n).strip() for n in reviewer_files]
-    every = {**files, **{f"reviewer:{n}": p for n, p in reviewer_files.items()}}
     code = code_files(root)
+    code_hashes = {k: sha256_bytes(p.read_bytes()) for k, p in code.items()}
+    info = validate_set(PathReader(every), code_hashes, root)
     record = {
-        "frozen_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "reviewers": names,
+        "frozen_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "reviewers": info["reviewers"],
         "files": {k: sha256_bytes(Path(p).read_bytes()) for k, p in sorted(every.items())},
-        "paths": {k: _stored(p) for k, p in every.items()},
-        "code": {k: sha256_bytes(p.read_bytes()) for k, p in code.items()},
-        "agreement": report, "decision_rule": decision,
+        "paths": {k: _stored(p) for k, p in every.items()}, "code": code_hashes,
+        "agreement": info["agreement"], "decision_rule": decision,
     }
     record["record_hash"] = _record_hash(record)
     Path(out_path).write_text(json.dumps(record, indent=1, sort_keys=True), encoding="utf-8")
@@ -170,6 +249,5 @@ def read_frozen(record: Dict[str, Any], name: str) -> bytes:
 def verify_freeze(record_path: Path, root: Path = ROOT) -> Dict[str, Any]:
     record = load_record(record_path)
     verify_code(record, root)
-    for name in record["files"]:
-        read_frozen(record, name)
+    validate_set(RecordReader(record), record["code"], root)
     return record

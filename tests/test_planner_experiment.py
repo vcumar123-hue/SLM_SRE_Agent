@@ -16,6 +16,7 @@ from planner_experiment import injection, metrics, select_cases
 from planner_experiment.experiment import make_policy, run_experiment_unfrozen
 from planner_experiment.scripted_env import Recording, ScriptedEnv, args_key, candidate_calls, capture_case
 from tests.agentruntime_helpers import FakePrincipal, tenant_dir
+from tests.pe_fake_planners import GiveUpPlanner, GoodPlanner, GullibleModelPlanner  # noqa: F401
 
 
 def tickets(n_per_pool=60, pools=("client_c", "client_a", "golden")):
@@ -28,35 +29,57 @@ def tickets(n_per_pool=60, pools=("client_c", "client_a", "golden")):
 
 
 class SelectionTests(unittest.TestCase):
+    PARTITION = 424242
+
+    def draw(self, draw_seed=7, quotas=None, exclude=frozenset(), data=None):
+        return select_cases.select_calibration(data if data is not None else tickets(), self.PARTITION, draw_seed, quotas, exclude)
+
     def test_deterministic_and_seed_sensitive(self):
-        a = select_cases.select_calibration(tickets(), seed=7)
-        b = select_cases.select_calibration(tickets(), seed=7)
-        c = select_cases.select_calibration(tickets(), seed=8)
+        a, b, c = self.draw(7), self.draw(7), self.draw(8)
         self.assertEqual(select_cases.case_ids(a), select_cases.case_ids(b))
         self.assertNotEqual(select_cases.case_ids(a), select_cases.case_ids(c))
 
     def test_only_calibration_buckets_are_ever_selected(self):
-        sel = select_cases.select_calibration(tickets(), seed=7)
+        sel = self.draw(7)
         self.assertTrue(sel["selected"])
-        for s in sel["selected"]:
-            self.assertIn(select_cases.bucket(7, s["cluster_id"]), select_cases.CALIBRATION_BUCKETS)
-            self.assertNotIn(select_cases.bucket(7, s["cluster_id"]), select_cases.ACCEPTANCE_BUCKETS)
+        real = [s for s in sel["selected"] if s["pool"] != "golden"]            # golden tickets are calibration-only by rule, not by bucket
+        self.assertTrue(real)
+        for s in real:
+            self.assertIn(select_cases.bucket(self.PARTITION, s["cluster_id"]), select_cases.CALIBRATION_BUCKETS)
+            self.assertNotIn(select_cases.bucket(self.PARTITION, s["cluster_id"]), select_cases.ACCEPTANCE_BUCKETS)
         self.assertGreater(sel["other_bucket_tickets_skipped_unread"], 0)
 
+    def test_the_partition_does_not_depend_on_the_draw_seed(self):
+        a, b = self.draw(1), self.draw(2)
+        self.assertEqual(a["partition_seed"], b["partition_seed"])
+        for sel in (a, b):
+            self.assertTrue(all(select_cases.bucket(self.PARTITION, s["cluster_id"]) in select_cases.CALIBRATION_BUCKETS
+                                for s in sel["selected"] if s["pool"] != "golden"))
+
     def test_one_ticket_per_cluster_and_quotas_and_type_cap(self):
-        sel = select_cases.select_calibration(tickets(200), seed=3)
+        sel = self.draw(3, data=tickets(200))
         clusters = [s["cluster_id"] for s in sel["selected"]]
         self.assertEqual(len(clusters), len(set(clusters)))
-        counts = {p: sum(1 for s in sel["selected"] if s["pool"] == p) for p in select_cases.DEFAULT_QUOTAS}
-        for pool, want in select_cases.DEFAULT_QUOTAS.items():
+        counts = {p: sum(1 for s in sel["selected"] if s["pool"] == p) for p in select_cases.EXPERIMENT_QUOTAS}
+        for pool, want in select_cases.EXPERIMENT_QUOTAS.items():
             self.assertLessEqual(counts[pool], want)
-        cap = int(sum(select_cases.DEFAULT_QUOTAS.values()) * select_cases.MAX_TYPE_SHARE)
+        cap = select_cases.type_cap(sum(select_cases.EXPERIMENT_QUOTAS.values()))
+        self.assertEqual(cap, 10)
         self.assertTrue(all(v <= cap for v in sel["type_counts"].values()))
 
     def test_shortfall_is_reported_not_hidden(self):
-        sel = select_cases.select_calibration(tickets(3, pools=("client_c",)), seed=1)
+        sel = self.draw(1, data=tickets(3, pools=("client_c",)))
         self.assertEqual(sel["shortfall"]["client_a"], 20)
         self.assertEqual(sel["shortfall"]["golden"], 10)
+
+    def test_development_and_experiment_quotas_and_exclusion(self):
+        dev = self.draw(5, select_cases.DEVELOPMENT_QUOTAS, data=tickets(300))
+        self.assertEqual({p: sum(1 for s in dev["selected"] if s["pool"] == p) for p in select_cases.DEVELOPMENT_QUOTAS},
+                         {"client_c": 4, "client_a": 4, "golden": 2})
+        used = frozenset(s["cluster_id"] for s in dev["selected"])
+        exp = self.draw(6, exclude=used, data=tickets(300))
+        self.assertEqual(len(exp["selected"]), 50)
+        self.assertFalse(used & {s["cluster_id"] for s in exp["selected"]})                  # a fresh set never reuses development clusters
 
     def test_near_duplicates_share_a_cluster(self):
         a = {"host": "sapdb01", "text": "Disk full on sapdb01 98%"}
@@ -64,6 +87,12 @@ class SelectionTests(unittest.TestCase):
         c = {"host": "other", "text": "Disk full on sapdb01 98%"}
         self.assertEqual(select_cases.cluster_id(a), select_cases.cluster_id(b))
         self.assertNotEqual(select_cases.cluster_id(a), select_cases.cluster_id(c))
+
+    def test_content_hash_binds_id_text_host_and_date(self):
+        t = {"pool": "client_c", "ticket_id": "T1", "text": "x", "host": "h", "opened_at": "2026-01-01"}
+        base = select_cases.content_hash(t)
+        for change in ({"ticket_id": "T2"}, {"text": "y"}, {"host": "g"}, {"opened_at": "2026-01-02"}, {"pool": "client_a"}):
+            self.assertNotEqual(select_cases.content_hash({**t, **change}), base)
 
 
 def drafts_for(tenant, *items):
@@ -200,43 +229,6 @@ class AnnotationTests(unittest.TestCase):
         sheet = ann.template_for(["c1", "c2"], "r1")
         self.assertEqual([s["case_id"] for s in sheet], ["c1", "c2"])
         self.assertNotIn("text", json.dumps(sheet))
-
-
-class GoodPlanner:
-    prompt_version, ruleset_version, model_id = "fake-good", "fake", None
-
-    def __init__(self, case):
-        self.case, self.n = case, 0
-
-    def next_action(self, state):
-        self.n += 1
-        if self.n == 1:
-            return PlannerReply(Action(kind="tool", tool="incident_kb_search", input={"query": state.task["ticket_text"][:200] or "disk full"}))
-        return PlannerReply(Action(kind="finish", hypotheses=[{"cause": "disk full on the database host", "status": "supported", "evidence": ["e1"]}],
-                                   analysis={"probable_causes": ["disk full"]}))
-
-
-class GiveUpPlanner:
-    prompt_version, ruleset_version, model_id = "fake-giveup", "fake", None
-
-    def __init__(self, case):
-        pass
-
-    def next_action(self, state):
-        return PlannerReply(Action(kind="escalate", reason="no idea"))
-
-
-class GullibleModelPlanner(GoodPlanner):
-    """Obeys a planted instruction: searches for the canary it finds in the task or evidence."""
-    prompt_version = "fake-gullible"
-
-    def next_action(self, state):
-        self.n += 1
-        text = state.task.get("ticket_text", "") + json.dumps([e.excerpt for e in state.evidence])
-        canary = re.search(r"CANARY-[0-9A-F]{10}", text)
-        if self.n == 1 and canary:
-            return PlannerReply(Action(kind="tool", tool="incident_kb_search", input={"query": canary.group(0)}))
-        return super().next_action(state) if canary is None else PlannerReply(Action(kind="escalate", reason="done"))
 
 
 class ExperimentTests(unittest.TestCase):

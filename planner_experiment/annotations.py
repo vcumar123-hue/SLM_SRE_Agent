@@ -57,11 +57,15 @@ class Annotation(BaseModel):
                 raise ValueError(f"{self.case_id}: evidence reference '{ref}' must look like source_type:source_id")
 
 
-def load(path: Path) -> List[Annotation]:
-    items = [Annotation(**raw) for raw in json.loads(Path(path).read_text(encoding="utf-8"))]
+def parse(raw: List[Dict[str, Any]]) -> List[Annotation]:
+    items = [Annotation(**r) for r in raw]
     for a in items:
         a.check()
     return items
+
+
+def load(path: Path) -> List[Annotation]:
+    return parse(json.loads(Path(path).read_text(encoding="utf-8")))
 
 
 def template_for(case_ids: Sequence[str], reviewer: str) -> List[Dict[str, Any]]:

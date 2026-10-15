@@ -3,10 +3,12 @@ Runs every planner mode over every case through the real agentruntime.Runner aga
 
 Two entry points, deliberately different:
 
-* `run_experiment_frozen(record_path, planner_factories)` is the only way to produce a result. It takes **nothing** from the caller except
-  the planner factories: cases, annotations, recording, injection cases, budgets, modes and seed are all read from the freeze record's
-  files, each checked against its recorded hash from the same bytes that are then parsed. Code (runtime, tools, planners, harness) is
-  verified against the record, and every planner must be defined in the frozen `agentruntime/planners/` folder.
+* `run_experiment_frozen(record_path)` is the only way to produce a result. It takes **nothing** from the caller: cases, annotations,
+  recording, injection cases, budgets, modes and seed are read from the freeze record's files, each checked against its recorded hash from
+  the same bytes that are then parsed, and the planners are not passed in either: the record names their entry points ("module:Class" in
+  the frozen `agentruntime/planners/` folder, the same ones the planner freeze recorded) and the harness imports and constructs them
+  itself, `Class(case)`, with no caller-supplied arguments. All code (runtime, tools, planners, harness) is verified against the record.
+  `run_once` additionally refuses a second run of the same freeze record.
 * `run_experiment_unfrozen(...)` exists for the harness's own self-tests; its output carries `"not_a_result": true`.
 
 Both validate the inputs first and **fail** rather than shrink: a case without an annotation or a recording, an annotation without a case,
@@ -14,9 +16,7 @@ an injection case whose base case is missing, or a missing mode is an error, nev
 """
 from __future__ import annotations
 
-import functools
 import hashlib
-import inspect
 import json
 import os
 import tempfile
@@ -31,10 +31,9 @@ from agentruntime.contracts import AgentPolicy, Budgets
 from agentruntime.executor import BoundedExecutor
 from agentruntime.runner import BATCH_ENV, Runner
 from agentruntime.tools import TOOL_NAMES
-from planner_experiment import HARNESS_VERSION
-from planner_experiment import seed as seed_mod
+from planner_experiment import HARNESS_VERSION, planner_freeze
 from planner_experiment.annotations import Annotation
-from planner_experiment.freeze import PLANNERS_DIR, load_record, read_frozen, verify_code
+from planner_experiment.freeze import RecordReader, load_record, validate_set, verify_code
 from planner_experiment.injection import InjectionCase, apply_to_recording, apply_to_task, build_injection_cases, injection_succeeded
 from planner_experiment.metrics import decide, score_run, summarise_mode
 from planner_experiment.scripted_env import Recording, ScriptedEnv
@@ -47,6 +46,14 @@ CASE_FIELDS = ("case_id", "tenant_id", "ticket_text")
 
 class ExperimentInputError(Exception):
     """The experiment's inputs are incomplete or inconsistent. The run does not start."""
+
+
+class ExperimentAborted(Exception):
+    """Too many stuck calls across the whole experiment: the infrastructure is failing and the run cannot be trusted. No result is produced."""
+
+
+MAX_REPLACEMENTS = 3          # executor sets that may be replaced in one experiment
+MAX_STUCK_CALLS = 4           # stuck (abandoned or leaked) calls still running, counted across EVERY executor the experiment ever created
 
 
 class _Principal:
@@ -68,6 +75,7 @@ class ExperimentInputs:
     strict: bool = True
     frozen: bool = False
     record_hash: Optional[str] = None
+    planners: Optional[Dict[str, str]] = None            # mode -> "module:Class", from the frozen config
 
 
 # -- inputs ---------------------------------------------------------------------------------------------------------------------------
@@ -113,17 +121,10 @@ def load_frozen_inputs(record_path: Path) -> ExperimentInputs:
     """Verify the freeze record and read every input from it. The caller supplies no experiment data."""
     record = load_record(record_path)
     verify_code(record)
-
-    def j(name: str) -> Any:                                   # verified bytes -> parsed value
-        return json.loads(read_frozen(record, name).decode("utf-8"))
-
+    reader = RecordReader(record)
+    validate_set(reader, record["code"])             # reviewers, composition, seeds, planner freeze: the same checks as at the freeze
+    j = reader.json                                   # verified bytes -> parsed value
     cases, notes, config = j("cases"), j("annotations"), j("config")
-    seed_record = seed_mod.check_record(j("seed_record"), "calibration-selection")
-    if config.get("seed") != seed_record["seed"]:
-        raise ExperimentInputError("the config seed is not the derived seed in the seed record")
-    selection = j("calibration_selection")
-    if sorted(c["case_id"] for c in selection.get("cases", [])) != sorted(c["case_id"] for c in cases):
-        raise ExperimentInputError("the case list does not match the frozen calibration selection")
     annotations: Dict[str, Annotation] = {}
     for raw in notes:
         a = Annotation(**raw)
@@ -137,36 +138,32 @@ def load_frozen_inputs(record_path: Path) -> ExperimentInputs:
         raise ExperimentInputError("the injection cases do not match the frozen payload templates")
     inputs = ExperimentInputs(
         cases=cases, annotations=annotations, recording=Recording(j("recording")), injection_cases=injection_cases,
-        budgets=Budgets(**config.get("budgets", {})), seed=int(config["seed"]), modes=tuple(config.get("modes", MODES)),
-        strict=True, frozen=True, record_hash=record["record_hash"])
+        budgets=Budgets(**config.get("budgets", {})), seed=int(config["seed"]), modes=tuple(config["modes"]),
+        strict=True, frozen=True, record_hash=record["record_hash"], planners=dict(config["planners"]))
     validate_inputs(inputs)
     return inputs
 
 
-def check_planner_binding(planner_factories: Dict[str, Callable[[Dict[str, Any]], Any]], modes: tuple) -> None:
-    """Every planner must be defined in the frozen planners folder, so the code compared is the code that is promoted."""
-    planners = PLANNERS_DIR.resolve()
-    for mode in modes:
-        factory = planner_factories.get(mode)
-        if factory is None:
-            raise ExperimentInputError(f"no planner supplied for mode '{mode}'")
-        target = factory.func if isinstance(factory, functools.partial) else factory
-        target = target if inspect.isclass(target) or inspect.isfunction(target) else type(target)
-        try:
-            source = inspect.getsourcefile(target)
-        except TypeError:
-            source = None
-        if not source or planners not in Path(source).resolve().parents:
-            raise ExperimentInputError(f"the planner for '{mode}' is not defined in {PLANNERS_DIR.name}/: {source}")
+def resolve_planners(inputs: ExperimentInputs) -> Dict[str, Any]:
+    """The planner classes named by the frozen config, imported from the frozen planners folder. Nothing is accepted from a caller."""
+    if not inputs.planners or set(inputs.planners) != set(inputs.modes):
+        raise ExperimentInputError("the frozen config must name a planner entry point for every mode")
+    return {mode: planner_freeze.resolve_entrypoint(spec) for mode, spec in inputs.planners.items()}
 
 
 # -- executors ------------------------------------------------------------------------------------------------------------------------
 
 class _Executors:
-    """The three executors a run needs, created once and reused so threads do not accumulate; replaced only if a run left a stuck call."""
+    """The three executors a run needs, created once and reused so threads do not accumulate.
+
+    If a run leaves a stuck call the set is replaced so the next case is not starved, but the cap is on the **whole experiment**, not on one
+    set: replaced executors are kept (closed, so idle workers exit) and their still-running stuck calls keep counting. More than
+    MAX_REPLACEMENTS replacements, or more than MAX_STUCK_CALLS stuck calls alive across all sets, aborts the experiment.
+    """
 
     def __init__(self) -> None:
         self.replacements = 0
+        self.retired: list = []
         self._make()
 
     def _make(self) -> None:
@@ -174,22 +171,35 @@ class _Executors:
         self.plan = BoundedExecutor(max_workers=3, max_abandoned=2, name="pe-plan", max_leaked=2)
         self.model = BoundedExecutor(max_workers=3, max_abandoned=2, name="pe-model", max_leaked=2)
 
-    def _all(self):
+    def _current(self):
         return (self.tool, self.plan, self.model)
 
     def stuck(self) -> bool:
-        return any(e.abandoned or e.leaked for e in self._all())
+        return any(e.abandoned or e.leaked for e in self._current())
+
+    def live_stuck(self) -> int:
+        return sum(e.abandoned + e.leaked for e in list(self._current()) + self.retired)
+
+    def live_threads(self) -> int:
+        return sum(e.live_threads for e in list(self._current()) + self.retired)
 
     def replace_if_stuck(self) -> bool:
         if not self.stuck():
             return False
-        self.close()
+        if self.live_stuck() > MAX_STUCK_CALLS:
+            raise ExperimentAborted(f"{self.live_stuck()} stuck calls are still running (limit {MAX_STUCK_CALLS})")
+        if self.replacements >= MAX_REPLACEMENTS:
+            raise ExperimentAborted(f"executors were already replaced {self.replacements} times (limit {MAX_REPLACEMENTS})")
+        for e in self._current():
+            e.close()
+        self.retired.extend(self._current())
+        self.retired = [e for e in self.retired if e.live_threads]          # finished ones hold nothing
         self._make()
         self.replacements += 1
         return True
 
     def close(self) -> None:
-        for e in self._all():
+        for e in list(self._current()) + self.retired:
             e.close()
 
 
@@ -206,10 +216,21 @@ def _tenant_dir(tenants) -> Path:
     return root
 
 
-def run_experiment_frozen(record_path: Path, planner_factories: Dict[str, Callable[[Dict[str, Any]], Any]]) -> Dict[str, Any]:
+def run_experiment_frozen(record_path: Path) -> Dict[str, Any]:
     inputs = load_frozen_inputs(record_path)
-    check_planner_binding(planner_factories, inputs.modes)
-    return _execute(inputs, planner_factories, None)
+    return _execute(inputs, resolve_planners(inputs), None)
+
+
+def run_once(record_path: Path, results_dir: Path) -> Dict[str, Any]:
+    """Run the frozen experiment and store its result. The experiment is run once per freeze record: a second run is refused."""
+    record = load_record(record_path)
+    out = Path(results_dir) / f"results_{record['record_hash'][:16]}.json"
+    if out.exists():
+        raise ExperimentInputError(f"this freeze record has already been run ({out.name}); a new round needs revised planners and a fresh set")
+    result = run_experiment_frozen(record_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(result, indent=1, sort_keys=True, default=str), encoding="utf-8")
+    return result
 
 
 def run_experiment_unfrozen(cases, annotations: Dict[str, Annotation], recording: Recording, planner_factories, ctx_factory,
@@ -287,6 +308,7 @@ def _execute(inputs: ExperimentInputs, planner_factories, ctx_factory: Optional[
             summaries[mode] = summarise_mode(scores, latencies, injections, inputs.seed)
             results["modes"][mode] = {"summary": summaries[mode], "runs": runs, "injections": injections}
         results["executor_replacements"] = executors.replacements
+        results["stuck_calls_at_end"] = executors.live_stuck()
     finally:
         executors.close()
     results["decision"] = decide(summaries, success_by_case, budgets.deadline_s, inputs.seed)
