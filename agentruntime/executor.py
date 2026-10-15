@@ -9,8 +9,9 @@ A call that exceeds its timeout cannot be killed inside a thread, so the executo
   3. calls that timed out and are still running are counted as *abandoned*, and new work is refused while too many are (ExecutorBusy);
   4. an abandoned call that is still running after `leak_after_s` is declared *leaked*: its worker is retired (it exits when the call
      finally returns) and a replacement worker is started, so capacity recovers after a transient hang. Leaked calls are capped at
-     `max_leaked`: at the cap the executor refuses all work (ExecutorFailed) until some of them return, so the number of stuck threads
-     can never exceed `max_workers + max_leaked`;
+     `max_leaked`: at the cap the executor refuses all work (ExecutorFailed) until some of them return. Stuck threads (abandoned plus
+     leaked) are therefore bounded by `max_abandoned + max_leaked`, and the live threads of one executor by `max_workers + max_leaked`
+     (abandoned calls still occupy active workers; only leaked ones have been replaced);
   5. a call still queued when its timeout expires is cancelled before it starts.
 Planner decisions, model requests and tool calls each have their own pool, so a planner waiting on a model request can never starve
 the model pool (nested calls must never share an executor).

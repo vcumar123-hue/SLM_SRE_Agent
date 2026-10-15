@@ -19,7 +19,7 @@ from agentruntime.executor import CallTimeout, CancelToken, ExecutorBusy, Execut
 
 FORBIDDEN_ARG_NAMES = frozenset({
     "tenant", "tenant_id", "client", "client_id", "knowledge_scope", "scope", "search_order", "collection", "collection_name",
-    "sql", "query_sql", "statement", "path", "file", "filename", "url", "uri", "endpoint", "host_url", "cancel", "ctx",
+    "sql", "query_sql", "statement", "path", "file", "filename", "url", "uri", "endpoint", "host_url", "cancel", "timeout_s", "ctx",
 })
 ALLOWED_KEYWORDS = frozenset({
     "type", "properties", "required", "additionalProperties", "enum", "minimum", "maximum", "minLength", "maxLength", "pattern",
@@ -152,13 +152,17 @@ class ToolRegistry:
             raise UnknownTool(name)
         spec, fn = self._tools[name]
         validate_args(args, spec.input_schema, f"tool '{name}' input")
-        accepts_cancel = "cancel" in inspect.signature(fn).parameters
+        params = inspect.signature(fn).parameters
+        accepts_cancel = "cancel" in params
+        accepts_timeout = "timeout_s" in params
         limit = spec.max_items
 
         def job(token: CancelToken) -> List[Any]:
             kwargs = dict(args)
             if accepts_cancel:
-                kwargs["cancel"] = token          # cooperative cancellation; wrappers also set database statement timeouts
+                kwargs["cancel"] = token          # cooperative cancellation
+            if accepts_timeout:
+                kwargs["timeout_s"] = timeout_s   # the call's remaining time: wrappers turn it into a database statement timeout
             produced = fn(ctx, **kwargs)
             # bounded iteration inside the worker: a huge or endless generator is never fully materialised, and the timeout covers it
             return list(itertools.islice(iter(produced or ()), limit))

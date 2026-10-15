@@ -58,7 +58,16 @@ def get_db_config() -> Dict[str, Any]:
 
 
 def get_connection():
-    return psycopg2.connect(**get_db_config())
+    config = get_db_config()
+    try:
+        from agentruntime.db_limits import STATEMENT_TIMEOUT_MS
+        timeout_ms = STATEMENT_TIMEOUT_MS.get()
+    except Exception:
+        timeout_ms = None
+    if timeout_ms:
+        # set by an agent tool for the duration of one call; the server then cancels any longer statement itself
+        config = dict(config, options=f"-c statement_timeout={int(timeout_ms)}")
+    return psycopg2.connect(**config)
 
 
 @contextmanager

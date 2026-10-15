@@ -695,7 +695,7 @@ R2-2 implementation may begin after R2-1 and the planner decision, **with the lo
 | 4. Freeze and hash the planner experiment (annotations, cases, decision rule) | blocked on step 3 (annotations need two reviewers); the harness, ticket selection and injection cases can be prepared meanwhile |
 | 5. Run the planner experiment | after step 4 |
 | 6. Implement and verify R2-0 | **implemented; awaiting review sign-off.** First delivery 2026-10-14; a code review found five P1 gaps and seven hardening items, all fixed the same day, and three further findings from the second review fixed after that (section 18). Not accepted as complete until the reviewer confirms. No tools or planner yet (R2-1, R2-2); the loop is not wired into the application |
-| 7. Implement and verify R2-1 | after step 6 |
+| 7. Implement and verify R2-1 | **implemented 2026-10-14 (section 19); awaiting review sign-off.** R2-2 has not been started |
 | 8. Select the planner from the experiment result | after step 5 |
 | 9. Implement R2-2 with the mode remaining `off` | after steps 7 and 8 |
 | 10. Merge after R2-2 controls pass (decision 5) | after step 9 |
@@ -728,8 +728,46 @@ Three further findings, all fixed with regression tests; R2-0 stays unaccepted u
 | # | Finding | Fix |
 |---|---|---|
 | 6 | Planner decisions and model requests shared one executor; concurrent runs could starve it (a nested request queued behind the planner threads waiting on it) | Three separate pools: `PLANNER_EXECUTOR` (the outer safety boundary around a planner decision), `MODEL_EXECUTOR` (the model requests the gateway makes) and `TOOL_EXECUTOR`. A `Runner` refuses to be built with the same executor for planners and models. Tests: eight planners synchronised at a barrier all call the model at once and none fails; a small test shows how a shared pool does starve |
-| 7 | The gateway discarded the cancellation token and the timeout, so a timed-out model call could run on indefinitely and two stuck calls could make the executor permanently unavailable | The model adapter contract is now `fn(max_tokens, timeout_s, cancel)`: the effective timeout (per-call limit or the remaining deadline, whichever is shorter) and the cancel token reach the adapter, which must apply `timeout_s` at the HTTP-client level and stop when `cancel` is set. The executor itself now recovers from a call that never returns: workers are daemon threads; an abandoned call still running after `leak_after_s` is declared **leaked**, its worker is retired and a replacement started, so capacity returns; leaked calls are capped, and at the cap all work is refused (`ExecutorFailed`) until some return, so stuck threads can never exceed `max_workers + max_leaked + max_abandoned`. Tests: cooperative cancellation, a permanently blocked call is replaced and the executor recovers, the cap and its refusal, recovery after the calls finally return |
+| 7 | The gateway discarded the cancellation token and the timeout, so a timed-out model call could run on indefinitely and two stuck calls could make the executor permanently unavailable | The model adapter contract is now `fn(max_tokens, timeout_s, cancel)`: the effective timeout (per-call limit or the remaining deadline, whichever is shorter) and the cancel token reach the adapter, which must apply `timeout_s` at the HTTP-client level and stop when `cancel` is set. The executor itself now recovers from a call that never returns: workers are daemon threads; an abandoned call still running after `leak_after_s` is declared **leaked**, its worker is retired and a replacement started, so capacity returns; leaked calls are capped, and at the cap all work is refused (`ExecutorFailed`) until some return, so stuck threads (abandoned plus leaked) never exceed `max_abandoned + max_leaked`, and the live threads of one executor never exceed `max_workers + max_leaked`. Tests: cooperative cancellation, a permanently blocked call is replaced and the executor recovers, the cap and its refusal, recovery after the calls finally return |
 | 8 | A caller could build a `Waiver` object and disable encryption | A usable waiver exists only if it was **loaded from the recorded waiver file** (`load_waiver` sets a provenance token no caller supplies); `RunStore` no longer accepts a waiver object, only an optional loader function (for tests that point at a waiver file of their own), and refuses anything not `verified`. Each run's manifest records the approver, reason, policy reference, date and the SHA-256 of the waiver record. Python cannot make an in-process token unforgeable against deliberately malicious code in the same process; the control prevents casual or accidental bypass and leaves an audit trail, and the waiver file itself is the controlled record |
 
 Requirements this places on R2-1 and R2-2: model adapters (LM Studio, Groq) must apply `timeout_s` in the HTTP client and check `cancel`; tool
 wrappers must check `cancel` and set database statement timeouts; neither may spawn threads of their own.
+
+---
+
+## 19. R2-1 read-only tools (2026-10-14)
+
+Five tools, each a wrapper in its own module under `agentruntime/tools/`, registered by `build_default_registry()`.
+
+| Tool | Backing code | Tenant and boundary rule |
+|---|---|---|
+| `incident_kb_search(query, top_k<=5)` | `retrieval_engine.retrieve_incidents` | tenant, `client_private` scope, search order and collection are fixed server-side and passed explicitly (retrieval's own default tenant is `client_a` and is never relied on); a private row of another tenant raises `BoundaryViolation` |
+| `ticket_history_lookup(host/service/text, days<=400)` | `client_ticket_records` | tenant is a bound SQL parameter; search terms are bound, wildcard-escaped `ILIKE` parameters; `LIMIT 8`; at least one filter required |
+| `outcome_lookup(classification)` | `resolution_outcome.summarize_outcomes` | strict tenant match in the ledger; an empty ledger returns an explicit "no recorded outcomes" item |
+| `pattern_lookup(classification)` | `knowledge_manager.get_pattern_intelligence` | always called with the trusted tenant; result is flagged `includes_shared_untagged_records` (see finding 2) |
+| `evidence_lookup(check)` | `data/evidence/tenants/<tenant>/<check>.json` | tenant partition only; absence is returned as an explicit item (see finding 1) |
+
+**Acceptance requirements from the R2-0 review, and how they are met**
+
+| Requirement | Implementation |
+|---|---|
+| Cancellation | every tool calls `check_cancel(cancel)` between steps; the registry passes its `CancelToken`; tests cancel before any backend work |
+| Statement timeouts | `db_limits.statement_timeout(timeout_s)` sets a context variable; `postgres_store.get_connection` then connects with `-c statement_timeout=<ms>`, so retrieval, outcome and ticket queries made on the tool's behalf are cancelled by the server. A test confirms a `pg_sleep(5)` is cut off in under 2.5 s and that connections opened outside the block have no limit |
+| Bounded by the remaining deadline | the registry passes the call's `timeout_s` (the runner already clamps it to the remaining run time); the statement timeout is that value minus 0.25 s, never below 100 ms and never zero (zero means "no limit" in PostgreSQL) |
+| No unmanaged threads | a structural test fails if any module other than `executor.py` creates threads or pools |
+| Tenant only from the trusted context | model arguments `tenant_id`, `knowledge_scope`, `collection_name`, `search_order`, `timeout_s` and `cancel` are rejected by schema; a structural test fails if a tool reads a default tenant |
+| Two-tenant, timeout, cancellation and bounded-result tests per tool | `tests/test_agentruntime_tools.py`; the SQL tool is also tested against a real PostgreSQL |
+
+A structural test also limits which modules may import retrieval, database, outcome or knowledge code: the four backend tool modules, and `store.py` for the run tables.
+
+**Findings for the owner (pre-existing, not introduced by Release 2)**
+
+1. **The Safety Gate evidence store is not partitioned by tenant.** `data/evidence/<check>.json` holds one file per check for all tenants, so
+   the existing gate can use one client's evidence for another. `evidence_lookup` therefore never reads it; it reads only a tenant partition
+   that does not exist yet and returns "no tenant-scoped evidence" until one is written. Partitioning the gate's own store is a separate change.
+2. **`get_pattern_intelligence` counts records with no tenant tag for every tenant** (shared knowledge). The tool passes the trusted tenant and
+   labels the result, but the counts can include shared records. Tightening this belongs to the knowledge layer, not to Release 2.
+
+**Verification:** 39 tool tests (5 live-PostgreSQL cases); runtime and tool suites 172 tests pass against a throwaway PostgreSQL; full suite 485 pass (55 skipped in the Windows venv, 24 in the container).
+**P2 documentation fix:** the executor bound is now stated as stuck threads <= `max_abandoned + max_leaked` and live threads per executor <= `max_workers + max_leaked`, in both the code and section 11.

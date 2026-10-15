@@ -35,7 +35,7 @@ Since then:
 |---|---|---|
 | **Now** | Accept artifacts A–E; run the **trajectory-level planner experiment** (design section 12) | artifacts accepted; experiment decision rule applied |
 | **R2-0 Foundations** | `agentruntime/` contracts, `TrustedContext`, tool registry, runner with enforced budgets, sanitising, evidence store, run tables | contract, boundary and runner tests pass; a stub run persists and replays |
-| **R2-1 Read-only tools** | `incident_kb_search`, `ticket_history_lookup`, `outcome_lookup`, `pattern_lookup`, `evidence_lookup` as tenant-bound wrappers returning verified evidence objects | each tool passes two-tenant isolation, cap and injection tests |
+| **R2-1 Read-only tools** | `incident_kb_search`, `ticket_history_lookup`, `outcome_lookup`, `pattern_lookup`, `evidence_lookup` as tenant-bound wrappers returning verified evidence objects | each tool passes two-tenant isolation, cap and injection tests. **Status: implemented, awaiting review (design section 19)** |
 | **R2-2 Investigation loop, shadow** | loop inside the RCA step behind `AIOPS_AGENTIC_RCA_LOOP=off\|shadow\|on` (default off). Shadow runs are queued after the response and **never awaited**; they do not change the answer | batch and shadow runs finish inside budget; zero safety violations; flag `off` unchanged |
 | **R2-3 Evaluation and promotion** | labelling, calibration, then **one** acceptance run against a protocol frozen **before any acceptance ticket is seen** | gates G1–G8 reported with confidence intervals under the scoring rules |
 | **R2-4 Investigation view** | `investigation` block in the response and an operator panel; per-tenant `on` for one pilot tenant if R2-3 passes | operator sees steps, evidence and why it concluded or escalated |
