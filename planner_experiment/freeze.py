@@ -17,6 +17,8 @@ what is checked at run time:
     to the draw, disjoint from the development subset;
   * seeds: the draw seed is derived from the planner-freeze hash, the partition seed from its own record; the draw selection records both;
   * planners: the config's planner entry points are the planner freeze's, and the planner and runtime code is unchanged since that freeze;
+  * earlier rounds: for round N>1 the selection file of every earlier round is a frozen input (`prior_selection:<n>`) and is checked against the
+    hash recorded in the draw, the key, the planners, and for overlap (no shared case, ticket or cluster);
   * the decision rule: derived from the code that executes it (`metrics.frozen_rule()`), never supplied by a caller, and verified against the
     record when the experiment loads; the run applies the record's copy.
 """
@@ -123,6 +125,41 @@ def check_prior_rounds(selection: Dict[str, Any], rnd: int) -> None:
             raise FreezeError(f"round {p.get('round')} has no recorded selection hash")
 
 
+def check_prior_selection_files(selection: Dict[str, Any], rnd: int, prior_files: Dict[int, bytes]) -> None:
+    """Verify the recorded trail against the earlier rounds' selection files themselves, which are frozen inputs of this round.
+
+    The hashes recorded in the draw are only a claim; this compares each with the real file's hash. It also requires each earlier file to be
+    the keyed draw of its round under the same key, drawn for different planners, and to share no case, no ticket and no (keyed) cluster with this
+    round: the "fresh, previously unused set" is checked in the freeze, not just trusted from the draw.
+    """
+    if sorted(prior_files) != list(range(1, rnd)):
+        raise FreezeError(f"the selection file of every earlier round {list(range(1, rnd))} must be a frozen input (found {sorted(prior_files)})")
+    recorded = {p["round"]: p for p in selection["prior_rounds"]}
+    mine = selection["cases"]
+    my_ids = {e["case_id"] for e in mine}
+    my_pairs = {(e["pool"], str(e["ticket_id"])) for e in mine}
+    my_clusters = {e["cluster_id"] for e in mine}
+    for n in sorted(prior_files):
+        raw = prior_files[n]
+        if sha256_bytes(raw) != recorded[n]["selection_hash"]:
+            raise FreezeError(f"round {n}: the frozen selection file does not match the hash recorded in this round's draw")
+        try:
+            record = json.loads(raw.decode("utf-8"))
+        except ValueError as exc:
+            raise FreezeError(f"round {n}: the selection file is not valid JSON") from exc
+        if record.get("kind") != "experiment" or record.get("round") != n:
+            raise FreezeError(f"round {n}: the file is not the planner-experiment draw of round {n}")
+        if not record.get("keyed") or record.get("key_check") != selection.get("key_check"):
+            raise FreezeError(f"round {n} was drawn with a different experiment key (or unkeyed): all rounds must use one key")
+        if record.get("planner_freeze_hash") == selection.get("planner_freeze_hash"):
+            raise FreezeError(f"round {n} was drawn for the same planners: a new round needs revised planners")
+        theirs = record.get("cases", [])
+        if my_ids & {e["case_id"] for e in theirs} or my_pairs & {(e["pool"], str(e["ticket_id"])) for e in theirs}:
+            raise FreezeError(f"this round shares a ticket with round {n}: a fresh set cannot reuse earlier tickets")
+        if my_clusters & {e["cluster_id"] for e in theirs}:
+            raise FreezeError(f"this round shares a cluster with round {n}: a fresh set cannot reuse earlier clusters")
+
+
 def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict[str, Any]:
     """Check that the frozen inputs are consistent with each other. Returns {'reviewers', 'agreement', 'round', 'seed', 'partition_seed', ...}."""
     from planner_experiment import annotations as ann
@@ -132,7 +169,8 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
     present = set(reader.names())
     reviewer_keys = sorted(k for k in present if k.startswith("reviewer:"))
     missing = [k for k in REQUIRED_FILES if k not in present]
-    unknown = sorted(present - set(REQUIRED_FILES) - set(reviewer_keys))
+    prior_keys = sorted(k for k in present if k.startswith("prior_selection:"))
+    unknown = sorted(present - set(REQUIRED_FILES) - set(reviewer_keys) - set(prior_keys))
     if missing or unknown:
         raise FreezeError(f"frozen inputs must be exactly {REQUIRED_FILES} plus one reviewer file each; missing {missing}, unknown {unknown}")
 
@@ -202,6 +240,11 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
             rnd, pf["record_hash"], draw["seed"], partition):
         raise FreezeError("the experiment selection was not drawn with this round, planner freeze and these seeds")
     check_prior_rounds(selection, rnd)
+    try:
+        prior_numbers = {int(k.split(":", 1)[1]): reader.bytes(k) for k in prior_keys}
+    except ValueError as exc:
+        raise FreezeError("a prior selection input must be named prior_selection:<round number>") from exc
+    check_prior_selection_files(selection, rnd, prior_numbers)
     try:
         from planner_experiment import secrecy
         composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"), key=secrecy.load_key())

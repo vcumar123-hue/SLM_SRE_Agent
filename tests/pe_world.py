@@ -46,6 +46,17 @@ def golden_raw(approvers=NAMES, n: int = 30) -> List[Dict[str, Any]]:
             for i in range(n)]
 
 
+def fake_code_root() -> pathlib.Path:
+    """A small stand-in code tree, so a world can revise 'planner code' between rounds without touching the real repository."""
+    root = pathlib.Path(tempfile.mkdtemp(prefix="pe-root-"))
+    for top in ("agentruntime", "planner_experiment"):
+        (root / top).mkdir()
+        (root / top / "m.py").write_text("x = 1\n", encoding="utf-8")
+    (root / "agentruntime" / "planners").mkdir()
+    (root / "agentruntime" / "planners" / "p.py").write_text("RULES = 1\n", encoding="utf-8")
+    return root
+
+
 @dataclass
 class World:
     dir: pathlib.Path
@@ -56,6 +67,7 @@ class World:
     reviewer_files: Dict[str, pathlib.Path]
     entrypoints: Dict[str, str]
     round: int = 1
+    code_root: Any = None
     extra: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -72,12 +84,17 @@ class World:
 
     def freeze(self):
         from planner_experiment import freeze
+        if self.code_root is not None:
+            return freeze.create_freeze(self.files, self.reviewer_files, self.out, root=self.code_root)
         return freeze.create_freeze(self.files, self.reviewer_files, self.out)
 
 
-def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=NAMES, n_tickets: int = 400, directory=None) -> World:
+def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=NAMES, n_tickets: int = 400, directory=None, rounds: int = 1) -> World:
+    """`rounds=2` draws round 1, revises the (stand-in) planner code, freezes round 2 and draws it too; the frozen set is that of round 2."""
     d = pathlib.Path(directory or tempfile.mkdtemp(prefix="pe-world-"))
     base = d / "baselines"
+    if rounds > 1 and root is None:
+        root = fake_code_root()
     root = root or ROOT
     entrypoints = entrypoints or dict(ENTRYPOINTS)
     steps.record_reviewers(base, list(reviewers), {n: 40.0 for n in reviewers}, "owner")
@@ -89,7 +106,11 @@ def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=N
     steps.select_development(base, tickets, DEVELOPMENT_ARTIFACT)
     steps.freeze_planners(base, 1, entrypoints, root=root, planners_dir=TESTS_DIR)
     steps.draw_experiment(base, 1, tickets, root=root)
-    rp = steps.round_paths(base, 1)
+    for n in range(2, rounds + 1):
+        (root / "agentruntime" / "planners" / "p.py").write_text(f"RULES = {n}\n", encoding="utf-8")          # planners revised on the development subset
+        steps.freeze_planners(base, n, entrypoints, root=root, planners_dir=TESTS_DIR)
+        steps.draw_experiment(base, n, tickets, root=root)
+    rp = steps.round_paths(base, rounds)
     cases = steps.build_cases(rp["selection"], tickets)
 
     def write(name, value):
@@ -106,11 +127,13 @@ def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=N
         "annotations": write("annotations.json", [annotation(c["case_id"], "adjudicated").model_dump() for c in cases]),
         "cases": write("cases.json", cases), "recording": write("recording.json", recording.data),
         "injection_cases": write("injection_cases.json", [vars(i) for i in injection.build_injection_cases([c["case_id"] for c in cases[:4]])]),
-        "config": write("config.json", {"round": 1, "seed": draw_seed, "modes": list(MODES), "planners": entrypoints, "budgets": {}}),
+        "config": write("config.json", {"round": rounds, "seed": draw_seed, "modes": list(MODES), "planners": entrypoints, "budgets": {}}),
         "seed_record": rp["seed"], "partition_seed_record": paths["partition_seed"], "experiment_selection": rp["selection"],
         "development_selection": paths["development"], "planner_freeze": rp["planner_freeze"], "reviewers": paths["reviewers"],
         "golden": golden_path,
     }
+    for n in range(1, rounds):
+        files[f"prior_selection:{n}"] = steps.round_paths(base, n)["selection"]
     reviewer_files = {n: write(f"reviewer_{n}.json", [annotation(c["case_id"], n).model_dump() for c in cases]) for n in reviewers}
     return World(dir=d, base=base, tickets=tickets, cases=cases, files=files, reviewer_files=reviewer_files, entrypoints=entrypoints,
-                 extra={"golden_path": golden_path, "recording": recording})
+                 round=rounds, code_root=(root if root is not ROOT else None), extra={"golden_path": golden_path, "recording": recording})

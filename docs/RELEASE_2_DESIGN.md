@@ -983,3 +983,32 @@ reuses clusters from round 1.)
 5. draw the 10-ticket development subset (`cli select-development`);
 6. build and freeze the three candidate planners (`cli freeze-planners`);
 7. only then draw and label the 50-ticket set (`cli draw-experiment`).
+
+### 20.8 Eighth review (2026-10-15): the prior-round hashes were recorded but never verified
+
+**P1.** 20.7 made each draw record, for every earlier round, a selection hash and a key check, and the freeze checked that the trail was
+well-formed. But nothing compared a recorded hash with an actual file, so a plausible but wrong 64-character hash passed. (Confirmed: the
+trail-only check accepted `"a" * 64`.) The trail was a claim, not a control.
+
+| Change | Effect |
+|---|---|
+| **Earlier rounds' selection files are frozen inputs** | a round N freeze must include `prior_selection:1` .. `prior_selection:N-1`; each is hashed into the freeze record like any other input, so it is also covered by the run-time verification |
+| **`check_prior_selection_files`** | the real file's hash must equal the hash recorded in this round's draw; the file must be the keyed experiment draw of that round number, drawn under the **same key**, for **different planners**; and this round must share no case, no ticket (pool and ticket id) and no keyed cluster with it. The "fresh, previously unused set" is therefore checked in the freeze, not just trusted from the draw |
+| **Exactly the right files** | rounds 1..N-1 must all be present, none missing and none extra; a round 1 freeze carries none; a mis-named input is refused |
+
+Tests (`PriorRoundFileTests`, on a genuine two-round world built through the real steps): a real two-round freeze verifies; five different
+plausible-but-wrong non-empty hashes (all-`a`, all-zero, the real hash reversed, one character changed, upper-cased) are each refused; a prior file edited
+after the draw is refused; a missing, extra or mis-named prior file is refused; a prior file that is not that round's draw, not valid JSON, from another
+key or unkeyed, or drawn for the same planners is refused; a round that reuses a prior ticket or cluster is refused; and a prior file changed after the
+freeze is caught when the frozen record is verified.
+
+**Verification:** 194 harness tests in four files (28 core, 18 integrity, 69 design, 79 sign-off); the full Windows suite, 687 tests, passes (55
+skipped for missing dependencies). As agreed, the Linux container and PostgreSQL suites are to be run once Docker is intentionally available and
+before the release gate; they were last run for commit `38a48e6` (669 and 356 tests).
+
+**Owner sequence from here** (unchanged): create the experiment key on the controlled machine and back it up outside the repository; record the two
+reviewers (at least 40 hours each, 50 preferred); approve at least 12 calibration golden tickets; draw the 10-ticket development subset; build and
+tune the three planners on it only; freeze them; draw the 50-ticket set; build the blinded case package; independent labelling by both reviewers,
+adjudication with written rationale (kappa at least 0.6); capture the recordings and injection cases; create the complete experiment freeze; run
+`run_once` exactly once; apply the frozen rule; if a planner passes, promote it unchanged into R2-2 with the loop `off` by default; then the 100-ticket
+acceptance evaluation and R2-3 before `on` is enabled for any tenant.

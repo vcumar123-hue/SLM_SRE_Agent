@@ -755,6 +755,139 @@ class CrossRoundKeyTests(unittest.TestCase):
                 steps.draw_experiment(self.base, 2, self.tickets, root=self.root)
 
 
+class PriorRoundFileTests(unittest.TestCase):
+    """The freeze must verify the earlier rounds' selection files themselves, not trust the hashes the draw claims for them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.base_world = build_world(rounds=2)
+
+    def fresh(self):
+        return build_world(rounds=2)
+
+    @staticmethod
+    def retarget(w, mutate, fix_hash=True):
+        """Edit the frozen round-1 selection file; optionally repair the hash recorded in round 2 so ONLY the edited property is wrong."""
+        prior_path = w.files["prior_selection:1"]
+        record = json.loads(prior_path.read_text(encoding="utf-8"))
+        mutate(record)
+        prior_path.write_text(json.dumps(record, sort_keys=True), encoding="utf-8")
+        if fix_hash:
+            sel = w.read("experiment_selection")
+            sel["prior_rounds"][0]["selection_hash"] = freeze.sha256_bytes(prior_path.read_bytes())
+            w.write("experiment_selection", sel)
+
+    def test_a_genuine_two_round_freeze_verifies(self):
+        w = self.fresh()
+        record = w.freeze()
+        self.assertIn("prior_selection:1", record["files"])
+        freeze.verify_freeze(w.out, root=w.code_root)
+        sel = w.read("experiment_selection")
+        self.assertEqual(sel["prior_rounds"][0]["selection_hash"], freeze.sha256_bytes(w.files["prior_selection:1"].read_bytes()))
+
+    def test_a_plausible_but_incorrect_non_empty_hash_is_refused(self):
+        w = self.fresh()
+        sel = w.read("experiment_selection")
+        real = sel["prior_rounds"][0]["selection_hash"]
+        self.assertRegex(real, r"^[0-9a-f]{64}$")
+        for wrong in ("a" * 64, "0" * 64, real[::-1], real[:-1] + ("0" if real[-1] != "0" else "1"), real.upper()):
+            sel["prior_rounds"][0]["selection_hash"] = wrong
+            w.write("experiment_selection", sel)
+            with self.assertRaisesRegex(FreezeError, "does not match the hash recorded"):
+                w.freeze()
+
+    def test_a_prior_selection_edited_after_the_draw_is_refused(self):
+        w = self.fresh()
+        self.retarget(w, lambda rec: rec["cases"].pop(), fix_hash=False)
+        with self.assertRaisesRegex(FreezeError, "does not match the hash recorded"):
+            w.freeze()
+
+    def test_the_prior_selection_file_is_required_as_a_frozen_input(self):
+        w = self.fresh()
+        del w.files["prior_selection:1"]
+        with self.assertRaisesRegex(FreezeError, "must be a frozen input"):
+            w.freeze()
+
+    def test_a_round_one_freeze_may_not_carry_a_prior_selection_and_nothing_else_is_accepted(self):
+        w = build_world()
+        w.files["prior_selection:1"] = w.files["experiment_selection"]
+        with self.assertRaisesRegex(FreezeError, "(must be a frozen input|exactly the earlier rounds)"):
+            w.freeze()
+        w2 = self.fresh()
+        w2.files["prior_selection:7"] = w2.files["prior_selection:1"]
+        with self.assertRaisesRegex(FreezeError, "must be a frozen input"):
+            w2.freeze()
+        w3 = self.fresh()
+        w3.files["prior_selection:x"] = w3.files["prior_selection:1"]
+        with self.assertRaises(FreezeError):
+            w3.freeze()
+
+    def test_a_prior_file_that_is_not_that_rounds_experiment_draw_is_refused(self):
+        for mutate, pattern in ((lambda rec: rec.update(round=2), "not the planner-experiment draw"),
+                                (lambda rec: rec.update(kind="development"), "not the planner-experiment draw")):
+            w = self.fresh()
+            self.retarget(w, mutate)
+            with self.assertRaisesRegex(FreezeError, pattern):
+                w.freeze()
+        w = self.fresh()
+        w.files["prior_selection:1"].write_text("not json", encoding="utf-8")
+        self.retarget_hash_only(w)
+        with self.assertRaisesRegex(FreezeError, "not valid JSON"):
+            w.freeze()
+
+    @staticmethod
+    def retarget_hash_only(w):
+        sel = w.read("experiment_selection")
+        sel["prior_rounds"][0]["selection_hash"] = freeze.sha256_bytes(w.files["prior_selection:1"].read_bytes())
+        w.write("experiment_selection", sel)
+
+    def test_a_prior_round_under_a_different_key_or_unkeyed_is_refused(self):
+        for mutate in (lambda rec: rec.update(key_check="0" * 16), lambda rec: rec.update(keyed=False)):
+            w = self.fresh()
+            self.retarget(w, mutate)
+            with self.assertRaisesRegex(FreezeError, "different experiment key"):
+                w.freeze()
+
+    def test_a_prior_round_drawn_for_the_same_planners_is_refused(self):
+        w = self.fresh()
+        planner_hash = w.read("experiment_selection")["planner_freeze_hash"]
+        self.retarget(w, lambda rec: rec.update(planner_freeze_hash=planner_hash))
+        with self.assertRaisesRegex(FreezeError, "same planners"):
+            w.freeze()
+
+    def test_a_round_that_reuses_a_prior_ticket_or_cluster_is_refused(self):
+        w = self.fresh()
+        sel = w.read("experiment_selection")
+        prior = json.loads(w.files["prior_selection:1"].read_text(encoding="utf-8"))
+        sel["cases"][0]["case_id"], sel["cases"][0]["pool"], sel["cases"][0]["ticket_id"] = (
+            prior["cases"][0]["case_id"], prior["cases"][0]["pool"], prior["cases"][0]["ticket_id"])
+        w.write("experiment_selection", sel)
+        with self.assertRaisesRegex(FreezeError, "shares a ticket with round 1"):
+            w.freeze()
+        w = self.fresh()
+        sel = w.read("experiment_selection")
+        prior = json.loads(w.files["prior_selection:1"].read_text(encoding="utf-8"))
+        sel["cases"][0]["cluster_id"] = prior["cases"][0]["cluster_id"]
+        w.write("experiment_selection", sel)
+        with self.assertRaisesRegex(FreezeError, "shares a cluster with round 1"):
+            w.freeze()
+
+    def test_the_real_second_round_shares_nothing_with_the_first(self):
+        w = self.fresh()
+        mine = w.read("experiment_selection")
+        prior = json.loads(w.files["prior_selection:1"].read_text(encoding="utf-8"))
+        self.assertFalse({e["case_id"] for e in mine["cases"]} & {e["case_id"] for e in prior["cases"]})
+        self.assertFalse({e["cluster_id"] for e in mine["cases"]} & {e["cluster_id"] for e in prior["cases"]})
+        self.assertEqual(mine["prior_rounds"][0]["round"], 1)
+
+    def test_a_tampered_prior_file_is_also_caught_when_the_frozen_run_loads_it(self):
+        w = self.fresh()
+        w.freeze()
+        w.files["prior_selection:1"].write_text(w.files["prior_selection:1"].read_text(encoding="utf-8") + " ", encoding="utf-8")
+        with self.assertRaisesRegex(FreezeError, "changed after the freeze"):
+            freeze.verify_freeze(w.out, root=w.code_root)
+
+
 class ReviewerCapacityTests(unittest.TestCase):
     def record(self, hours):
         return {"reviewers": ["Ann", "Bob"], "capacity_hours": {"Ann": hours[0], "Bob": hours[1]}, "recorded_by": "owner"}
