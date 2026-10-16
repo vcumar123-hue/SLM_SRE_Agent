@@ -1,0 +1,12 @@
+{
+ "capacity_hours": {
+  "Sara": 40.0,
+  "Vijay": 40.0
+ },
+ "note": "",
+ "recorded_by": "Ramanthan",
+ "reviewers": [
+  "Vijay",
+  "Sara"
+ ]
+}
