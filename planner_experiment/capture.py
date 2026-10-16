@@ -333,6 +333,8 @@ def run_capture(cases: List[Dict[str, Any]], held_out: List[Dict[str, Any]], reg
     for case in sorted(cases, key=lambda c: c["case_id"]):
         per_case[case["case_id"]] = _capture_case(registry, ctx_factory, case, matcher, recording, timeout_s, key, cancelled)
 
+    if cancelled():                                                  # the last chance to stop: nothing has been published yet
+        raise CaptureCancelled("the capture was cancelled before it was published")
     blob = (json.dumps(recording.data, separators=(",", ":"), ensure_ascii=True) + "\n").encode("utf-8")
     held_digest = _digest(key, "held_out", "\n".join(sorted(f"{h['tenant']}|{h['id']}|{h['cluster']}" for h in matcher.tickets)))
     manifest = {
@@ -370,9 +372,15 @@ def check_manifest(manifest: Dict[str, Any], blob: bytes, *, expected_case_ids: 
         raise CaptureError("the recording does not match its manifest: it was altered or is incomplete")
     if not all(manifest.get("exclusion_proof", {}).get(k) for k in ("self_test", "own_tickets_covered", "stored_form_rechecked")):
         raise CaptureError("the manifest does not carry a complete exclusion proof")
+    if manifest.get("runtime") != RUNTIME_VERSION:
+        raise CaptureError(f"the recording was captured under runtime {manifest.get('runtime')!r}, not {RUNTIME_VERSION!r}")
+    if manifest.get("recording_bytes") != len(blob.replace(b"\r\n", b"\n")):
+        raise CaptureError("the recording's size does not match its manifest")
     data = json.loads(blob.decode("utf-8"))
     if set(data) != set(manifest.get("cases", {})):
         raise CaptureError("the recording and its manifest list different cases")
+    if manifest.get("case_count") != len(data) or manifest.get("case_count") != len(manifest.get("cases", {})):
+        raise CaptureError("the manifest's case count does not match the recording and its own case map")
     if expected_case_ids is not None and set(expected_case_ids) != set(data):
         raise CaptureError("the recording does not cover exactly the cases it is used for")
     if expected_mode is not None and manifest.get("mode") != expected_mode:

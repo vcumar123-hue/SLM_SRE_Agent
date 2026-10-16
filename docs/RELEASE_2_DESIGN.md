@@ -1233,3 +1233,7 @@ not yet removed from the experiment capture (the acceptance run will pass its ow
 **Tests:** `tests/test_planner_capture.py` (50): self-match, near duplicate, cluster mate vs sibling host, ticket-id mention, tenant isolation, fail-closed cases, timeout and
 retry, partial capture, cancellation, publish crash, overwrite and invalidation, determinism under shuffled tool order, sanitising, replay equality across captures,
 verification and tampering, key rules, steps and command-line wiring, and the freeze refusing every non-official recording.
+
+**20.16 follow-up (review, 2026-10-16).** `check_manifest` now also rejects a manifest whose `runtime` differs from `RUNTIME_VERSION`, whose `recording_bytes` differs from the
+recording's length, or whose `case_count` differs from the recording's cases or its own case map; the capture checks for cancellation once more after the last tool call and before
+publishing. Each altered field is tested on its own against `verify_capture` and against the experiment freeze (53 capture tests).

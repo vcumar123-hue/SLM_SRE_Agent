@@ -284,6 +284,23 @@ class InterruptionTests(unittest.TestCase):
             capture_to(out, cancel=cancel)
         self.assert_nothing_usable(out)
 
+    def test_cancellation_after_the_last_call_still_prevents_publishing(self):
+        out, seen = tmp(), {"n": 0}
+        total = len(self.call_count())
+
+        def cancel():
+            seen["n"] += 1
+            return seen["n"] > total                                  # false for every call, true at the final check
+        with self.assertRaisesRegex(CaptureCancelled, "before it was published"):
+            capture_to(out, cancel=cancel)
+        self.assert_nothing_usable(out)
+
+    @staticmethod
+    def call_count():
+        log = []
+        capture_to(tmp(), registry=fake_registry(log=log))
+        return log
+
     def test_a_crash_while_publishing_does_not_leave_a_recording_that_looks_complete(self):
         out = tmp()
         real_replace, calls = capture.os.replace, {"n": 0}
@@ -436,6 +453,17 @@ class VerifyTests(unittest.TestCase):
             with self.assertRaises(CaptureError, msg=str(change)):
                 capture.verify_capture(self.out)
 
+    def test_each_altered_integrity_field_is_refused_on_its_own(self):
+        path = capture.manifest_path(self.out)
+        m = json.loads(path.read_text(encoding="utf-8"))
+        for change in ({"runtime": "r9-9.9"}, {"recording_bytes": m["recording_bytes"] + 1}, {"case_count": m["case_count"] + 1},
+                       {"case_count": m["case_count"] - 1}, {"cases": {k: v for k, v in list(m["cases"].items())[:1]}}):
+            path.write_text(json.dumps({**m, **change}), encoding="utf-8")
+            with self.assertRaises(CaptureError, msg=str(list(change)[0])):
+                capture.verify_capture(self.out)
+        path.write_text(json.dumps(m), encoding="utf-8")
+        capture.verify_capture(self.out)
+
     def test_experiment_digests_are_keyed(self):
         key = b"\x07" * 32
         out = tmp()
@@ -552,6 +580,14 @@ class FreezeIntegrationTests(unittest.TestCase):
         self.write_man(w, {**self.man(w), "key_check": "f" * 16})
         with self.assertRaisesRegex(FreezeError, "different experiment key"):
             w.freeze()
+
+    def test_the_freeze_refuses_each_altered_integrity_field(self):
+        from planner_experiment.freeze import FreezeError
+        for change in ({"runtime": "r9-9.9"}, {"recording_bytes": 1}, {"case_count": 1}):
+            w = self.fresh()
+            self.write_man(w, {**self.man(w), **change})
+            with self.assertRaisesRegex(FreezeError, "not an official capture", msg=str(change)):
+                w.freeze()
 
     def test_a_hand_made_recording_without_a_real_manifest_is_refused(self):
         from planner_experiment.freeze import FreezeError
