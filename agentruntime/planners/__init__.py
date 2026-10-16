@@ -6,5 +6,6 @@ does not live here. So the planners that are compared are exactly the files in t
 promoted to R2-2 **unchanged**: nothing is copied or rewritten between the experiment and the product. A planner may import only from
 `agentruntime` (itself hashed) and the standard library, so the hash covers everything it depends on.
 
-No planner is implemented yet: writing them, and tuning the rule table on the calibration set, happens before the freeze.
+Implemented so far: `rules_only` (rules_only.py). `rules_then_model` and `model` follow; none is frozen on its own, all three are frozen together.
+Rule tables are tuned on the 10 development tickets only.
 """

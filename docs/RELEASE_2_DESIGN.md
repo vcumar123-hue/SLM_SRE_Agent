@@ -1168,3 +1168,29 @@ own text exactly (`void_comment`, `overall_comment`, `source_sheet`; typos, case
 entries were corrected with `correct-acknowledgement`, which keeps the earlier paraphrase under `corrections` with the date and reason (appended, never
 overwritten), and is refused once any planner freeze exists. A test compares the committed log with the reviewers' sheets word for word when openpyxl is
 available. Who acknowledged and when are unchanged.
+
+### 20.15 `rules_only` planner (2026-10-16)
+
+`agentruntime/planners/rules_only.py` (`RulesOnlyPlanner`, constructed as `RulesOnlyPlanner(case)`): deterministic, no model (`model_id` None, `prompt_version` "none",
+`ruleset_version` "rules-1"), imports only `agentruntime` and the standard library, and asks only the registered read-only tools through the existing runner.
+It is **not frozen on its own**: the three candidates are frozen together once all are written.
+
+* **Rule table** (priority order): a host-like token in the ticket → `ticket_history_lookup(host, days=400)`; then `incident_kb_search(ticket text, top_k=5)`
+  (the natural call the recording captures); best score below `MIN_RETRIEVAL_SCORE` (0.25) → one reformulated search (identifiers and numbers removed); a real
+  classification (not retrieval's `unknown`/`general` placeholders) → `outcome_lookup` then `pattern_lookup`; two relevant leading classifications within 0.05 →
+  one `evidence_lookup` and the run is reported as a conflict. Record ids, return codes, hex fragments and UUID pieces are not hosts. The tool budget is respected.
+* **Causes come only from cited evidence:** a pattern's recorded root causes (supported with at least 3 resolutions and high/medium confidence), or the causes an
+  incident's own text states (its `Root Cause:` clauses, or "commonly associated with / possible causes include" lists). A cause stated by two or more relevant
+  incidents is `supported`, one stated by a single incident is `weak`. If no cause is stated anywhere, the closest earlier incidents are cited as a *recurrence*,
+  always `weak`; history on the same host is context only (`weak`). With nothing relevant the planner escalates rather than inventing a cause. Retrieved text
+  never selects the next tool.
+* **Development-subset behaviour** (tuned on the 10 development tickets only, each ticket's own record and cluster removed from what the tools return): the
+  certificate-expiry golden ticket is `supported` with three causes cited to three incidents; the eight client tickets and the payroll golden are
+  `escalated_insufficient`, because the client incident text records symptoms ("does not respond to a network ping"), not causes. That is the honest result of this
+  data, not a tuning target: nothing was loosened to make them pass. Hybrid retrieval scores are low on this corpus (0.15 to 0.32), so the threshold stays at the
+  product's 0.25.
+* The runner terminates after two consecutive tool results that add no evidence ("no new evidence"), discarding what was gathered; the real outcome and pattern tools
+  return an explicit "no recorded ..." item for that reason, and the tests model it.
+* **Not yet done:** the tested recording-capture command (a development-subset version is needed to tune `rules_then_model`/`model` repeatably; the key-holder version
+  before the hidden 50 are used), `rules_then_model`, `model`, and the prompt versions in the model manifest. The development tuning above used a local script
+  (`data/planner_dev/`, not in git) that removes the ticket's own record and its cluster; the committed capture command replaces it.
