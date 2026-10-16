@@ -249,6 +249,93 @@ def good_opener(url, timeout_s):
                          "quantization": mm.MODEL["quantization"], "state": "loaded", "loaded_context_length": 8192, "max_context_length": 131072})
 
 
+class VerbatimAcknowledgementTests(unittest.TestCase):
+    """The reviewers' own words are audit evidence: kept exactly (typos, case, spacing), never paraphrased, with corrections preserved and visible."""
+
+    def setUp(self):
+        self.base = pathlib.Path(tempfile.mkdtemp(prefix="pe-verbatim-"))
+        SelectionVersionTests.setup_base(self.base)
+        steps.void_development(self.base, "first problem", "project owner")
+        from planner_experiment import golden as golden_mod
+        from tests.pe_world import DEVELOPMENT_ARTIFACT
+        steps.select_development(self.base, make_tickets() + golden_mod.load_golden(self.base / "g.json", ["Ann", "Bob"]), DEVELOPMENT_ARTIFACT)
+
+    def entry(self, reviewer):
+        log = json.loads((self.base / "development_voids.json").read_text(encoding="utf-8"))
+        return next(a for a in log[0]["acknowledged_by"] if a["reviewer"] == reviewer)
+
+    def test_the_words_are_stored_exactly_as_written(self):
+        words = "Understand the challenge, I am ok with the current approch and I support it "         # a typo, a trailing space, mixed case
+        overall = "NO additional comment"
+        steps.acknowledge_voids(self.base, [1], "Bob", comments={1: words}, overall=overall, sheet="sheet_Bob.xlsx")
+        ack = self.entry("Bob")
+        self.assertEqual(ack["void_comment"], words)
+        self.assertEqual(ack["overall_comment"], overall)
+        self.assertEqual(ack["source_sheet"], "sheet_Bob.xlsx")
+        self.assertEqual(ack["note"], "")                                                        # the recorder's own remark is never where the reviewer's words go
+
+    def test_unicode_and_odd_spacing_survive(self):
+        words = "  Prüfung: \u201cok\u201d \u2013 ja\t\n"
+        steps.acknowledge_voids(self.base, [1], "Ann", comments={1: words})
+        self.assertEqual(self.entry("Ann")["void_comment"], words)
+
+    def test_a_correction_replaces_the_paraphrase_keeps_it_and_says_why(self):
+        steps.acknowledge_voids(self.base, [1], "Ann", note="a paraphrase that added things the reviewer never wrote")
+        ack = steps.correct_acknowledgement(self.base, 1, "ann", "exact words", "exact overall", "sheet_Ann.xlsx", "paraphrase replaced with the sheet text")
+        self.assertEqual((ack["void_comment"], ack["overall_comment"], ack["source_sheet"], ack["note"]), ("exact words", "exact overall", "sheet_Ann.xlsx", ""))
+        (correction,) = ack["corrections"]
+        self.assertEqual(correction["previous_note"], "a paraphrase that added things the reviewer never wrote")
+        self.assertEqual(correction["reason"], "paraphrase replaced with the sheet text")
+        self.assertEqual(ack["reviewer"], "Ann")                                                 # who and when are untouched
+        steps.correct_acknowledgement(self.base, 1, "Ann", "exact words v2", "exact overall", "sheet_Ann.xlsx", "second fix")
+        self.assertEqual(len(self.entry("Ann")["corrections"]), 2)                                 # every correction stays visible
+
+    def test_corrections_are_validated_and_refused_once_planners_are_frozen(self):
+        steps.acknowledge_voids(self.base, [1], "Ann")
+        for comment, reason in (("", "r"), ("c", ""), (" ", "r"), ("c", "  ")):
+            with self.assertRaises(steps.StepError, msg=(comment, reason)):
+                steps.correct_acknowledgement(self.base, 1, "Ann", comment, "o", "s", reason)
+        with self.assertRaisesRegex(steps.StepError, "no recorded acknowledgement"):
+            steps.correct_acknowledgement(self.base, 1, "Bob", "c", "o", "s", "r")                  # Bob has not acknowledged
+        with self.assertRaises(steps.StepError):
+            steps.correct_acknowledgement(self.base, 9, "Ann", "c", "o", "s", "r")
+        steps.acknowledge_voids(self.base, [1], "Bob")
+        steps.freeze_planners(self.base, 1, ENTRYPOINTS, planners_dir=TESTS_DIR)
+        with self.assertRaisesRegex(steps.StepError, "can no longer be corrected"):
+            steps.correct_acknowledgement(self.base, 1, "Ann", "c", "o", "s", "r")
+
+    def test_the_command_line(self):
+        with patch.object(steps, "BASE", self.base):
+            code = cli.main(["acknowledge-void", "--voids", "1", "--by", "Ann", "--comment", "1=word, with = signs", "--overall", "fine", "--sheet", "a.xlsx"])
+            self.assertEqual(code, 0)
+            self.assertEqual(self.entry("Ann")["void_comment"], "word, with = signs")                # only the first '=' separates the void number
+            self.assertEqual(cli.main(["correct-acknowledgement", "--void", "1", "--by", "Ann", "--comment", "exact", "--overall", "o", "--sheet", "a.xlsx",
+                                       "--reason", "why"]), 0)
+            self.assertEqual(self.entry("Ann")["void_comment"], "exact")
+
+    def test_the_repository_log_matches_the_reviewers_sheets_word_for_word(self):
+        log_path = ROOT / "docs" / "baselines" / "planner_experiment" / "development_voids.json"
+        log = json.loads(log_path.read_text(encoding="utf-8"))
+        for e in log:
+            for a in e["acknowledged_by"]:
+                for field in ("void_comment", "overall_comment", "source_sheet"):
+                    self.assertIn(field, a, (e["void"], a["reviewer"], field))
+                self.assertEqual(a["note"], "")                                                  # no recorder paraphrase stands in for their words
+        try:
+            import openpyxl
+        except ImportError:
+            self.skipTest("openpyxl is not installed here, so the sheets cannot be read")
+        for e in log:
+            for a in e["acknowledged_by"]:
+                sheet = ROOT / "docs" / "drafts" / a["source_sheet"]
+                if not sheet.exists():
+                    self.skipTest(f"{a['source_sheet']} is not on this checkout")
+                wb = openpyxl.load_workbook(sheet, data_only=True)
+                cells = {r[0]: r[6] for r in list(wb["Voids"].iter_rows(values_only=True))[1:]}
+                self.assertEqual(a["void_comment"], cells[f"Void {e['void']}"], (e["void"], a["reviewer"]))
+                self.assertEqual(a["overall_comment"], wb["Reviewer"]["B3"].value, a["reviewer"])
+
+
 class KeyRetirementAndCustodyTests(unittest.TestCase):
     """A key that has been on a machine a development session can read is development-accessible. It is retired by its check value, and a draw,
     freeze or run uses only the replacement registered as being in custody (created on the key-holder machine, never shown to the development session)."""

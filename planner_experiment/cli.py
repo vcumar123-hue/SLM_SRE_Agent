@@ -6,7 +6,8 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli seed --artifact <40-character git commit id>               (partition seed, recorded once)
     python -m planner_experiment.cli select-development --artifact <40-character git commit id>
     python -m planner_experiment.cli void-development --reason "..." --authorised-by "..."     (a recorded departure; refused once planners are frozen)
-    python -m planner_experiment.cli acknowledge-void --voids 1 2 --by "Reviewer Name" [--note "..."]   (each reviewer, after receiving the notice)
+    python -m planner_experiment.cli acknowledge-void --voids 1 2 --by "Reviewer Name" --comment 1="exact words" --comment 2="exact words" --overall "exact words" --sheet file.xlsx
+    python -m planner_experiment.cli correct-acknowledgement --void 1 --by "Reviewer Name" --comment "exact words" --overall "exact words" --sheet file.xlsx --reason "..."
     python -m planner_experiment.cli retire-key --reason "..." --by "..."                      (retire the key on THIS machine by its check value)
     python -m planner_experiment.cli key-check                                                (print the check value of the key on this machine; never the key)
     python -m planner_experiment.cli register-custody --check <16 hex> --custodian "person, machine"
@@ -74,6 +75,16 @@ def main(argv=None) -> int:
     av.add_argument("--voids", type=int, nargs="+", required=True)
     av.add_argument("--by", required=True)
     av.add_argument("--note", default="")
+    av.add_argument("--comment", action="append", default=[], help='the reviewer\'s exact words for one void: N="text" (repeat per void)')
+    av.add_argument("--overall", default=None, help="the reviewer's exact overall comment")
+    av.add_argument("--sheet", default="", help="the sheet the words came from")
+    ca = sub.add_parser("correct-acknowledgement")
+    ca.add_argument("--void", type=int, required=True)
+    ca.add_argument("--by", required=True)
+    ca.add_argument("--comment", required=True)
+    ca.add_argument("--overall", required=True)
+    ca.add_argument("--sheet", required=True)
+    ca.add_argument("--reason", required=True)
     sub.add_parser("verify-model")
     rk = sub.add_parser("retire-key")
     rk.add_argument("--reason", required=True)
@@ -124,7 +135,8 @@ def main(argv=None) -> int:
         elif args.cmd == "void-development":
             print(json.dumps(steps.void_development(base, args.reason, args.authorised_by), indent=1))
         elif args.cmd == "acknowledge-void":
-            entries = steps.acknowledge_voids(base, args.voids, args.by, args.note)
+            comments = {int(item.split("=", 1)[0]): item.split("=", 1)[1] for item in args.comment}
+            entries = steps.acknowledge_voids(base, args.voids, args.by, args.note, comments or None, args.overall, args.sheet)
             print(json.dumps([{"void": e["void"], "acknowledged_by": [a["reviewer"] for a in e["acknowledged_by"]]} for e in entries], indent=1))
             still = steps.unacknowledged_voids(base)
             print("still to acknowledge:", still if still else "nothing: all voids are acknowledged by both reviewers")
@@ -144,6 +156,9 @@ def main(argv=None) -> int:
             except secrecy.KeyError_ as exc:
                 print("refused:", exc)
                 return 2
+        elif args.cmd == "correct-acknowledgement":
+            ack = steps.correct_acknowledgement(base, args.void, args.by, args.comment, args.overall, args.sheet, args.reason)
+            print(json.dumps(ack, indent=1))
         elif args.cmd == "verify-model":
             from agentruntime.planners import model_manifest
             report = model_manifest.verify()

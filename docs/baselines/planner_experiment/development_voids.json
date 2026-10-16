@@ -10,12 +10,34 @@
    {
     "reviewer": "Vijay",
     "date": "2026-10-16",
-    "note": "Acknowledged both voids on void_notice_REVIEW_Vijay.xlsx (2026-10-15): 'I agree with this approach'; 'I understand the issue and agree with this approach'. No concerns."
+    "note": "",
+    "corrections": [
+     {
+      "date": "2026-10-16",
+      "reason": "Replace the recorder's paraphrase with the reviewer's verbatim sheet text (audit correction, review of 2026-10-15): the paraphrase had dropped words, corrected spelling and added 'No concerns', which the reviewer did not write. The earlier note is kept in this entry's corrections.",
+      "previous_note": "Acknowledged both voids on void_notice_REVIEW_Vijay.xlsx (2026-10-15): 'I agree with this approach'; 'I understand the issue and agree with this approach'. No concerns.",
+      "previous_void_comment": null
+     }
+    ],
+    "void_comment": "I agree with this approach",
+    "overall_comment": "Looks ok",
+    "source_sheet": "void_notice_REVIEW_Vijay.xlsx"
    },
    {
     "reviewer": "Sara",
     "date": "2026-10-16",
-    "note": "Acknowledged both voids on void_notice_REVIEW_Sara.xlsx (2026-10-15): 'This approach is agreeable for me'; 'I am ok with the current approach and I support it'. No concerns."
+    "note": "",
+    "corrections": [
+     {
+      "date": "2026-10-16",
+      "reason": "Replace the recorder's paraphrase with the reviewer's verbatim sheet text (audit correction, review of 2026-10-15): the paraphrase had dropped words, corrected spelling and added 'No concerns', which the reviewer did not write. The earlier note is kept in this entry's corrections.",
+      "previous_note": "Acknowledged both voids on void_notice_REVIEW_Sara.xlsx (2026-10-15): 'This approach is agreeable for me'; 'I am ok with the current approach and I support it'. No concerns.",
+      "previous_void_comment": null
+     }
+    ],
+    "void_comment": "This approach is agreeable for me",
+    "overall_comment": "NO additional comment",
+    "source_sheet": "void_notice_REVIEW_Sara.xlsx"
    }
   ]
  },
@@ -30,12 +52,34 @@
    {
     "reviewer": "Vijay",
     "date": "2026-10-16",
-    "note": "Acknowledged both voids on void_notice_REVIEW_Vijay.xlsx (2026-10-15): 'I agree with this approach'; 'I understand the issue and agree with this approach'. No concerns."
+    "note": "",
+    "corrections": [
+     {
+      "date": "2026-10-16",
+      "reason": "Replace the recorder's paraphrase with the reviewer's verbatim sheet text (audit correction, review of 2026-10-15): the paraphrase had dropped words, corrected spelling and added 'No concerns', which the reviewer did not write. The earlier note is kept in this entry's corrections.",
+      "previous_note": "Acknowledged both voids on void_notice_REVIEW_Vijay.xlsx (2026-10-15): 'I agree with this approach'; 'I understand the issue and agree with this approach'. No concerns.",
+      "previous_void_comment": null
+     }
+    ],
+    "void_comment": "I understand the issue and agree with this approach",
+    "overall_comment": "Looks ok",
+    "source_sheet": "void_notice_REVIEW_Vijay.xlsx"
    },
    {
     "reviewer": "Sara",
     "date": "2026-10-16",
-    "note": "Acknowledged both voids on void_notice_REVIEW_Sara.xlsx (2026-10-15): 'This approach is agreeable for me'; 'I am ok with the current approach and I support it'. No concerns."
+    "note": "",
+    "corrections": [
+     {
+      "date": "2026-10-16",
+      "reason": "Replace the recorder's paraphrase with the reviewer's verbatim sheet text (audit correction, review of 2026-10-15): the paraphrase had dropped words, corrected spelling and added 'No concerns', which the reviewer did not write. The earlier note is kept in this entry's corrections.",
+      "previous_note": "Acknowledged both voids on void_notice_REVIEW_Sara.xlsx (2026-10-15): 'This approach is agreeable for me'; 'I am ok with the current approach and I support it'. No concerns.",
+      "previous_void_comment": null
+     }
+    ],
+    "void_comment": "Understand the challenge, I am ok with the current approch and I support it",
+    "overall_comment": "NO additional comment",
+    "source_sheet": "void_notice_REVIEW_Sara.xlsx"
    }
   ]
  }

@@ -128,9 +128,13 @@ def _load_voids(base: Path) -> List[Dict[str, Any]]:
     return json.loads(log_path.read_text(encoding="utf-8")) if log_path.is_file() else []
 
 
-def acknowledge_voids(base: Path, voids: List[int], reviewer: str, note: str = "") -> List[Dict[str, Any]]:
+def acknowledge_voids(base: Path, voids: List[int], reviewer: str, note: str = "", comments: Optional[Dict[int, str]] = None,
+                      overall: Optional[str] = None, sheet: str = "") -> List[Dict[str, Any]]:
     """Record that a reviewer has received and acknowledged the notice of a void-and-redraw. A human act: this records it, it cannot make it.
-    The reviewer must be one of the two in the reviewer record; acknowledging the same void twice is refused."""
+    The reviewer must be one of the two in the reviewer record; acknowledging the same void twice is refused.
+
+    The reviewer's own words are kept **verbatim** in their own fields: `void_comment` (what they wrote against that void), `overall_comment` (what they
+    wrote overall) and `source_sheet` (the file they came from). `note` is only for the recorder's remark and is never used for the reviewer's wording."""
     names = _reviewers(base)
     canonical = next((n for n in names if n.lower() == str(reviewer).strip().lower()), None)
     if canonical is None:
@@ -146,9 +150,35 @@ def acknowledge_voids(base: Path, voids: List[int], reviewer: str, note: str = "
         if any(a["reviewer"] == canonical for a in by_number[v].get("acknowledged_by", [])):
             raise StepError(f"{canonical} has already acknowledged void {v}")
     for v in voids:
-        by_number[v].setdefault("acknowledged_by", []).append({"reviewer": canonical, "date": time.strftime("%Y-%m-%d", time.gmtime()), "note": note.strip()})
+        entry = {"reviewer": canonical, "date": time.strftime("%Y-%m-%d", time.gmtime()), "note": note.strip()}
+        if comments is not None and v in comments:
+            entry["void_comment"] = comments[v]                      # verbatim: not trimmed, corrected or rephrased
+        if overall is not None:
+            entry["overall_comment"] = overall
+        if sheet:
+            entry["source_sheet"] = sheet
+        by_number[v].setdefault("acknowledged_by", []).append(entry)
     (Path(base) / "development_voids.json").write_text(json.dumps(log, indent=1), encoding="utf-8")
     return [by_number[v] for v in voids]
+
+
+def correct_acknowledgement(base: Path, void: int, reviewer: str, void_comment: str, overall: str, sheet: str, reason: str) -> Dict[str, Any]:
+    """Correct an acknowledgement's wording to the reviewer's exact text. Only while no planner is frozen (the void log is hashed into the planner freeze).
+    The earlier note is kept in `corrections` (never lost), and the correction says why. Does not change who acknowledged or when."""
+    if list(Path(base).glob("planner_freeze_round*.json")):
+        raise StepError("planners are already frozen under this void log: it can no longer be corrected")
+    if not str(reason or "").strip() or not str(void_comment or "").strip():
+        raise StepError("a correction needs the reviewer's exact comment and a reason")
+    log = _load_voids(base)
+    entry = next((e for e in log if e["void"] == void), None)
+    ack = next((a for a in (entry or {}).get("acknowledged_by", []) if a["reviewer"].lower() == str(reviewer).strip().lower()), None)
+    if ack is None:
+        raise StepError(f"{reviewer!r} has no recorded acknowledgement of void {void}")
+    ack.setdefault("corrections", []).append({"date": time.strftime("%Y-%m-%d", time.gmtime()), "reason": reason.strip(),
+                                              "previous_note": ack.get("note", ""), "previous_void_comment": ack.get("void_comment")})
+    ack["void_comment"], ack["overall_comment"], ack["source_sheet"], ack["note"] = void_comment, overall, sheet, ""
+    (Path(base) / "development_voids.json").write_text(json.dumps(log, indent=1), encoding="utf-8")
+    return ack
 
 
 def unacknowledged_voids(base: Path) -> List[str]:

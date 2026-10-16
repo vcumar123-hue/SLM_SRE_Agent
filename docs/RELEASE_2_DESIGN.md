@@ -1160,3 +1160,11 @@ with comments of agreement and no concerns; the notice text in both sheets is un
 `development_voids.json` (the log dates are UTC, so they read 2026-10-16). `acknowledge-void` now reports nothing outstanding, so the acknowledgement gate on
 `freeze-planners` is satisfied. **Still blocking the planner freeze and the hidden 50-ticket draw:** prompt versions (written with the planners), the
 recording-capture command, and the replacement key created on the separate machine and registered.
+
+### 20.14 Reviewer wording kept verbatim (2026-10-16)
+
+Review finding (P2): the void log recorded a paraphrase of the reviewers' replies. Acknowledgements are audit evidence, so each entry now stores the reviewer's
+own text exactly (`void_comment`, `overall_comment`, `source_sheet`; typos, case and spacing untouched), and the recorder's `note` is empty. The four existing
+entries were corrected with `correct-acknowledgement`, which keeps the earlier paraphrase under `corrections` with the date and reason (appended, never
+overwritten), and is refused once any planner freeze exists. A test compares the committed log with the reviewers' sheets word for word when openpyxl is
+available. Who acknowledged and when are unchanged.
