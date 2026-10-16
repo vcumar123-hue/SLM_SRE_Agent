@@ -656,13 +656,12 @@ class ModelManifestTests(unittest.TestCase):
         self.assertEqual(mm.budgets_in_force()["max_tokens_planner"], 300)
         self.assertEqual(mm.budgets_in_force()["max_tokens_synthesis"], 900)
 
-    def test_the_manifest_is_incomplete_until_the_prompts_have_versions(self):
-        problems = mm.incomplete()
-        self.assertTrue(any("prompt 'planner'" in p for p in problems))
-        self.assertTrue(any("prompt 'synthesis'" in p for p in problems))
-        self.assertFalse([p for p in problems if "model." in p or "inference." in p])           # everything else is already filled in
-        with patch.dict(mm.PROMPTS, {"planner": "planner-v1", "synthesis": "synthesis-v1"}):
-            self.assertEqual(mm.incomplete(), [])
+    def test_the_manifest_is_complete_with_versioned_prompts_and_incomplete_without_them(self):
+        self.assertEqual(mm.incomplete(), [])                                                       # the prompts are written, versioned and hashed
+        with patch.dict(mm.PROMPTS, {"planner": None}):
+            problems = mm.incomplete()
+        self.assertTrue(any("prompt 'planner'" in p and "no version" in p for p in problems))
+        self.assertFalse([p for p in problems if "model." in p or "inference." in p])
 
     def test_any_missing_field_is_reported(self):
         with patch.dict(mm.MODEL, {"file_sha256": "abc"}):
@@ -739,7 +738,7 @@ class ModelManifestTests(unittest.TestCase):
     def test_a_production_planner_freeze_is_refused_while_the_manifest_is_incomplete(self):
         base = pathlib.Path(tempfile.mkdtemp())
         SelectionVersionTests.setup_base(base)
-        with self.assertRaisesRegex(steps.StepError, "model manifest must be complete"):
+        with patch.dict(mm.PROMPTS, {"synthesis": None}), self.assertRaisesRegex(steps.StepError, "model manifest must be complete"):
             steps.freeze_planners(base, 1, ENTRYPOINTS)                                              # planners_dir=None: the production path
         self.assertFalse(steps.round_paths(base, 1)["planner_freeze"].exists())
 

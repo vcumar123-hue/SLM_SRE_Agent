@@ -117,6 +117,10 @@ class RulesOnlyPlanner:
     def next_action(self, state) -> PlannerReply:
         return PlannerReply(self._decide(state))
 
+    def decide(self, state) -> Action:
+        """The rules' action for this state (used by rules_then_model, which consults the model only when the rules have nothing more to ask)."""
+        return self._decide(state)
+
     def _decide(self, state) -> Action:
         text = str(state.task.get("ticket_text") or "")
         budgets = state.policy.budgets

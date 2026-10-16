@@ -58,10 +58,15 @@ INFERENCE: Dict[str, Any] = {
 BUDGET_FIELDS = ("model_call_timeout_s", "tool_timeout_s", "deadline_s", "max_model_calls", "max_tokens_planner", "max_tokens_synthesis",
                  "max_tokens_run", "max_steps", "max_tool_calls")
 
-# Prompt versions: one entry per prompt the model planners send. None until the prompt exists.
+# Prompt versions: one entry per prompt the model planners send, and the SHA-256 of each prompt's text (prompts.py). The text is also hashed into the
+# planner freeze with the rest of this folder; recording the hash here makes a changed prompt that kept its old version number an incomplete manifest.
 PROMPTS: Dict[str, Optional[str]] = {
-    "planner": None,
-    "synthesis": None,
+    "planner": "planner-1",          # the model planner's step prompt
+    "synthesis": "synthesis-1",      # rules_then_model's review prompt
+}
+PROMPT_HASHES: Dict[str, str] = {
+    "planner": "763d556b6e03ae60fa15a3e93101db650adff7e86601e808be9384087da6f5be",
+    "synthesis": "ede4c384f5d5fb528ef5287e580902163d13ebe24976da79f865647c1ac65df7",
 }
 
 
@@ -71,7 +76,7 @@ def budgets_in_force() -> Dict[str, Any]:
 
 
 def manifest() -> Dict[str, Any]:
-    return {"manifest_version": MANIFEST_VERSION, "model": dict(MODEL), "inference": dict(INFERENCE), "budgets": budgets_in_force(), "prompts": dict(PROMPTS)}
+    return {"manifest_version": MANIFEST_VERSION, "model": dict(MODEL), "inference": dict(INFERENCE), "budgets": budgets_in_force(), "prompts": dict(PROMPTS), "prompt_hashes": dict(PROMPT_HASHES)}
 
 
 def manifest_hash() -> str:
@@ -94,6 +99,11 @@ def incomplete() -> List[str]:
     for name, version in PROMPTS.items():
         if not str(version or "").strip():
             problems.append(f"prompt '{name}' has no version yet (written together with the planners)")
+    from agentruntime.planners import prompts
+    actual = prompts.hashes()
+    for name in PROMPTS:
+        if PROMPT_HASHES.get(name) != actual.get(name):
+            problems.append(f"prompt '{name}': its text no longer matches the recorded hash (change the version and record the new hash)")
     return problems
 
 

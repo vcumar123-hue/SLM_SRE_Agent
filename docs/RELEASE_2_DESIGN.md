@@ -1237,3 +1237,41 @@ verification and tampering, key rules, steps and command-line wiring, and the fr
 **20.16 follow-up (review, 2026-10-16).** `check_manifest` now also rejects a manifest whose `runtime` differs from `RUNTIME_VERSION`, whose `recording_bytes` differs from the
 recording's length, or whose `case_count` differs from the recording's cases or its own case map; the capture checks for cancellation once more after the last tool call and before
 publishing. Each altered field is tested on its own against `verify_capture` and against the experiment freeze (53 capture tests).
+
+### 20.17 `rules_then_model` and `model` planners, versioned prompts, completed manifest (2026-10-16)
+
+Implemented under the review's restrictions: local Gemma only, through the run's `ModelGateway`; strict structured output; versioned and hashed prompts;
+untrusted-data framing; tuned only on the 10 development tickets (official recording); nothing run on, or drawn from, the hidden 50. Neither planner is frozen on its own.
+
+| Piece | File | What it does |
+|---|---|---|
+| Prompts | `agentruntime/planners/prompts.py` | `synthesis-1` (rules_then_model) and `planner-1` (model). Texts are hashed into the planner freeze with the folder; `model_manifest.PROMPT_HASHES` records each text's SHA-256, and a changed text with an unchanged hash makes the manifest incomplete (tested) |
+| Shared support | `model_support.py` | the local-model client (refuses any non-local endpoint; temperature 0, top_p 1, seed 1, n 1, no streaming, strict JSON schema, served id from the manifest); the closed reply schema (only `action` required: a tool call is a few tokens); two untrusted-data blocks (ticket, evidence) each with a fresh delimiter that the system message names; reply parsing; grounding checks |
+| `rules_then_model` | `rules_then_model.py` | the rule table plans the evidence unchanged; the model is consulted only when the rules would conclude (at most twice, at most one extra search, `incident_kb_search` or `ticket_history_lookup`); its causes are merged with the rules' (same cause: stronger status, pooled evidence); **any** model failure falls back to exactly the rules' own conclusion, recorded in `fallbacks` and the action reason |
+| `model` | `model.py` | the model chooses every step (five tools, finish, escalate); no rules and **no fallback**: an unusable reply is a `PlannerError` (the run ends `failed_model`), a finish with no grounded cause becomes an escalation. This is deliberate: a fallback would make `model` indistinguishable from `rules_then_model` on its failures |
+
+**Grounding (both planners).** A model cause is kept only if every evidence id it cites exists in the run, its quote (no ellipsis, 3–100 characters) is found word for
+word in a cited record, and it is not merely the title of a cited record (a symptom restated is not a cause). `supported` additionally needs the quote in two or more cited,
+relevant records; otherwise it is `weak`. An action's arguments are rebuilt from the reply's fields and validated (a classification must appear in the evidence; a call
+already made, or a tool the policy does not allow, is refused).
+
+**What the development subset showed (live, unclamped timeouts, a few cases).** The integration works end to end (golden-2: the model's cause matched the rules' and was
+merged; no fallback). On INC3313708 the model's quote ended in an ellipsis (not verbatim) and on INC2559187 it offered the incident title as a "cause": both were rejected by
+the checks above and the run fell back to the rules' conclusion. Tuning here was limited to the prompt wording and the title-restatement check.
+
+**Finding the experiment owner must see: the model cannot meet the frozen call budget on this machine.** Measured against the local LM Studio instance (gemma-3-4b, loaded
+context 4,096): about 3–5 output tokens per second; a 50-token prompt with a 9-token reply took 3–14 s; a 380-token prompt 13 s; a 920-token prompt about 30 s; the real
+consultations (about 1,300–2,100 tokens) took 30–130 s. The frozen `model_call_timeout_s` is 15 s (hard maximum 30 s) and the deadline 40 s, so on this hardware every
+`rules_then_model` consultation times out and falls back (its results then equal `rules_only`, correctly and visibly), and `model` would fail nearly every run. The decision
+rule requires p95 latency within the deadline, so on this hardware the model cannot be selected. This is a property of the machine, not the planners: before the hidden 50 are
+drawn, the key-holder machine's model speed should be measured (`data/planner_dev`-style timing: a 1,000-token prompt with a short reply), and if it is not within the budget the
+choice is the owner's: run on a machine with faster inference, or accept that the experiment will select `rules_only` (the budgets are a frozen design parameter and were not changed).
+The first call also loads the model (up to about 70 s here), so the run must warm the model first.
+
+**Manifest.** Complete: model file and SHA-256, inference settings, budgets, prompt versions and prompt text hashes. `verify-model` passes against the running server
+(published `google`, `gemma3`, `Q4_K_M`); the file hash check needs the model folder.
+
+**Tests:** `tests/test_model_planners.py` (28): rules plan first; grounded cause accepted and verified; corroboration; every failure kind falls back to exactly rules_only
+(unreachable, invalid JSON, extra field, bad action, unknown evidence id, quote absent, title restated, empty finish, timeout, over-limit reply, exhausted model budget);
+one extra search then conclusion; disallowed tool; injection in evidence cannot steer the run or reach the system message; strict local request with frozen settings;
+`model` step by step, no fallback, repeats refused, classification must appear in evidence; closed reply parsing; local-only client; manifest/prompt hash enforcement.

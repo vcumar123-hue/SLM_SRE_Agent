@@ -6,6 +6,6 @@ does not live here. So the planners that are compared are exactly the files in t
 promoted to R2-2 **unchanged**: nothing is copied or rewritten between the experiment and the product. A planner may import only from
 `agentruntime` (itself hashed) and the standard library, so the hash covers everything it depends on.
 
-Implemented so far: `rules_only` (rules_only.py). `rules_then_model` and `model` follow; none is frozen on its own, all three are frozen together.
+Implemented: `rules_only`, `rules_then_model` and `model` (prompts in prompts.py, shared model code in model_support.py); none is frozen on its own, all three are frozen together.
 Rule tables are tuned on the 10 development tickets only.
 """
