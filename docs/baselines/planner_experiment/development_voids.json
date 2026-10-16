@@ -5,7 +5,19 @@
   "sha256": "447d2bdd2822a509002530a0cd10450e6d5af347c3f1f4a1cf41eaba3d1eb5af",
   "reason": "The first development draw took four PFG Change (CHG) records: the ticket pool had no incident-only eligibility rule (PFG: 2029 INC, 1000 CHG, 855 SCTASK, 145 PRB). No planner, recording or freeze existed. Redrawn under the INC-only rule.",
   "authorised_by": "project owner, approved in the working session on 2026-10-15",
-  "date": "2026-10-15"
+  "date": "2026-10-15",
+  "acknowledged_by": [
+   {
+    "reviewer": "Vijay",
+    "date": "2026-10-16",
+    "note": "Acknowledged both voids on void_notice_REVIEW_Vijay.xlsx (2026-10-15): 'I agree with this approach'; 'I understand the issue and agree with this approach'. No concerns."
+   },
+   {
+    "reviewer": "Sara",
+    "date": "2026-10-16",
+    "note": "Acknowledged both voids on void_notice_REVIEW_Sara.xlsx (2026-10-15): 'This approach is agreeable for me'; 'I am ok with the current approach and I support it'. No concerns."
+   }
+  ]
  },
  {
   "void": 2,
@@ -13,6 +25,18 @@
   "sha256": "8485b37cf9eff3cc786bb9a2753419d5bfed47330cd6018c001bb806123131a8",
   "reason": "selection_version was not advanced when the eligibility rule changed: the redrawn file was produced by the incident-only algorithm but labelled version 2. Version advanced to 3 and enforced; redrawn so the label is true. Algorithm and seeds unchanged.",
   "authorised_by": "project owner, instruction 'review and fix as per the feedback' in the working session on 2026-10-15",
-  "date": "2026-10-15"
+  "date": "2026-10-15",
+  "acknowledged_by": [
+   {
+    "reviewer": "Vijay",
+    "date": "2026-10-16",
+    "note": "Acknowledged both voids on void_notice_REVIEW_Vijay.xlsx (2026-10-15): 'I agree with this approach'; 'I understand the issue and agree with this approach'. No concerns."
+   },
+   {
+    "reviewer": "Sara",
+    "date": "2026-10-16",
+    "note": "Acknowledged both voids on void_notice_REVIEW_Sara.xlsx (2026-10-15): 'This approach is agreeable for me'; 'I am ok with the current approach and I support it'. No concerns."
+   }
+  ]
  }
 ]

@@ -1153,3 +1153,10 @@ created on the separate machine and registered.
 
 **Verification:** 273 harness tests in six files (28 core, 18 integrity, 69 design, 87 sign-off, 36 commands, 51 provenance); the full Windows suite, 782
 tests, passes (55 skipped for missing dependencies). Container and PostgreSQL suites remain due before the release gate.
+
+**Update, 2026-10-15 (evening, recorded 2026-10-16 UTC): the reviewers have acknowledged both voids.** Vijay and Sara each completed their own copy of
+`void_notice_REVIEW.xlsx` (`void_notice_REVIEW_Vijay.xlsx`, `void_notice_REVIEW_Sara.xlsx`, kept as the record). Each responded "Acknowledged" to void 1 and to void 2,
+with comments of agreement and no concerns; the notice text in both sheets is unaltered. The acknowledgements are recorded under their own names in
+`development_voids.json` (the log dates are UTC, so they read 2026-10-16). `acknowledge-void` now reports nothing outstanding, so the acknowledgement gate on
+`freeze-planners` is satisfied. **Still blocking the planner freeze and the hidden 50-ticket draw:** prompt versions (written with the planners), the
+recording-capture command, and the replacement key created on the separate machine and registered.
