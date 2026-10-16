@@ -17,6 +17,8 @@ from planner_experiment import injection, metrics, planner_freeze, secrecy, step
 from planner_experiment import seed as seed_mod
 from planner_experiment.experiment import MODES
 from planner_experiment.freeze import ROOT
+from agentruntime.contracts import EvidenceDraft
+from planner_experiment import capture as capture_mod
 from planner_experiment.scripted_env import Recording
 from tests.test_planner_experiment import annotation, drafts_for
 
@@ -108,6 +110,31 @@ class World:
         return freeze.create_freeze(self.files, self.reviewer_files, self.out)
 
 
+def capture_for(cases, selection_path, recording_path, rnd) -> Dict[str, Any]:
+    """A real, official capture (fake tools): the same code path as production, so every world's recording carries a genuine manifest."""
+    from agentruntime.context import build_context
+    from agentruntime.executor import BoundedExecutor
+    from agentruntime.registry import ToolRegistry
+    from agentruntime.tools import TOOL_MODULES
+    from tests.agentruntime_helpers import tenant_dir
+    cfg = tenant_dir("client_c", "client_a", "poc_client")
+    reg = ToolRegistry(executor=BoundedExecutor(4, 2, "t-world-capture"))
+
+    def make(name):
+        def fn(ctx, *, cancel=None, timeout_s=None, **args):
+            source = {"incident_kb_search": "incident", "ticket_history_lookup": "ticket", "outcome_lookup": "outcome", "pattern_lookup": "pattern",
+                      "evidence_lookup": "evidence_check"}[name]
+            return [EvidenceDraft(tenant_id=ctx.tenant_id, source_type=source, source_id="I1", provenance="tenant_data", relevance=0.5,
+                                  excerpt="disk full on the database host")]
+        fn.__name__ = name
+        return fn
+    for m in TOOL_MODULES:
+        reg.register(m.SPEC, make(m.NAME))
+    held = [{"pool": c["pool"], "tenant_id": c["tenant_id"], "ticket_id": c["ticket_id"], "text": c["ticket_text"], "host": c.get("host", "")} for c in cases]
+    return capture_mod.run_capture(cases, held, reg, lambda t, cid: build_context(t, cid, capture_mod.CapturePrincipal(t), "batch", config_dir=cfg), recording_path,
+                                   mode="experiment", selection_path=selection_path, round=rnd, key=TEST_KEY, key_check=secrecy.key_check(TEST_KEY), warmup=False)
+
+
 def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=NAMES, n_tickets: int = 400, directory=None, rounds: int = 1,
                 with_void: bool = False) -> World:
     """`rounds=2` draws round 1, revises the (stand-in) planner code, freezes round 2 and draws it too; the frozen set is that of round 2."""
@@ -144,14 +171,13 @@ def build_world(reviewers=NAMES, root=None, entrypoints=None, golden_approvers=N
         p.write_text(json.dumps(value), encoding="utf-8")
         return p
 
-    recording = Recording()
-    for c in cases:
-        recording.add(c["case_id"], "incident_kb_search", {"query": c["ticket_text"], "top_k": 5},
-                      drafts_for(c["tenant_id"], ("incident", "I1", "disk full on the database host")))
+    recording_path = d / "recording.json"
+    manifest = capture_for(cases, rp["selection"], recording_path, rounds)
+    recording = Recording.load(recording_path)
     draw_seed = json.loads(rp["seed"].read_text(encoding="utf-8"))["seed"]
     files = {
         "annotations": write("annotations.json", [annotation(c["case_id"], "adjudicated").model_dump() for c in cases]),
-        "cases": write("cases.json", cases), "recording": write("recording.json", recording.data),
+        "cases": write("cases.json", cases), "recording": recording_path, "recording_manifest": capture_mod.manifest_path(recording_path),
         "injection_cases": write("injection_cases.json", [vars(i) for i in injection.build_injection_cases([c["case_id"] for c in cases[:4]])]),
         "config": write("config.json", {"round": rounds, "seed": draw_seed, "modes": list(MODES), "planners": entrypoints, "budgets": {}}),
         "seed_record": rp["seed"], "partition_seed_record": paths["partition_seed"], "experiment_selection": rp["selection"],

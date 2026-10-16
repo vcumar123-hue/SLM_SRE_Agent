@@ -7,15 +7,16 @@ recorded call gets it. A planner that asks the same tool with different argument
 (the capture of the ticket's own natural query), and the substitution is counted so it can be reported; a tool never captured for the
 case returns an explicit "no recorded output" item. The same rule applies to every mode.
 
-Capture uses the real tools through the real registry, so tenant isolation and bounds are the same as in production. Held-out tickets
-(the whole calibration selection and their clusters, and later the acceptance clusters) are removed from what capture can record.
+Capture is in `capture.py` (the official command): it uses the real tools through the real registry, removes the held-out tickets and their
+clusters before anything is recorded, and writes an atomic, hashed, manifest-backed recording. This module only replays one.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from agentruntime.context import TrustedContext
 from agentruntime.contracts import EvidenceDraft
@@ -28,11 +29,13 @@ SOURCE_TYPE = {"incident_kb_search": "incident", "ticket_history_lookup": "ticke
 
 
 def args_key(tool: str, args: Dict[str, Any]) -> str:
-    return tool + "|" + json.dumps(args, sort_keys=True, separators=(",", ":"), default=str)
+    """tool|hash of the canonical arguments: the arguments of a search are the ticket's own text, which a recording must not carry."""
+    canonical = json.dumps(args, sort_keys=True, separators=(",", ":"), default=str)
+    return tool + "|" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
 
 
 class Recording:
-    """{case_id: {tool: {args_key: [draft dicts]}}} plus the first-captured key per tool (the default)."""
+    """{case_id: {tool: {args_key: [draft dicts]}}}. The first key of a tool is its default, so the order of keys is part of the recording (never sorted)."""
 
     def __init__(self, data: Optional[Dict[str, Any]] = None) -> None:
         self.data: Dict[str, Dict[str, Dict[str, List[Dict[str, Any]]]]] = data or {}
@@ -51,7 +54,7 @@ class Recording:
         return next(iter(calls.values())), "default"
 
     def save(self, path: Path) -> None:
-        Path(path).write_text(json.dumps(self.data, sort_keys=True, indent=1), encoding="utf-8")
+        Path(path).write_text(json.dumps(self.data, indent=1), encoding="utf-8")
 
     @classmethod
     def load(cls, path: Path) -> "Recording":
@@ -90,42 +93,3 @@ class ScriptedEnv:
 
         scripted.__name__ = name
         return scripted
-
-
-# -- capture --------------------------------------------------------------------------------------------------------------------------
-
-def candidate_calls(case: Dict[str, Any]) -> List[tuple]:
-    """The natural calls for a case, derived deterministically from the ticket: (tool, args). The first call per tool is its default."""
-    text = str(case.get("text") or "")[:300] or "incident"
-    calls: List[tuple] = [("incident_kb_search", {"query": text, "top_k": 5})]
-    host, service = case.get("host"), case.get("service")
-    if host and len(str(host)) >= 2:
-        calls.append(("ticket_history_lookup", {"host": str(host)[:80], "days": 400}))
-    if service and len(str(service)) >= 2:
-        calls.append(("ticket_history_lookup", {"service": str(service)[:80], "days": 400}))
-    if not host and not service:
-        calls.append(("ticket_history_lookup", {"text": text[:200], "days": 400}))
-    classification = case.get("classification")
-    if classification:
-        calls.append(("outcome_lookup", {"classification": classification}))
-        calls.append(("pattern_lookup", {"classification": classification}))
-    calls.append(("evidence_lookup", {}))
-    return calls
-
-
-def capture_case(registry: ToolRegistry, ctx: TrustedContext, case: Dict[str, Any], recording: Recording, case_id: str,
-                 excluded_source_ids: Set[str] = frozenset(), timeout_s: float = 10.0) -> Dict[str, str]:
-    """Run the natural calls once against the real registry and record them. Returns {key: 'ok'|error text}.
-
-    Held-out records are removed from what is recorded (`excluded_source_ids`), so a ticket can never be found by finding itself.
-    """
-    status: Dict[str, str] = {}
-    for tool, args in candidate_calls(case):
-        try:
-            drafts = registry.call(ctx, tool, args, timeout_s)
-            kept = [d for d in drafts if d.source_id not in excluded_source_ids]
-            recording.add(case_id, tool, args, kept)
-            status[args_key(tool, args)] = "ok"
-        except Exception as exc:  # noqa: BLE001 - a failed capture is reported, not hidden
-            status[args_key(tool, args)] = f"{type(exc).__name__}: {exc}"
-    return status

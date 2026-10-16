@@ -14,7 +14,7 @@ from agentruntime.runner import PlannerReply
 from planner_experiment import annotations as ann
 from planner_experiment import injection, metrics, select_cases
 from planner_experiment.experiment import make_policy, run_experiment_unfrozen
-from planner_experiment.scripted_env import Recording, ScriptedEnv, args_key, candidate_calls, capture_case
+from planner_experiment.scripted_env import Recording, ScriptedEnv, args_key
 from tests.agentruntime_helpers import FakePrincipal, tenant_dir
 from tests.pe_fake_planners import GiveUpPlanner, GoodPlanner, GullibleModelPlanner  # noqa: F401
 
@@ -130,23 +130,11 @@ class ScriptedEnvTests(unittest.TestCase):
         self.rec.save(path)
         self.assertEqual(Recording.load(path).data, self.rec.data)
 
-    def test_capture_uses_the_real_registry_and_removes_held_out_records(self):
-        from agentruntime.tools import build_default_registry
-        rows = [{"id": "HELD-OUT", "title": "t", "summary": "s", "knowledge_scope": "client_private", "tenant_id": "t", "score": 0.9},
-                {"id": "KEEP", "title": "t", "summary": "s", "knowledge_scope": "client_private", "tenant_id": "t", "score": 0.8}]
-        real = build_default_registry(retrieve=lambda **kw: rows, summarize=lambda c, tenant_id=None: None,
-                                      intelligence=lambda c, tenant_id=None, strict_tenant=False: None)
-        rec = Recording()
-        status = capture_case(real, self.ctx, {"text": "disk full", "classification": "disk_full"}, rec, "c1", excluded_source_ids={"HELD-OUT"})
-        ids = [d["source_id"] for d in rec.data["c1"]["incident_kb_search"][args_key("incident_kb_search", {"query": "disk full", "top_k": 5})]]
-        self.assertEqual(ids, ["KEEP"])
-        self.assertIn("ticket_history_lookup", {k.split("|")[0] for k in status})       # attempted; fails without a database, and says so
-        self.assertTrue(any(v == "ok" for v in status.values()))
-
-    def test_candidate_calls_are_derived_from_the_ticket_only(self):
-        tools = [t for t, _ in candidate_calls({"text": "x" * 900, "host": "sapdb01", "classification": "disk_full"})]
-        self.assertEqual(tools[0], "incident_kb_search")
-        self.assertEqual(set(tools), {"incident_kb_search", "ticket_history_lookup", "outcome_lookup", "pattern_lookup", "evidence_lookup"})
+    def test_arguments_are_keyed_by_hash_so_a_recording_never_carries_the_ticket_text(self):
+        key = args_key("incident_kb_search", {"query": "a very particular ticket text", "top_k": 5})
+        self.assertNotIn("particular", key)
+        self.assertTrue(key.startswith("incident_kb_search|"))
+        self.assertEqual(key, args_key("incident_kb_search", {"top_k": 5, "query": "a very particular ticket text"}))
 
 
 class InjectionTests(unittest.TestCase):

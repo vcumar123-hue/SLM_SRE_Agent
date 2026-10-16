@@ -14,6 +14,8 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli verify-model                                              (the served model and its file against the manifest)
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
+    python -m planner_experiment.cli capture-development --out <recording>          (no key; the 10 development tickets)
+    python -m planner_experiment.cli capture-experiment --round 1 --out <file outside the repository>   (key holder only)
     python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>
     python -m planner_experiment.cli approve-golden --draft docs/drafts/golden_tickets_DRAFT.json --ids golden-1 golden-2 ... --approved-by "A B" "C D"
     python -m planner_experiment.cli create-freeze --round 1 --cases <file> --recording <file> --annotations <file> --reviewer-file "A B"=<file> --reviewer-file "C D"=<file>
@@ -112,6 +114,15 @@ def main(argv=None) -> int:
     cf.add_argument("--out", default=None)
     rx = sub.add_parser("run-experiment")
     rx.add_argument("--record", required=True)
+    cd = sub.add_parser("capture-development")
+    cd.add_argument("--out", required=True)
+    cd.add_argument("--invalidate", default=None, help="replace an existing complete recording: the recorded reason")
+    cd.add_argument("--by", default=None)
+    ce = sub.add_parser("capture-experiment")
+    ce.add_argument("--round", type=int, required=True)
+    ce.add_argument("--out", required=True, help="a file outside the repository")
+    ce.add_argument("--invalidate", default=None)
+    ce.add_argument("--by", default=None)
     bc = sub.add_parser("build-cases")
     bc.add_argument("--round", type=int, required=True)
     bc.add_argument("--out", required=True)
@@ -188,6 +199,15 @@ def main(argv=None) -> int:
                 print("refused:", exc)
                 return 2
             print(json.dumps({"verdict": out["decision"]["verdict"], "conditions": out["decision"]["conditions"]}, indent=1))
+        elif args.cmd in ("capture-development", "capture-experiment"):
+            tickets = load_tickets(steps.reviewer_names(base))
+            if args.cmd == "capture-development":
+                manifest = steps.capture_development(base, tickets, Path(args.out), invalidate=args.invalidate, by=args.by)
+            else:
+                manifest = steps.capture_experiment(base, args.round, tickets, Path(args.out), invalidate=args.invalidate, by=args.by)
+            dropped = sum(sum(c["dropped"].values()) for case in manifest["cases"].values() for c in case["calls"])
+            print(json.dumps({"mode": manifest["mode"], "cases": manifest["case_count"], "held_out": manifest["held_out_count"],
+                              "items_removed_as_held_out": dropped, "recording_sha256": manifest["recording_sha256"]}, indent=1))
         elif args.cmd == "build-cases":
             cases = steps.build_cases(steps.round_paths(base, args.round)["selection"], load_tickets(steps.reviewer_names(base)))
             Path(args.out).write_text(json.dumps(cases, indent=1), encoding="utf-8")

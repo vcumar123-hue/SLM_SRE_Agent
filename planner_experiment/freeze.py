@@ -34,7 +34,7 @@ from typing import Any, Callable, Dict, List, Optional
 from planner_experiment.freeze_names import PLACEHOLDER_NAMES  # noqa: F401  (re-exported for existing callers)
 
 ROOT = Path(__file__).resolve().parent.parent
-REQUIRED_FILES = ("annotations", "cases", "recording", "injection_cases", "config", "seed_record", "partition_seed_record",
+REQUIRED_FILES = ("annotations", "cases", "recording", "recording_manifest", "injection_cases", "config", "seed_record", "partition_seed_record",
                   "experiment_selection", "development_selection", "planner_freeze", "reviewers", "golden", "key_custody", "retired_keys")
 CODE_ROOTS = ("agentruntime", "planner_experiment")
 PLANNERS_DIR = ROOT / "agentruntime" / "planners"
@@ -314,6 +314,14 @@ def validate_set(reader, code_hashes: Dict[str, str], root: Path = ROOT) -> Dict
             raise FreezeError("the key on this machine is retired: freeze and run with the replacement key on the key-holder machine")
         if secrecy.key_check(held) != registered.get("key_check"):
             raise FreezeError("the key on this machine is not the key registered as being in custody")
+    from planner_experiment import capture
+    try:
+        capture.check_manifest(reader.json("recording_manifest"), reader.bytes("recording"), expected_case_ids=case_ids, expected_mode="experiment",
+                               expected_key_check=drawn_with)
+    except capture.CaptureError as exc:
+        raise FreezeError(f"the recording is not an official capture: {exc}") from exc
+    if reader.json("recording_manifest").get("selection_sha256") != sha256_bytes(reader.bytes("experiment_selection")):
+        raise FreezeError("the recording was captured for a different draw than the experiment selection frozen here")
     try:
         composition.validate(cases, selection, partition, golden_items, reader.json("development_selection"), key=held)
     except composition.CompositionError as exc:

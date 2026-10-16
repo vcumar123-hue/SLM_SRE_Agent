@@ -30,8 +30,8 @@ shared shell, a developer's profile, a shared CI environment or a container imag
 | 9 | Build the blinded case package | **Key holder** | `python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>`; hand it to the reviewers, not to developers |
 | 10 | Independent labelling | Both reviewers, separately | annotation sheets (`planner_experiment.annotations.template_for`), one file per reviewer, every case |
 | 11 | Adjudicate every disagreement, with a written rationale in `notes` | Owner | end-state kappa must be at least 0.6 |
-| 12 | Capture the scripted tool recording for the 50 cases | **Key holder** | **no command yet** (library: `planner_experiment.scripted_env.capture_case`); to be added and tested before this step, and it must run on the key holder's side because it processes the drawn tickets |
-| 13 | Create the experiment freeze | **Key holder** | `python -m planner_experiment.cli create-freeze --round 1 --cases <file> --recording <file> --annotations <adjudicated file> --reviewer-file "First Last"=<file> --reviewer-file "First Last"=<file>` (the configuration and injection cases are generated from the workflow; a round after the first includes the earlier rounds' selections automatically) |
+| 12 | Capture the scripted tool recording for the 50 cases | **Key holder** | `python -m planner_experiment.cli capture-experiment --round 1 --out <file outside the repository>`; needs the active registered key; writes the recording and `<file>.manifest.json` (see "Recording capture" below) |
+| 13 | Create the experiment freeze | **Key holder** | `python -m planner_experiment.cli create-freeze --round 1 --cases <file> --recording <file> --annotations <adjudicated file> --reviewer-file "First Last"=<file> --reviewer-file "First Last"=<file>` (the capture manifest next to the recording is a frozen input and is verified; the configuration and injection cases are generated from the workflow; a round after the first includes the earlier rounds' selections automatically) |
 | 14 | Run once | **Key holder** | `python -m planner_experiment.cli run-experiment --record <freeze record>`; one attempt per freeze, a failed run keeps its claim |
 | 15 | If a planner passes the frozen rule, promote it unchanged into R2-2 | Developer | loop remains `off` by default; no tenant `shadow`/`on` without a separate recorded decision |
 | 16 | Container and PostgreSQL suites, then the 100-ticket acceptance evaluation and R2-3 | Developer / reviewers | before the release gate; the acceptance set's goldens are a separate, acceptance-only set (design 13.2) |
@@ -86,6 +86,20 @@ building, freezes and runs refuse it. To put a proper key in custody:
 * `python -m planner_experiment.cli verify-model` checks the model manifest (`agentruntime/planners/model_manifest.py`) against the running LM Studio and the
   model file. A production `freeze-planners` needs the manifest complete (prompt versions filled in).
 * The development selection files and `data/planner_dev/` stay out of git (they contain text from real client tickets).
+
+## Recording capture (design 20.16)
+
+* `python -m planner_experiment.cli capture-development --out data/planner_dev/dev_recording.json` captures the 10 development tickets. It needs **no key** and is what
+  the planners are developed against. Run it where the database, retrieval and embedding model are reachable (the container). A tool call that times out is
+  retried once; after that the capture stops and writes nothing usable. The first retrieval loads the embedding model, so the command warms it up first.
+* `capture-experiment` is the key-holder version for the hidden 50. It refuses a destination inside the repository (the recording holds evidence retrieved
+  for hidden tickets), requires the active registered key, and holds out the round's tickets, every earlier round's and the development subset, each with its cluster.
+* Held-out exclusion fails closed: the matcher must recognise every held-out ticket as its own evidence before anything is captured, every case's own ticket must be
+  covered, an item that cannot be classified or belongs to another tenant stops the capture, and the stored form is checked again after sanitising.
+* Output is atomic and hashed: the manifest (tools, runtime, exclusion proof with counts per call, content hashes, the recording's SHA-256) is written last.
+  A recording without a complete, matching manifest is not a capture. An existing recording is never overwritten: pass `--invalidate "<reason>" --by "<name>"` to
+  replace one; the replacement is logged next to it with the hashes of what was replaced.
+* The experiment manifest holds counts of what was removed per case, which reveal a little about the hidden tickets: keep it, like the case package, on the key-holder side.
 
 ## What not to do
 

@@ -342,6 +342,11 @@ def approve_golden(base: Path, draft_path: Path, out_path: Path, approved_ids: L
     return items
 
 
+def _capture_manifest_path(recording_path: Path) -> Path:
+    from planner_experiment import capture
+    return capture.manifest_path(Path(recording_path))
+
+
 def create_freeze_for_round(base: Path, rnd: int, cases_path: Path, recording_path: Path, annotations_path: Path, reviewer_files: Dict[str, Path],
                             golden_path: Path, out_path: Optional[Path] = None, root: Path = ROOT) -> Dict[str, Any]:
     """Assemble and create the complete experiment freeze for round `rnd`.
@@ -359,7 +364,7 @@ def create_freeze_for_round(base: Path, rnd: int, cases_path: Path, recording_pa
     for label, path in (("the planner freeze", rp["planner_freeze"]), ("the key custody record", Path(base) / "key_custody.json"), ("the draw's seed record", rp["seed"]), ("the draw's selection", rp["selection"]),
                         ("the development selection", p["development"]), ("the partition seed record", p["partition_seed"]),
                         ("the golden file", golden_path), ("the case package", cases_path), ("the recording", recording_path),
-                        ("the adjudicated annotations", annotations_path)):
+                        ("the recording's capture manifest", _capture_manifest_path(recording_path)), ("the adjudicated annotations", annotations_path)):
         if not Path(path).is_file():
             raise StepError(f"{label} is missing: {path}")
     names = _reviewers(base)
@@ -383,7 +388,8 @@ def create_freeze_for_round(base: Path, rnd: int, cases_path: Path, recording_pa
     if len(base_ids) < 4:
         raise StepError("the case package has fewer than four cases")
     injection_path.write_text(json.dumps([vars(i) for i in injection_mod.build_injection_cases(base_ids)], indent=1), encoding="utf-8")
-    files = {"annotations": annotations_path, "cases": cases_path, "recording": recording_path, "injection_cases": injection_path, "config": config_path,
+    files = {"annotations": annotations_path, "cases": cases_path, "recording": recording_path, "recording_manifest": _capture_manifest_path(recording_path),
+             "injection_cases": injection_path, "config": config_path,
              "seed_record": rp["seed"], "partition_seed_record": p["partition_seed"], "experiment_selection": rp["selection"],
              "development_selection": p["development"], "planner_freeze": rp["planner_freeze"], "reviewers": p["reviewers"], "golden": golden_path,
              "key_custody": Path(base) / "key_custody.json", "retired_keys": retired_file}
@@ -419,3 +425,57 @@ def build_cases(selection_path: Path, tickets: List[Dict[str, Any]]) -> List[Dic
         cases.append({"case_id": entry["case_id"], "pool": entry["pool"], "tenant_id": ticket["tenant_id"], "ticket_id": entry["ticket_id"],
                       "ticket_text": ticket["text"], "host": ticket.get("host", ""), "opened_at": ticket.get("opened_at", "")})
     return cases
+
+
+# -- recording capture (design 12, 20.16) -------------------------------------------------------------------------------------------------
+
+def _held_out_of(cases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [{"pool": c.get("pool"), "tenant_id": c["tenant_id"], "ticket_id": c.get("ticket_id"), "text": c["ticket_text"], "host": c.get("host", "")}
+            for c in cases]
+
+
+def capture_development(base: Path, tickets: List[Dict[str, Any]], out: Path, *, registry=None, ctx_factory=None, invalidate: Optional[str] = None,
+                        by: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    """Capture the tool environment for the development subset. Needs no key. The held-out set is the development subset and its clusters."""
+    from planner_experiment import capture
+    dev = paths(base)["development"]
+    if not dev.is_file():
+        raise StepError("the development subset has not been drawn")
+    cases = build_cases(dev, tickets)
+    try:
+        return capture.run_capture(cases, _held_out_of(cases), registry or capture.real_registry(), ctx_factory or capture.default_context, Path(out),
+                                   mode="development", selection_path=dev, invalidate=invalidate, by=by, **kwargs)
+    except capture.CaptureError as exc:
+        raise StepError(f"the capture was not made: {exc}") from exc
+
+
+def capture_experiment(base: Path, rnd: int, tickets: List[Dict[str, Any]], out: Path, *, registry=None, ctx_factory=None, invalidate: Optional[str] = None,
+                       by: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    """Capture the tool environment for a drawn round. Key-holder side only: needs the active registered key, and writes outside the repository.
+
+    Held out: this round's tickets, every earlier round's, and the development subset, each with its cluster."""
+    from planner_experiment import capture
+    rp = round_paths(base, rnd)
+    if not rp["selection"].is_file():
+        raise StepError(f"round {rnd} has not been drawn")
+    if not rp["planner_freeze"].is_file():
+        raise StepError(f"the planners for round {rnd} have not been frozen")
+    key = _active_key(base)
+    out_path = Path(out).resolve()
+    try:
+        out_path.relative_to(ROOT.resolve())
+        raise StepError("the recording of a drawn set holds evidence retrieved for hidden tickets: write it outside the repository")
+    except ValueError:
+        pass
+    cases = build_cases(rp["selection"], tickets)
+    held = _held_out_of(cases)
+    for other_round, _raw, _record in _earlier_rounds(base, rnd):
+        held += _held_out_of(build_cases(round_paths(base, other_round)["selection"], tickets))
+    dev = paths(base)["development"]
+    if dev.is_file():
+        held += _held_out_of(build_cases(dev, tickets))
+    try:
+        return capture.run_capture(cases, held, registry or capture.real_registry(), ctx_factory or capture.default_context, out_path, mode="experiment",
+                                   selection_path=rp["selection"], round=rnd, key=key, key_check=secrecy.key_check(key), invalidate=invalidate, by=by, **kwargs)
+    except capture.CaptureError as exc:
+        raise StepError(f"the capture was not made: {exc}") from exc

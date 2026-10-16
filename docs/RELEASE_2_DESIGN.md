@@ -1194,3 +1194,42 @@ It is **not frozen on its own**: the three candidates are frozen together once a
 * **Not yet done:** the tested recording-capture command (a development-subset version is needed to tune `rules_then_model`/`model` repeatably; the key-holder version
   before the hidden 50 are used), `rules_then_model`, `model`, and the prompt versions in the model manifest. The development tuning above used a local script
   (`data/planner_dev/`, not in git) that removes the ticket's own record and its cluster; the committed capture command replaces it.
+
+### 20.16 The official recording-capture command (2026-10-16)
+
+Review direction: build the capture command before any model planner, fail closed when held-out exclusion cannot be proven, and keep the recording free of the held-out
+record, its cluster, the raw current-ticket payload and foreign-tenant evidence. Implemented in `planner_experiment/capture.py` and `planner_experiment/exclusion.py`;
+commands `capture-development` (no key) and `capture-experiment` (active registered key, destination outside the repository).
+
+| Requirement | How it is met |
+|---|---|
+| Real tools, trusted tenant context | the five production tools through `ToolRegistry`; the context is built from the case's tenant by a principal that may act for that tenant only; `request_id` is the case id |
+| Exact ticket, normalised-text and cluster exclusion | `Matcher`: ticket id as a whole token in an item's id or text; title equal to the held-out text, the held-out text (4+ words) contained in the item, or 90% of its words in the title; cluster id by the draw's own definition (tenant, host, first eight normalised words), pattern alone when an item has no derivable host |
+| Done before the recording is usable | exclusion happens per item before anything is stored; the stored (sanitised) form is checked again; the manifest is written last |
+| Fail closed | empty held-out set; a held-out ticket without text; the matcher failing its self-test on any held-out ticket; a case whose own ticket is not covered; an item with no id or text; a foreign-tenant item (also rejected by the registry); a context that does not match the case; a call failing after one retry; cancellation. Each stops the capture and removes partial files |
+| Sanitised evidence only | excerpts and facts pass the runner's sanitiser and size caps; source ids are kept (the runner de-duplicates on them) unless not plainly safe, then replaced by a stable unique token |
+| Stable order, deterministic bytes | knowledge-base rows by (-relevance, id), history by (date, id), relevance rounded to 6 places, cases sorted by id, LF-only ASCII JSON; the same inputs give the same bytes whatever order the tools answer in. Two live captures of the development subset produced the identical SHA-256 |
+| Atomic output | temporary files, `fsync`, rename; recording first, manifest last; a failure between them removes the recording; leftovers are not a recording |
+| Manifest | capture and exclusion versions, mode, round, selection SHA-256, key check, runtime and tool versions, held-out count and digest (HMAC under the key in experiment mode), exclusion proof, per call: args hash, returned/kept/dropped by reason, dropped-id digest, kept content hashes, and the recording's SHA-256 |
+| No silent overwrite | an existing complete recording is refused; replacing it needs `--invalidate <reason> --by <name>`, logged with the previous hashes in `<file>.invalidations.json`, the old files kept as `.invalidated-N` |
+| No ticket text in the recording | tool arguments are stored as a hash (`args_key` is now `tool|sha256(args)`), so the search query (the ticket's own text) is not stored |
+| Key rules | development mode refuses a key; experiment mode needs the active registered key and records its check value |
+
+**The freeze verifies it.** `recording_manifest` is now a required frozen input; `validate_set` checks the manifest against the recording bytes, the case list, mode
+`experiment`, the draw's key check and the experiment selection's hash, at the freeze and again when the experiment is loaded. A hand-made recording is refused.
+
+**Calls recorded per case** (so a planner's natural calls are exact replays, and any other call is counted as a default substitution): the knowledge-base search on the
+ticket text (top 5) and on a symptom-only reformulation; ticket history for the case host and up to two more host-like tokens (or by text if none); outcome and pattern
+lookups for up to three real classifications found in the filtered results; the evidence listing.
+
+**Development-subset run.** `capture-development` in the container captured all 10 development tickets, including INC3313708 (its earlier failure was the cold
+embedding-model load; the command warms the model first), removing 14 held-out items. A second capture produced the same SHA-256. `rules_only` replayed all ten with every call
+an exact replay (no defaults, none missing); results are as in 20.15 (the certificate-expiry golden ticket supported, the others `escalated_insufficient`).
+
+**Not covered by this command (stated, not hidden).** Exclusion can only act on what the tools return: an excerpt is at most about 300 characters of the stored
+chunk, so a duplicate whose first 300 characters differ from the held-out text is judged by its title and cluster, not its full body. The acceptance-set clusters are
+not yet removed from the experiment capture (the acceptance run will pass its own held-out set). Container and PostgreSQL suites are still due.
+
+**Tests:** `tests/test_planner_capture.py` (50): self-match, near duplicate, cluster mate vs sibling host, ticket-id mention, tenant isolation, fail-closed cases, timeout and
+retry, partial capture, cancellation, publish crash, overwrite and invalidation, determinism under shuffled tool order, sanitising, replay equality across captures,
+verification and tampering, key rules, steps and command-line wiring, and the freeze refusing every non-official recording.
