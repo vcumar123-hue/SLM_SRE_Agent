@@ -7,9 +7,11 @@ rules_then_model: the rule table plans the evidence; the local model is consulte
      finishes with causes, asks for one more search, or escalates. At most two such consultations are made, and at most one search may be requested.
   3. A cause from the model is accepted only if every evidence id it cites exists in this run and the quote it gives is found word for word in a cited
      record; `supported` also needs two or more relevant cited records, the same corroboration the rules require. Anything else is discarded.
-  4. **Any model failure falls back to the rules' own conclusion**: the model being unreachable, a timeout, a reply over its token limit, an invalid or
-     ungrounded reply, or a used-up model or token budget. The fallback is deterministic (it is exactly what rules_only would have done) and is recorded in
-     the action's reason and in `fallbacks`.
+  4. **An ordinary model failure falls back to the rules' own conclusion**: the model being unreachable, a timeout, a reply over its per-call token limit,
+     an invalid or ungrounded reply, or a model-call or token budget already used up before the call. The fallback is exactly the action rules_only would have
+     taken, and is recorded in the action's reason and in `fallbacks`. One case is not a fallback: a reply whose reported tokens push the *run-wide* token budget
+     over its limit is rejected by the runner, which ends the run `budget_exhausted` and never executes the fallback action. (The server's own max_tokens keeps
+     a reply inside the per-call limit, so this needs a reply that overruns it.)
 
 Local model only, through the run's ModelGateway (its call, token, timeout and deadline budgets apply). Prompt: `prompts.SYNTHESIS_*`.
 """

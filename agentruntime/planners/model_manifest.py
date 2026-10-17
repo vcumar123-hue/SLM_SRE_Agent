@@ -61,12 +61,12 @@ BUDGET_FIELDS = ("model_call_timeout_s", "tool_timeout_s", "deadline_s", "max_mo
 # Prompt versions: one entry per prompt the model planners send, and the SHA-256 of each prompt's text (prompts.py). The text is also hashed into the
 # planner freeze with the rest of this folder; recording the hash here makes a changed prompt that kept its old version number an incomplete manifest.
 PROMPTS: Dict[str, Optional[str]] = {
-    "planner": "planner-1",          # the model planner's step prompt
-    "synthesis": "synthesis-1",      # rules_then_model's review prompt
+    "planner": "planner-2",          # the model planner's step prompt
+    "synthesis": "synthesis-2",      # rules_then_model's review prompt
 }
 PROMPT_HASHES: Dict[str, str] = {
-    "planner": "763d556b6e03ae60fa15a3e93101db650adff7e86601e808be9384087da6f5be",
-    "synthesis": "ede4c384f5d5fb528ef5287e580902163d13ebe24976da79f865647c1ac65df7",
+    "planner": "05a4f522161c49962db73668bc1451ec72bb373bc1d301b73cf6e28a305d2754",
+    "synthesis": "9afe96e55099dddfb159c66a1f53037d7453c1dd721c9f69471be437b1c39df3",
 }
 
 

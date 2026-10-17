@@ -7,6 +7,10 @@ tool; and a cause is kept only if every evidence id it cites exists in the run a
 records. A reply that fails any check is a failed reply (the caller falls back to the rules, or fails the run), never a partly accepted one.
 
 Local only: the client refuses any endpoint that is not on this machine (or the container's route to it). There is no external provider here.
+
+Cancellation: a call is checked for cancellation before it is sent. Once the HTTP request is in flight it cannot be interrupted (urllib blocks), so the real
+bound on a stuck call is the HTTP timeout the gateway passes to the client plus the gateway's bounded executor, which stops waiting at the model-call timeout
+and refuses new calls when too many are stuck (tested: a never-answering server ends the consultation at the timeout and the run continues on the rules).
 """
 from __future__ import annotations
 
@@ -28,7 +32,11 @@ TICKET_CHARS = 600
 EVIDENCE_CHARS = 3000
 FACTS_CHARS = 300
 CAUSE_CHARS = 160
-QUOTE_MIN, QUOTE_MAX = 3, 100
+QUOTE_MIN, QUOTE_MAX = 8, 100
+MAX_CITED = 5
+EVIDENCE_ID_CHARS = 12
+SUPPORT_SHARE = 0.8              # at least this share of the cause's content words must be in the quote that is offered as its support
+_STOP = frozenset("the and for with that this from was were has have had are not but its into onto after before when then than been being over under about a an of in on at to by is it as or be".split())
 MAX_HYPOTHESES = 3
 REASON_CHARS = 300
 HOST_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{1,79}")
@@ -130,6 +138,11 @@ def parse_reply(text: str, actions: Sequence[str]) -> Dict[str, Any]:
         if not (isinstance(h["cause"], str) and isinstance(h["quote"], str) and h["status"] in ("supported", "weak")
                 and isinstance(h["evidence"], list) and all(isinstance(e, str) for e in h["evidence"])):
             raise ModelReplyError("a hypothesis has a field of the wrong type")
+        # the schema's limits are enforced here too: the server's strict mode is not the only line of defence
+        if not (1 <= len(h["cause"].strip()) <= CAUSE_CHARS and 1 <= len(h["quote"].strip()) <= QUOTE_MAX):
+            raise ModelReplyError("a cause or quote is empty or longer than the schema allows")
+        if not (1 <= len(h["evidence"]) <= MAX_CITED) or not all(1 <= len(e) <= EVIDENCE_ID_CHARS for e in h["evidence"]):
+            raise ModelReplyError("a hypothesis must cite one to five evidence ids of at most 12 characters")
     return out
 
 
@@ -210,8 +223,19 @@ def restates_title(cause: str, items) -> bool:
     return any(len(words & _title_words(e.excerpt)) / len(words) >= 0.8 for e in items)
 
 
+def quote_supports(cause: str, quote: str) -> bool:
+    """True when the quote actually says the cause: at least 80% of the cause's content words (stop words and very short words aside) are words of the quote.
+    A verbatim quote that is merely somewhere in a cited record (any phrase at all) does not substantiate a cause that is not in it."""
+    cause_words = {w for w in re.findall(r"[a-z0-9]+", cause.lower()) if len(w) >= 3 and w not in _STOP}
+    if not cause_words:
+        return False
+    quote_words = set(re.findall(r"[a-z0-9]+", quote.lower()))
+    return len(cause_words & quote_words) / len(cause_words) >= SUPPORT_SHARE
+
+
 def ground_hypotheses(reply: Dict[str, Any], state) -> List[Dict[str, Any]]:
-    """The hypotheses of a `finish` reply that are grounded: each cited id exists in this run and the quote is in a cited record, word for word.
+    """The hypotheses of a `finish` reply that are grounded: each cited id exists in this run, the quote is in a cited record word for word, and the quote
+    says the cause (`quote_supports`).
     `supported` is kept only with the same corroboration the rules ask for: the quote is found in two or more cited, relevant records."""
     by_id = {e.evidence_id: e for e in state.evidence}
     out: List[Dict[str, Any]] = []
@@ -223,6 +247,8 @@ def ground_hypotheses(reply: Dict[str, Any], state) -> List[Dict[str, Any]]:
         if not cause or cause.lower() in seen or not (QUOTE_MIN <= len(quote) <= QUOTE_MAX) or not ids or not all(i in by_id for i in ids):
             continue
         if not any(quote in _fold(by_id[i].excerpt + " " + json.dumps(by_id[i].facts or {}, default=str)) for i in ids):
+            continue
+        if not quote_supports(cause, quote):
             continue
         if restates_title(cause, [by_id[i] for i in ids]):
             continue

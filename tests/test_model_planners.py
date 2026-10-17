@@ -121,6 +121,23 @@ class RulesThenModelTests(unittest.TestCase):
             self.assertEqual(res.status, rules.status, label)
             self.assertTrue(planner.fallbacks, label)
 
+    def test_a_verbatim_quote_that_does_not_state_the_cause_is_rejected(self):
+        rules = make_run(RulesOnlyPlanner({}), kb=kb_plain())
+        for cause, quote in (("hardware failure of the storage array", "nightly purge job was disabled"),      # a real phrase, but not this cause
+                             ("network partition", "file system full on the data host"),
+                             ("memory leak", "after the upgrade")):
+            planner = RulesThenModelPlanner({}, FakeClient(good_finish(cause=cause, quote=quote)))
+            res = make_run(planner, kb=kb_plain())
+            self.assertEqual(planner.fallbacks, ["ModelReplyError"], (cause, quote))
+            self.assertEqual(view(res)[1:], view(rules)[1:])
+            self.assertNotIn(cause, [h.cause for h in res.hypotheses])
+
+    def test_a_cause_the_quote_says_is_accepted_even_when_worded_a_little_differently(self):
+        planner = RulesThenModelPlanner({}, FakeClient(good_finish(cause="the purge job was disabled", quote="nightly purge job was disabled after the upgrade")))
+        res = make_run(planner, kb=kb_plain())
+        self.assertEqual(planner.fallbacks, [])
+        self.assertIn("the purge job was disabled", [h.cause for h in res.hypotheses])
+
     def test_a_timeout_an_oversized_reply_and_the_model_budget_all_fall_back(self):
         rules = make_run(RulesOnlyPlanner({}), kb=kb_two(), budgets={"model_call_timeout_s": 1})
 
@@ -146,6 +163,15 @@ class RulesThenModelTests(unittest.TestCase):
         res = make_run(planner, kb=kb_two(), budgets={"max_model_calls": 1, "max_tokens_run": 1})
         self.assertIn(res.status, ("supported", "escalated_insufficient", "budget_exhausted"))
         self.assertLessEqual(res.counters["model_calls"], 1)
+
+    def test_a_reply_that_overruns_the_run_wide_token_budget_ends_the_run_it_is_not_a_fallback(self):
+        class Huge(FakeClient):
+            def complete(self, *a, **k):
+                r = super().complete(*a, **k)
+                return ModelResponse(r.text, 100, 5000, r.model)
+        planner = RulesThenModelPlanner({}, Huge(good_finish()))
+        res = make_run(planner, kb=kb_two())
+        self.assertEqual(res.status, "budget_exhausted")                                    # the runner rejects it; the fallback action is never executed
 
     def test_the_model_may_ask_for_one_more_search_and_then_must_conclude(self):
         client = FakeClient({"action": "incident_kb_search", "query": "file system full data volume growth"}, good_finish())
@@ -272,6 +298,50 @@ class ReplyParsingTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["action"]["enum"], self.ACTIONS)
 
 
+class QuoteSupportTests(unittest.TestCase):
+    def test_the_quote_must_say_the_cause(self):
+        f = model_support.quote_supports
+        self.assertTrue(f("log growth", "Root Cause: log growth on the data volume"))
+        self.assertTrue(f("inventory gap", "inventory gap"))
+        self.assertTrue(f("the purge job was disabled", "nightly purge job was disabled after the upgrade"))
+        self.assertFalse(f("disk failure", "File system full"))
+        self.assertFalse(f("hardware failure of the storage array", "nightly purge job was disabled"))
+        self.assertFalse(f("the and of", "the and of"))              # no content words at all
+        self.assertFalse(f("", "anything"))
+
+
+class ParseLimitTests(unittest.TestCase):
+    """The schema's limits are enforced locally, whatever the model server does with a strict schema."""
+    ACTIONS = ["finish", "escalate"]
+
+    @staticmethod
+    def reply(**over):
+        h = {"cause": "log growth", "status": "weak", "evidence": ["e1"], "quote": "log growth"}
+        h.update(over)
+        return json.dumps({"action": "finish", "hypotheses": [h]})
+
+    def test_a_valid_hypothesis_passes(self):
+        self.assertEqual(parse_reply(self.reply(), self.ACTIONS)["hypotheses"][0]["cause"], "log growth")
+
+    def test_every_limit_is_enforced(self):
+        bad = {"a cause that is too long": self.reply(cause="x" * (model_support.CAUSE_CHARS + 1)), "an empty cause": self.reply(cause="  "),
+               "a quote that is too long": self.reply(quote="y" * (model_support.QUOTE_MAX + 1)), "an empty quote": self.reply(quote=""),
+               "no evidence ids": self.reply(evidence=[]), "six evidence ids": self.reply(evidence=[f"e{i}" for i in range(6)]),
+               "an evidence id that is too long": self.reply(evidence=["e" * 13]), "an empty evidence id": self.reply(evidence=[""]),
+               "four hypotheses": json.dumps({"action": "finish", "hypotheses": [{"cause": "c", "status": "weak", "evidence": ["e1"], "quote": "q"}] * 4})}
+        for label, text in bad.items():
+            with self.assertRaises(ModelReplyError, msg=label):
+                parse_reply(text, self.ACTIONS)
+        for limit_name, text in (("query", json.dumps({"action": "finish", "query": "q" * 301})), ("host", json.dumps({"action": "finish", "host": "h" * 81})),
+                                 ("classification", json.dumps({"action": "finish", "classification": "c" * 81}))):
+            with self.assertRaises(ModelReplyError, msg=limit_name):
+                parse_reply(text, self.ACTIONS)
+
+    def test_the_limits_at_their_edges_are_accepted(self):
+        ok = self.reply(cause="x" * model_support.CAUSE_CHARS, quote="y" * model_support.QUOTE_MAX, evidence=["e" * 12] * 5)
+        self.assertEqual(len(parse_reply(ok, self.ACTIONS)["hypotheses"]), 1)
+
+
 class LocalClientTests(unittest.TestCase):
     def test_only_a_local_server_is_accepted(self):
         for url in ("https://api.groq.com/openai/v1", "http://example.com:1234/v1", "http://10.0.0.5:1234/v1"):
@@ -306,6 +376,25 @@ class LocalClientTests(unittest.TestCase):
         for opener in (broken, cut):
             with self.assertRaises(ModelUnavailable):
                 LocalModelClient(opener=opener).complete("s", "u", "n", {}, 10, 1.0)
+
+    def test_a_call_stuck_in_flight_is_bounded_by_the_timeout_not_by_cancellation(self):
+        """Cancellation is checked before the request is sent. Once the HTTP call is in flight it cannot be interrupted (urllib blocks); what bounds it is the
+        HTTP timeout passed to the client and the gateway's bounded executor, which gives up on the call at the model-call timeout and refuses to let stuck calls pile up."""
+        import threading
+        release = threading.Event()
+
+        def stuck(request, timeout):
+            release.wait(5)
+            raise OSError("never answered")
+        planner = RulesThenModelPlanner({}, LocalModelClient(opener=stuck))
+        started = time.monotonic()
+        try:
+            res = make_run(planner, kb=kb_two(), budgets={"model_call_timeout_s": 1})
+        finally:
+            release.set()
+        self.assertLess(time.monotonic() - started, 4)
+        self.assertEqual(planner.fallbacks, ["ModelTimeoutError"])
+        self.assertEqual(res.status, "escalated_insufficient")                              # the rules' conclusion, as the run's result
 
     def test_a_cancelled_call_is_not_sent(self):
         class Token:

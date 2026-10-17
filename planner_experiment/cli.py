@@ -116,8 +116,14 @@ def main(argv=None) -> int:
     rx.add_argument("--record", required=True)
     cd = sub.add_parser("capture-development")
     cd.add_argument("--out", required=True)
+    cd.add_argument("--cases-out", default=None, help="also write the development cases (their ticket text, for local use: keep out of git) for benchmark-model")
     cd.add_argument("--invalidate", default=None, help="replace an existing complete recording: the recorded reason")
     cd.add_argument("--by", default=None)
+    bm = sub.add_parser("benchmark-model")
+    bm.add_argument("--cases", required=True, help="the development cases file written by capture-development --cases-out")
+    bm.add_argument("--recording", required=True, help="the development recording")
+    bm.add_argument("--repetitions", type=int, default=2)
+    bm.add_argument("--out", default=None, help="write the report here (keep it with the freeze records)")
     ce = sub.add_parser("capture-experiment")
     ce.add_argument("--round", type=int, required=True)
     ce.add_argument("--out", required=True, help="a file outside the repository")
@@ -205,9 +211,19 @@ def main(argv=None) -> int:
                 manifest = steps.capture_development(base, tickets, Path(args.out), invalidate=args.invalidate, by=args.by)
             else:
                 manifest = steps.capture_experiment(base, args.round, tickets, Path(args.out), invalidate=args.invalidate, by=args.by)
+            if args.cmd == "capture-development" and args.cases_out:
+                Path(args.cases_out).write_text(json.dumps(steps.build_cases(steps.paths(base)["development"], tickets), indent=1, ensure_ascii=False), encoding="utf-8")
             dropped = sum(sum(c["dropped"].values()) for case in manifest["cases"].values() for c in case["calls"])
             print(json.dumps({"mode": manifest["mode"], "cases": manifest["case_count"], "held_out": manifest["held_out_count"],
                               "items_removed_as_held_out": dropped, "recording_sha256": manifest["recording_sha256"]}, indent=1))
+        elif args.cmd == "benchmark-model":
+            from planner_experiment import benchmark
+            report = benchmark.run_benchmark(json.loads(Path(args.cases).read_text(encoding="utf-8")), Path(args.recording), args.repetitions)
+            if args.out:
+                Path(args.out).write_text(json.dumps(report, indent=1, sort_keys=True), encoding="utf-8")
+            summary = {k: report[k] for k in ("environment", "warmup", "runs", "p95_call_seconds", "p95_run_seconds", "fits_frozen_budgets", "verdict")}
+            print(json.dumps(summary, indent=1))
+            return 0 if report["fits_frozen_budgets"] else 3
         elif args.cmd == "build-cases":
             cases = steps.build_cases(steps.round_paths(base, args.round)["selection"], load_tickets(steps.reviewer_names(base)))
             Path(args.out).write_text(json.dumps(cases, indent=1), encoding="utf-8")

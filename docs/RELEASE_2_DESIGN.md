@@ -1247,7 +1247,7 @@ untrusted-data framing; tuned only on the 10 development tickets (official recor
 |---|---|---|
 | Prompts | `agentruntime/planners/prompts.py` | `synthesis-1` (rules_then_model) and `planner-1` (model). Texts are hashed into the planner freeze with the folder; `model_manifest.PROMPT_HASHES` records each text's SHA-256, and a changed text with an unchanged hash makes the manifest incomplete (tested) |
 | Shared support | `model_support.py` | the local-model client (refuses any non-local endpoint; temperature 0, top_p 1, seed 1, n 1, no streaming, strict JSON schema, served id from the manifest); the closed reply schema (only `action` required: a tool call is a few tokens); two untrusted-data blocks (ticket, evidence) each with a fresh delimiter that the system message names; reply parsing; grounding checks |
-| `rules_then_model` | `rules_then_model.py` | the rule table plans the evidence unchanged; the model is consulted only when the rules would conclude (at most twice, at most one extra search, `incident_kb_search` or `ticket_history_lookup`); its causes are merged with the rules' (same cause: stronger status, pooled evidence); **any** model failure falls back to exactly the rules' own conclusion, recorded in `fallbacks` and the action reason |
+| `rules_then_model` | `rules_then_model.py` | the rule table plans the evidence unchanged; the model is consulted only when the rules would conclude (at most twice, at most one extra search, `incident_kb_search` or `ticket_history_lookup`); its causes are merged with the rules' (same cause: stronger status, pooled evidence); an ordinary model failure (unreachable, timeout, over-limit reply, invalid or ungrounded reply, model/token budget already used up before the call) falls back to exactly the rules' own conclusion, recorded in `fallbacks` and the action reason; a reply that pushes the run-wide token budget over its limit is rejected by the runner (`budget_exhausted`) and the fallback is not executed |
 | `model` | `model.py` | the model chooses every step (five tools, finish, escalate); no rules and **no fallback**: an unusable reply is a `PlannerError` (the run ends `failed_model`), a finish with no grounded cause becomes an escalation. This is deliberate: a fallback would make `model` indistinguishable from `rules_then_model` on its failures |
 
 **Grounding (both planners).** A model cause is kept only if every evidence id it cites exists in the run, its quote (no ellipsis, 3–100 characters) is found word for
@@ -1275,3 +1275,13 @@ The first call also loads the model (up to about 70 s here), so the run must war
 (unreachable, invalid JSON, extra field, bad action, unknown evidence id, quote absent, title restated, empty finish, timeout, over-limit reply, exhausted model budget);
 one extra search then conclusion; disallowed tool; injection in evidence cannot steer the run or reach the system message; strict local request with frozen settings;
 `model` step by step, no fallback, repeats refused, classification must appear in evidence; closed reply parsing; local-only client; manifest/prompt hash enforcement.
+
+**20.17 follow-up (review, 2026-10-17).**
+* *Grounding gap closed.* A verbatim quote anywhere in a cited record is no longer enough: `quote_supports` requires at least 80% of the cause's content words to be words of the
+  quote, so a real phrase that does not say the cause ("hardware failure of the storage array" quoting "nightly purge job was disabled") is rejected. Prompts bumped to `synthesis-2` and
+  `planner-2` (the quote must itself state the cause in the same words); hashes re-recorded.
+* *Local limits.* `parse_reply` now enforces the schema's limits itself: cause 1-160 and quote 1-100 characters, one to five evidence ids of at most 12 characters, at most three hypotheses,
+  and the query, host and classification limits. The server's strict-schema mode is not the only enforcement.
+* *Budget wording.* See the corrected table row above: only ordinary failures are equivalent to `rules_only`; a run-wide token overrun is `budget_exhausted`.
+* *Cancellation.* Preflight only; an in-flight HTTP call is bounded by the timeout and the gateway's bounded executor (tested with a never-answering server).
+* *Not for deployment.* The pure `model` arm exists only as an experimental arm and is not to be deployed directly in R2-2.
