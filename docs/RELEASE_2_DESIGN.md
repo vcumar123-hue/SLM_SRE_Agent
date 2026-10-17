@@ -1285,3 +1285,27 @@ one extra search then conclusion; disallowed tool; injection in evidence cannot 
 * *Budget wording.* See the corrected table row above: only ordinary failures are equivalent to `rules_only`; a run-wide token overrun is `budget_exhausted`.
 * *Cancellation.* Preflight only; an in-flight HTTP call is bounded by the timeout and the gateway's bounded executor (tested with a never-answering server).
 * *Not for deployment.* The pure `model` arm exists only as an experimental arm and is not to be deployed directly in R2-2.
+
+### 20.18 Model speed benchmark on the development machine (2026-10-17)
+
+`python -m planner_experiment.cli benchmark-model --cases <dev cases> --recording <dev recording> --repetitions N --out <report>` (planner_experiment/benchmark.py): one declared warm-up
+request (reported, excluded), then N passes over the 10 development cases with the real `rules_then_model` planner, prompts `synthesis-2`, the frozen model and settings, budgets relaxed
+only for the measurement and each call and run then judged against the frozen budgets (15 s per call, 40 s per run), which are never changed. The report records the execution environment,
+manifest hash, prompt hashes and recording hash; the exit code is 3 when the model does not fit. It never touches the hidden set (it refuses any recording that is not an official development
+capture of exactly the cases given).
+
+**Result on this machine** (Windows 11 on ARM64, Qualcomm, 10 cores, LM Studio, google/gemma-3-4b Q4_K_M, loaded context 4,096; 3 repetitions x 10 cases = 30 consultations):
+
+| Measure | Value |
+|---|---|
+| Warm-up (model load) | 33.8 s |
+| Model request latency | p50 31.5 s, mean 42.6 s, p95 82.1 s, max 108.8 s |
+| Requests within the 15 s call timeout | 0 of 30 (0%) |
+| Run time (rules + one consultation) | p50 31.6 s, p95 82.2 s, max 108.9 s; 67% of runs within the 40 s deadline even with the timeout relaxed |
+| Tokens | prompt mean 1,471 (max 1,880); reply mean 168 (max 425) |
+| Replies that passed grounding | 5 of 30 (25 were rejected as ungrounded or not stating a cause; those runs fell back to the rules) |
+
+**Verdict: the model does not fit the frozen budgets here.** With the frozen 15 s call timeout every consultation would time out and `rules_then_model` would equal `rules_only`; `model` would fail
+nearly every run; the decision rule's p95 latency condition cannot be met. Even with unlimited time, only 5 of 30 replies were usable under the grounding rules. Per the review, the hidden 50 are not to be
+drawn merely to reconfirm this. If faster inference is used, the same model file, prompts, inference settings and budgets must be kept and the execution environment recorded with a new benchmark report
+(`benchmark-model` on that machine, which also takes its own declared warm-up).
