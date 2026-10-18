@@ -22,9 +22,16 @@ class Ticker:
         return self.now
 
 
+def verification(ok=True, file_ok=True, context=4096):
+    """What model_manifest.verify() reports, as the benchmark reads it."""
+    checks = [{"check": "server serves the model", "ok": ok, "detail": "serves 1 model(s)"},
+              {"check": "model file sha256", "ok": file_ok, "detail": "be49949e..." if file_ok else "0000"}]
+    return {"ok": ok and file_ok, "checks": checks, "observed": {"state": "loaded", "loaded_context_length": context, "max_context_length": 131072}}
+
+
 class FakeModel:
-    def __init__(self, ticker, delta, fail=False, fail_warmup=False):
-        self.ticker, self.delta, self.fail, self.fail_warmup, self.n = ticker, delta, fail, fail_warmup, 0
+    def __init__(self, ticker, delta, fail=False, fail_warmup=False, served="google/gemma-3-4b"):
+        self.ticker, self.delta, self.fail, self.fail_warmup, self.served, self.n = ticker, delta, fail, fail_warmup, served, 0
 
     def complete(self, system, user, name, schema, max_tokens, timeout_s, cancel=None):
         self.n += 1
@@ -36,7 +43,7 @@ class FakeModel:
         self.ticker.now += self.delta
         if self.fail:
             raise ModelUnavailable("down")
-        return ModelResponse('{"action":"escalate"}', 900, 20, "google/gemma-3-4b")
+        return ModelResponse('{"action":"escalate"}', 900, 20, self.served)
 
 
 class BenchmarkTests(unittest.TestCase):
@@ -45,10 +52,10 @@ class BenchmarkTests(unittest.TestCase):
         capture_to(self.out)                                              # an official development recording of CASE_X and CASE_Y
         self.cases = [dict(CASE_X), dict(CASE_Y)]
 
-    def run_with(self, delta, repetitions=2, **kw):
+    def run_with(self, delta, repetitions=2, check=None, **kw):
         ticker = Ticker()
-        model = FakeModel(ticker, delta, **{k: v for k, v in kw.items() if k in ("fail", "fail_warmup")})
-        report = run_benchmark(self.cases, self.out, repetitions, client=model, ctx_factory=ctx_factory, clock=ticker)
+        model = FakeModel(ticker, delta, **{k: v for k, v in kw.items() if k in ("fail", "fail_warmup", "served")})
+        report = run_benchmark(self.cases, self.out, repetitions, client=model, ctx_factory=ctx_factory, clock=ticker, verify=check or verification)
         return report, model
 
     def test_percentiles_use_the_nearest_rank(self):
@@ -61,6 +68,8 @@ class BenchmarkTests(unittest.TestCase):
     def test_a_fast_model_fits_the_frozen_budgets(self):
         report, model = self.run_with(delta=3.0)
         self.assertTrue(report["fits_frozen_budgets"])
+        self.assertTrue(report["qualifies"])
+        self.assertEqual(report["problems"], [])
         self.assertEqual(report["model_requests"]["share_within_call_timeout"], 1.0)
         self.assertLessEqual(report["p95_run_seconds"], Budgets().deadline_s)
         self.assertIn("fits the frozen budgets", report["verdict"])
@@ -72,6 +81,60 @@ class BenchmarkTests(unittest.TestCase):
         self.assertGreater(report["p95_call_seconds"], Budgets().model_call_timeout_s)
         self.assertIn("rules_only", report["verdict"])
         self.assertEqual(report["model_requests"]["share_within_call_timeout"], 0.0)
+
+    def test_a_fast_machine_running_something_other_than_the_frozen_model_does_not_qualify(self):
+        cases = {
+            "the server does not serve the model": dict(check=lambda: verification(ok=False)),
+            "the GGUF file hash is not verified or differs": dict(check=lambda: verification(file_ok=False)),
+            "the file was never checked": dict(check=lambda: {"ok": True, "checks": [{"check": "server serves the model", "ok": True, "detail": ""}],
+                                                              "observed": {"loaded_context_length": 4096}}),
+            "the loaded context is too small": dict(check=lambda: verification(context=2048)),
+            "the context length is unknown": dict(check=lambda: verification(context=None)),
+            "replies come from another model": dict(served="some/other-model"),
+            "the warm-up request failed": dict(fail_warmup=True),
+        }
+        for label, kw in cases.items():
+            report, _ = self.run_with(delta=2.0, **kw)
+            self.assertTrue(report["fits_frozen_budgets"] or label == "the warm-up request failed", label)
+            self.assertFalse(report["qualifies"], label)
+            self.assertTrue(report["problems"], label)
+            self.assertIn("does NOT qualify", report["verdict"], label)
+
+    def test_the_model_is_verified_before_and_after_the_warm_up_and_recorded(self):
+        calls = []
+
+        def check():
+            calls.append(1)
+            return verification()
+        report, _ = self.run_with(delta=2.0, repetitions=1, check=check)
+        self.assertEqual(len(calls), 2)
+        mv = report["model_verification"]
+        self.assertTrue(mv["before_warmup_ok"] and mv["file_hash_verified"] and mv["served_id_in_replies"])
+        self.assertEqual(mv["loaded_context_length"], 4096)
+
+    def test_the_default_verification_checks_the_real_file_in_the_folder_given(self):
+        from unittest.mock import patch
+        from planner_experiment import benchmark as b
+        ticker = Ticker()
+        with patch.object(b.model_manifest, "verify", return_value=verification()) as v:
+            run_benchmark(self.cases, self.out, 1, client=FakeModel(ticker, 1.0), ctx_factory=ctx_factory, clock=ticker, models_dir="D:/models")
+        for call in v.call_args_list:
+            self.assertEqual(str(call.kwargs["models_dir"]).replace("\\", "/"), "D:/models")
+            self.assertTrue(call.kwargs["check_file"])
+
+    def test_one_pair_of_executors_serves_the_whole_benchmark_and_is_closed_after(self):
+        from unittest.mock import patch
+        from planner_experiment import benchmark as b
+        made = []
+
+        class Spy(b.BoundedExecutor):
+            def __init__(self, *a, **k):
+                super().__init__(*a, **k)
+                made.append(self)
+        with patch.object(b, "BoundedExecutor", Spy):
+            self.run_with(delta=1.0, repetitions=3)
+        self.assertEqual(len(made), 2)                                        # not one pair per run
+        self.assertTrue(all(e.closed for e in made))
 
     def test_the_declared_warm_up_is_reported_and_kept_out_of_the_statistics(self):
         report, model = self.run_with(delta=2.0)
@@ -118,11 +181,16 @@ class BenchmarkTests(unittest.TestCase):
         cases_file = pathlib.Path(tempfile.mkdtemp()) / "cases.json"
         cases_file.write_text(json.dumps(self.cases), encoding="utf-8")
         report_file = cases_file.with_name("report.json")
-        slow = {"fits_frozen_budgets": False, "verdict": "no", "environment": {}, "warmup": {}, "runs": 0, "p95_call_seconds": 99, "p95_run_seconds": 99}
+        slow = {"fits_frozen_budgets": False, "qualifies": False, "verdict": "no", "environment": {}, "warmup": {}, "runs": 0, "p95_call_seconds": 99, "p95_run_seconds": 99}
         with patch.object(benchmark, "run_benchmark", return_value=slow):
             code = cli.main(["benchmark-model", "--cases", str(cases_file), "--recording", str(self.out), "--out", str(report_file)])
         self.assertEqual(code, 3)
         self.assertEqual(json.loads(report_file.read_text(encoding="utf-8"))["fits_frozen_budgets"], False)
+        fast_but_wrong_model = {**slow, "fits_frozen_budgets": True}                            # fast, yet the model was not the frozen one
+        with patch.object(benchmark, "run_benchmark", return_value=fast_but_wrong_model):
+            self.assertEqual(cli.main(["benchmark-model", "--cases", str(cases_file), "--recording", str(self.out)]), 3)
+        with patch.object(benchmark, "run_benchmark", return_value={**slow, "fits_frozen_budgets": True, "qualifies": True}):
+            self.assertEqual(cli.main(["benchmark-model", "--cases", str(cases_file), "--recording", str(self.out)]), 0)
 
 
 if __name__ == "__main__":

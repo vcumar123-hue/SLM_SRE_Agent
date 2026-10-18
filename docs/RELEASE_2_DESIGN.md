@@ -1309,3 +1309,14 @@ capture of exactly the cases given).
 nearly every run; the decision rule's p95 latency condition cannot be met. Even with unlimited time, only 5 of 30 replies were usable under the grounding rules. Per the review, the hidden 50 are not to be
 drawn merely to reconfirm this. If faster inference is used, the same model file, prompts, inference settings and budgets must be kept and the execution environment recorded with a new benchmark report
 (`benchmark-model` on that machine, which also takes its own declared warm-up).
+
+**20.18 follow-up (review, 2026-10-17): the benchmark now verifies the model it measures, and reuses its executors.**
+* *Actual model verified.* `benchmark-model` verifies before and after the declared warm-up: the server serves the manifest's model (publisher, architecture, quantisation), the GGUF file has the
+  manifest's size and SHA-256 (`--models-dir` names LM Studio's models folder on that machine), the loaded context is at least the 4,096-token prompt budget, and every reply names the manifest's
+  served id. Any failure, an unverified file, a failed warm-up or an incomplete manifest means `qualifies: false` whatever the speed, and the exit code is 3 (0 only when the machine qualifies).
+  The report records the verification. On the development machine the GGUF verifies (size 2,489,757,856 bytes, SHA-256 `be49949e...`), so the earlier 30-request measurement was of the frozen file.
+* *Executors.* One planner executor and one model executor serve the whole benchmark and are closed afterwards (previously a pair per run, leaving idle workers behind); a test counts them.
+* *Owner amendment, if `rules_only` is chosen without the hidden-50 experiment.* Draft wording for the owner to adopt or amend (not yet decided): "Model assistance was rejected at the pre-experiment
+  feasibility gate: on the available hardware the frozen model cannot meet the frozen call and run budgets (benchmark of 2026-10-17, section 20.18). R2-2 proceeds with deterministic `rules_only`.
+  `rules_then_model` and `model` remain experimental code; no claim is made that they passed the trajectory experiment. No hidden ticket was drawn or exposed." The hidden-50 draw, capture,
+  annotation and run would then not be performed for this release; the 100-ticket acceptance evaluation (R2-3) applies to `rules_only`.

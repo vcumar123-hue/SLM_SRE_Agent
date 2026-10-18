@@ -124,6 +124,7 @@ def main(argv=None) -> int:
     bm.add_argument("--recording", required=True, help="the development recording")
     bm.add_argument("--repetitions", type=int, default=2)
     bm.add_argument("--out", default=None, help="write the report here (keep it with the freeze records)")
+    bm.add_argument("--models-dir", default=None, help="LM Studio's models folder on this machine (default ~/.lmstudio/models); the GGUF's SHA-256 is verified there")
     ce = sub.add_parser("capture-experiment")
     ce.add_argument("--round", type=int, required=True)
     ce.add_argument("--out", required=True, help="a file outside the repository")
@@ -218,12 +219,12 @@ def main(argv=None) -> int:
                               "items_removed_as_held_out": dropped, "recording_sha256": manifest["recording_sha256"]}, indent=1))
         elif args.cmd == "benchmark-model":
             from planner_experiment import benchmark
-            report = benchmark.run_benchmark(json.loads(Path(args.cases).read_text(encoding="utf-8")), Path(args.recording), args.repetitions)
+            report = benchmark.run_benchmark(json.loads(Path(args.cases).read_text(encoding="utf-8")), Path(args.recording), args.repetitions, models_dir=args.models_dir)
             if args.out:
                 Path(args.out).write_text(json.dumps(report, indent=1, sort_keys=True), encoding="utf-8")
-            summary = {k: report[k] for k in ("environment", "warmup", "runs", "p95_call_seconds", "p95_run_seconds", "fits_frozen_budgets", "verdict")}
+            summary = {k: report[k] for k in ("environment", "warmup", "runs", "p95_call_seconds", "p95_run_seconds", "fits_frozen_budgets", "qualifies", "verdict")}
             print(json.dumps(summary, indent=1))
-            return 0 if report["fits_frozen_budgets"] else 3
+            return 0 if report["qualifies"] else 3
         elif args.cmd == "build-cases":
             cases = steps.build_cases(steps.round_paths(base, args.round)["selection"], load_tickets(steps.reviewer_names(base)))
             Path(args.out).write_text(json.dumps(cases, indent=1), encoding="utf-8")
