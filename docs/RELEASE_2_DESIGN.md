@@ -1324,3 +1324,36 @@ drawn merely to reconfirm this. If faster inference is used, the same model file
 **20.18 follow-up 2 (review, 2026-10-17).** Qualification is now all-or-nothing on the checks that matter: any failed model request disqualifies a machine (the successful requests' speed cannot hide
 it), and both the pre-warm-up and post-warm-up model verifications must pass (neither is merely informational). Tests: one failed request among fast ones, every request failing, a failure
 in either verification. The development machine's 30-request benchmark is not to be rerun; its speed failure stands.
+
+---
+
+## 21. Owner amendment: Release 2 ships `rules_only` (2026-10-17)
+
+**Recorded decision.** On 2026-10-17 the project owner, after the reviewer's recommendation, instructed the implementation to proceed on the `rules_only` path ("review the recommendations, proceed accordingly",
+following the reviewer's recommended direction: *I approve the owner amendment in Release 2 design section 20.18. Proceed with deterministic `rules_only` for R2-2. Skip the hidden-50 planner-selection
+experiment for this release. Keep `rules_then_model` and `model` as experimental code only. Implement R2-2 with mode `off` by default, prove off-mode parity, and prepare shadow validation and the separate R2-3
+acceptance evaluation. No tenant may enter `shadow` or `on` without a separate recorded decision, and `on` remains blocked until R2-3 passes.*). If this was not the owner's intent, the owner should say so and
+this section is withdrawn; nothing below has been exposed or drawn that cannot be undone.
+
+**The amendment.** Model assistance is rejected at the pre-experiment feasibility gate. On the available hardware the frozen model cannot meet the frozen call and run budgets (section 20.18: 0 of 30
+requests within 15 s, p95 82.1 s against the 40 s deadline), and only 5 of 30 replies passed the grounding rules even with the timeouts relaxed. R2-2 proceeds with deterministic `rules_only`.
+`rules_then_model` and `model` remain experimental code; **no claim is made that they passed the trajectory experiment**, and the policy builder refuses to deploy them. No hidden ticket was drawn or exposed.
+
+**Consistency with decision 4 (section 17).** Decision 4 allowed the local model only if the trajectory experiment passed its fixed decision rule, and made `rules_only` the fallback. This amendment takes the
+branch the decision rule already provides when the model does not join; it changes no gate. Decision 4's other clauses (no external planner without per-tenant authorisation) are untouched.
+
+**What is skipped for this release:** the hidden-50 draw, its capture, labelling and the one-shot planner run (the harness, capture command and benchmark remain in the repository, tested, for a future
+experiment on stronger hardware). **What is not skipped:** the separate 100-ticket R2-3 acceptance evaluation, which now applies to `rules_only` and its gates G1-G8 unchanged (section 13.6).
+
+**Frozen configuration.** `agentruntime/release.py` and `docs/baselines/release2/rules_only_release_freeze.json` record the shipped planner, ruleset version, rule constants, budgets and their hard maxima, tool
+versions, the loop's default mode (`off`) and the SHA-256 of every frozen runtime file, the five tools and `planners/rules_only.py`. `python -m agentruntime.release` verifies the code against it and a test fails the
+build on any difference; changing frozen code needs `refreeze` with a reason and the owner's name, and the earlier record is kept in `history`. The R2-2 integration lives in a separate package that wraps this core.
+
+**Sequence from here (each step reviewed before the next):**
+1. record the amendment and the configuration freeze (this section);
+2. R2-2 application integration, loop `off` by default, `on` implemented but unreachable until R2-3 passes, a tested rollback switch;
+3. prove `off` mode identical to the existing system;
+4. controlled `shadow` testing (queued, non-blocking), only after a separate recorded deployment decision;
+5. prepare the separate 100-ticket R2-3 acceptance set and complete reviewer labelling;
+6. run R2-3 once against `rules_only` and evaluate G1-G8;
+7. only after R2-3 passes, a recorded pilot decision for one tenant.
