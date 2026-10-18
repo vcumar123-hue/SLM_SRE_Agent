@@ -27,5 +27,11 @@
    "stated_on": "2026-10-18",
    "why_not_accepted": "Sara is a labeler; a labeler must not see the acceptance goldens before the freeze (amendment A-1 requires an approver who is not a labeler)"
   }
+ },
+ "proposed_not_stated": {
+  "note": "The reviewer proposed (not the owner) that Ramanathan be the custodian, the golden approver and the adjudicator, with Vijay and Sara as labelers only. It takes effect only when the owner states it.",
+  "custodian": "Ramanathan",
+  "golden_approver": "Ramanathan",
+  "adjudicator": "Ramanathan"
  }
 }

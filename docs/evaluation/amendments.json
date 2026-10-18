@@ -1,0 +1,21 @@
+{
+ "note": "Methodology amendments for R2-3. An amendment is approved only by an entry carrying the owner's own statement; a withdrawn entry stays on record.",
+ "amendments": [
+  {
+   "id": "A-1",
+   "title": "Content approval of the 20 acceptance-only synthetic goldens by one approver who is not a labeler (per-ticket approval, expected causes and evidence, separate reporting)",
+   "text": "docs/evaluation/R2_3_PROTOCOL.md, section 'Proposed methodology amendment A-1'",
+   "approvals": [
+    {
+     "approver": "Vijay Ramanathan",
+     "statement": "I approve A-1 exactly as written: yes / no- Yes",
+     "recorded_at": "2026-10-18T00:00:00Z",
+     "withdrawn": {
+      "reason": "Withdrawn 2026-10-18 on the reviewer's finding. The answer 'Yes' came with role answers that contradict A-1 (the labelers Vijay and Sara named as custodian and golden approver), and the reviewer does not read it as an explicit approval of A-1 with a valid approver. The owner is asked to restate the approval with the final role assignment in one statement.",
+      "at": "2026-10-18T19:30:00Z"
+     }
+    }
+   ]
+  }
+ ]
+}

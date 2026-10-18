@@ -15,6 +15,7 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
     python -m planner_experiment.cli acceptance-seed --artifact <full commit id>        (R2-3: records the derived acceptance draw seed)
+    python -m planner_experiment.cli roles-check / amendment-approve / amendment-withdraw / freeze-acceptance / verify-acceptance-freeze      (R2-3 governance and freeze)
     python -m planner_experiment.cli draw-acceptance                                    (R2-3: private draw of the 80 real tickets; prints counts and hashes only)
     python -m planner_experiment.cli capture-development --out <recording>          (no key; the 10 development tickets)
     python -m planner_experiment.cli capture-experiment --round 1 --out <file outside the repository>   (key holder only)
@@ -118,6 +119,18 @@ def main(argv=None) -> int:
     rx.add_argument("--record", required=True)
     sa = sub.add_parser("acceptance-seed")
     sa.add_argument("--artifact", required=True, help="a full 40-character commit id fixed before the draw")
+    sub.add_parser("roles-check")
+    ap = sub.add_parser("amendment-approve")
+    ap.add_argument("--id", required=True)
+    ap.add_argument("--by", required=True)
+    ap.add_argument("--statement", required=True, help="the owner's own words, recorded exactly")
+    aw = sub.add_parser("amendment-withdraw")
+    aw.add_argument("--id", required=True)
+    aw.add_argument("--reason", required=True)
+    fa = sub.add_parser("freeze-acceptance")
+    fa.add_argument("--private", default=None, help="the private package folder (default data/acceptance_private)")
+    vf = sub.add_parser("verify-acceptance-freeze")
+    vf.add_argument("--private", default=None)
     da = sub.add_parser("draw-acceptance")
     da.add_argument("--out", default=None, help="a private folder (default data/acceptance_private, git-ignored)")
     cd = sub.add_parser("capture-development")
@@ -212,6 +225,29 @@ def main(argv=None) -> int:
                 print("refused:", exc)
                 return 2
             print(json.dumps({"verdict": out["decision"]["verdict"], "conditions": out["decision"]["conditions"]}, indent=1))
+        elif args.cmd == "roles-check":
+            from planner_experiment import roles as roles_mod
+            record = roles_mod.load()
+            problems = roles_mod.check(record)
+            print(json.dumps({"roles": record["roles"], "problems": problems, "warnings": roles_mod.warnings(record)}, indent=1))
+            return 2 if problems else 0
+        elif args.cmd == "amendment-approve":
+            from planner_experiment import amendments as am
+            am.approve(args.id, args.by, args.statement)
+            print("recorded the approval of", args.id, "by", args.by)
+        elif args.cmd == "amendment-withdraw":
+            from planner_experiment import amendments as am
+            am.withdraw(args.id, args.reason)
+            print("withdrew the standing approval of", args.id)
+        elif args.cmd == "freeze-acceptance":
+            from planner_experiment import acceptance, acceptance_freeze as af
+            record = af.create_freeze(Path(args.private) if args.private else acceptance.PRIVATE_DIR)
+            print(json.dumps({"cases": record["cases"], "package_sha256": record["package_sha256"], "frozen_at": record["frozen_at"]}, indent=1))
+        elif args.cmd == "verify-acceptance-freeze":
+            from planner_experiment import acceptance, acceptance_freeze as af
+            problems = af.verify_freeze(Path(args.private) if args.private else acceptance.PRIVATE_DIR)
+            print("\n".join(problems) if problems else "the acceptance freeze verifies")
+            return 2 if problems else 0
         elif args.cmd == "acceptance-seed":
             from planner_experiment import seed as seed_mod
             record = seed_mod.write_record(ROOT / "docs" / "baselines" / "release2" / "seed_acceptance.json", args.artifact, "acceptance-selection")

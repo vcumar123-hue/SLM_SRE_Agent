@@ -37,7 +37,7 @@ A-1's approval therefore stands, but its single approver is not yet validly name
 | 4 | Calibration work finishes (grounding constants stay at weight 0; blinding-check layout; agreement subset) | owner decision 2026-10-18: **run as designed**; materials to build (review layout, calibration set); then Vijay and Sara label calibration tickets only |
 | 5 | Privately draw the 80 real tickets (40 PYPL, 40 PFG): acceptance buckets 40-79, incident-only, one per cluster, type cap 20%, seed fixed beforehand | **tool built and tested** (`planner_experiment/acceptance.py`, `cli draw-acceptance`); seed recorded (`docs/baselines/release2/seed_acceptance.json`, artifact = the tool's commit `e363d99`); **not run**: the draw is automated (owner decision) but needs a named human custodian who is not a labelling reviewer, and it runs on the controlled machine, not in the developer session |
 | 6 | Build the leave-cluster-out capture for the 100 (held-out tickets and clusters removed from what the tools return) | reuses `planner_experiment.capture` / `exclusion`; acceptance wiring to build |
-| 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | analysis code **built and tested** (`planner_experiment/evaluate_release2.py`: 13.5 scoring table, G1-G8, paired bootstrap, sensitivity analysis, 15% rule, the result record the gate reads; 26 synthetic-fixture tests); batch runner, review layout and freeze script to build (see "Design notes for the remaining tooling") |
+| 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | analysis code **built and tested** (`planner_experiment/evaluate_release2.py`: 13.5 scoring table, G1-G8, paired bootstrap, sensitivity analysis, 15% rule, the result record the gate reads; 26 synthetic-fixture tests); **batch runner** (`batch_runner.py`: retrieval-boundary exclusion on the tools and the pipeline, sequential batch mode, infrastructure re-run rule), **blinded review layout** (`review_layout.py`), **freeze command** (`acceptance_freeze.py`, `cli freeze-acceptance`) and **run-once command** (`acceptance_run.py`) built and tested on synthetic fixtures (35 tests); still to build: the live arm-composition executor (baseline pipeline + loop, reconcile) and the calibration materials |
 | 8 | **Freeze and hash** (13.9): gates and rubric (this protocol and design 13.4-13.6), acceptance id list and draw script, analysis code, batch runner and configuration, versions (`rules_only` release freeze) | after 2-7 |
 | 9 | Reveal the blinded package to Vijay and Sara; independent labels (classification and alternatives, root cause, determinable / not determinable / indeterminate), recorded **before** any system output is shown | after 8 |
 | 10 | Ramanthan adjudicates disagreements | after 9 |
@@ -53,9 +53,9 @@ A-1's approval therefore stands, but its single approver is not yet validly name
 | Acceptance id list and the seeded draw script | `docs/evaluation/acceptance_ids.json`, `planner_experiment/acceptance.py`, `docs/baselines/release2/seed_acceptance.json` | script and seed built; ids exist after the draw |
 | Acceptance golden file (hash only is committed) | `data/acceptance_private/acceptance_golden_tickets.json` | after step 3 |
 | Analysis code | `planner_experiment/evaluate_release2.py` (the design's `tools/evaluate_release2.py`, kept with the other evaluation code) | built |
-| Batch runner and configuration | `tools/batch_runner.py`, `config/agent_runtime.json` | to build |
+| Batch runner and configuration | `planner_experiment/batch_runner.py`, `planner_experiment/acceptance_run.py`, `config/agent_runtime.json` | built |
 | Versions (rule table, tools, budgets, runtime) | `docs/baselines/release2/rules_only_release_freeze.json` | exists |
-| Blinded review layout | `tools/review_layout.py` | to build |
+| Blinded review layout | `planner_experiment/review_layout.py` | built |
 
 ## Design notes for the remaining tooling (to be built and tested on synthetic fixtures before the freeze)
 
@@ -80,7 +80,8 @@ Why. Design 13.2 had the two labelling reviewers approve the goldens; that would
 
 * **A-1 (recommended).** The 20 acceptance goldens are drafted by the developer from a written brief (varied infrastructure, application, identity, data and network incidents; no real client text) and checked by the
   tooling (`golden.check_separation`, ticket-type cap, 20 distinct hosts and patterns, no real ticket ids or client names). Then:
-  1. They are approved by **one named content approver** who is not a labelling reviewer, not the adjudicator, not the package custodian and not the author. The reduction from two approvers to one is a recorded deviation.
+  1. They are approved by **one named content approver** who is not a labelling reviewer and not the author of the goldens (the developer). The approver may also be the adjudicator and the package custodian
+     (the relaxed arrangement of 2026-10-18, recorded as a warning). The reduction from two approvers to one is a recorded deviation.
   2. **Approval is recorded per ticket** (`approved_by` and `approved_on` on each of the 20), not once for the batch.
   3. Each ticket carries its **expected causes (1 to 3) and the evidence a correct answer needs**, and the approver reviews those, not just the ticket text, before the freeze. (`golden.parse_acceptance_golden` refuses a ticket without them.)
   4. Results are reported **separately for the real tickets and for the goldens**, and a **sensitivity result excluding all 20 goldens** is included next to the gating result. Neither is gating; they exist so that a pass cannot

@@ -1086,12 +1086,16 @@ class AcceptanceGoldenSeparationTests(unittest.TestCase):
     def test_development_tooling_never_reads_the_acceptance_golden_file(self):
         pattern = re.compile(r"acceptance_golden_tickets|ACCEPTANCE_FILE_NAME")
         offenders = []
+        acceptance_modules = {"golden.py", "acceptance_freeze.py", "acceptance_run.py"}              # the R2-3 freeze and run-once commands, built after the planners were frozen
         for path in (ROOT / "planner_experiment").glob("*.py"):
-            if path.name == "golden.py":
+            if path.name in acceptance_modules:
                 continue
             if pattern.search(path.read_text(encoding="utf-8")):
                 offenders.append(path.name)
         self.assertEqual(offenders, [])
+        importers = [p.name for p in (ROOT / "planner_experiment").glob("*.py") if p.name not in acceptance_modules and p.name != "cli.py"
+                     and re.search(r"acceptance_freeze|acceptance_run", p.read_text(encoding="utf-8"))]
+        self.assertEqual(importers, [], "planner development code must not import the acceptance freeze or run-once modules")
         self.assertFalse((ROOT / "data" / golden.ACCEPTANCE_FILE_NAME).exists())             # not present while planners are developed
 
 
