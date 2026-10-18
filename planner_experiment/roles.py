@@ -8,7 +8,9 @@ The acceptance labels and the package are only trustworthy if the people who hol
   custodian              holds the private acceptance package before the freeze (so cannot be a labeler, who must not see it)
   golden_approver        approves the content of the 20 acceptance-only synthetic tickets (same reason)
 
-No person may hold more than one of these five roles. The owner can sign a record with a name that is also a labeler's, so name similarity alone is never trusted in either direction:
+The incompatible combinations (errors) are the reviewer's minimum separation: the two labelers are different people, and neither labeler is the adjudicator, the custodian or the golden approver
+(a labeler must not see the acceptance set, including its goldens, before the freeze, and the adjudicator must not rule on their own labels). The adjudicator, the custodian and the golden
+approver MAY be the same person or different people; sharing among those three is reported as a warning, not an error. In short: no person may be a labeler and anything else. The owner can sign a record with a name that is also a labeler's, so name similarity alone is never trusted in either direction:
 two names that look alike (a shared word, or a one-or-two letter difference in a word) must be **declared** in the record as the same person or as different people, and a pair that is
 declared the same person is one person. An undeclared look-alike pair, a missing role, or a person holding two roles is an error, and the freeze refuses it.
 """
@@ -21,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ROLES = ("labeler_1", "labeler_2", "adjudicator", "custodian", "golden_approver")
+LABELERS = ("labeler_1", "labeler_2")
 PLACEHOLDERS = {"", "owner", "admin", "test", "tbd", "todo", "none", "n/a", "name", "unknown", "x", "developer", "ai assistant", "claude"}
 ROLES_PATH = Path(__file__).resolve().parent.parent / "docs" / "evaluation" / "roles.json"
 
@@ -98,13 +101,25 @@ def check(record: Dict[str, Any]) -> List[str]:
         elif looks_alike(na, nb) and pair not in declared_diff:
             problems.append(f"{a} ({na}) and {b} ({nb}) look like the same person: declare them in `same_person` or `different_people`")
     for a, b in combinations(sorted(holders), 2):
-        if find(a) == find(b):
+        if find(a) == find(b) and (a in LABELERS or b in LABELERS):
             via = "" if _norm(holders[a]) == _norm(holders[b]) or _pair(holders[a], holders[b]) in declared_same else " (through the declared identities)"
             problems.append(f"{a} and {b} are the same person{via} ({holders[a]} / {holders[b]}); one person cannot hold both roles")
     author = str(record.get("golden_author") or "")
     if _tokens(author) and "golden_approver" in holders and _norm(author) == _norm(holders["golden_approver"]):
         problems.append("the golden approver is also the author of the goldens")
     return problems
+
+
+def warnings(record: Dict[str, Any]) -> List[str]:
+    """Overlaps that are allowed but worth knowing: the adjudicator, the custodian and the golden approver being the same person (by name or by a declared identity)."""
+    roles = record.get("roles") or {}
+    names = {r: str(roles.get(r) or "").strip() for r in ("adjudicator", "custodian", "golden_approver")}
+    same = [_pair(*g[:2]) for g in record.get("same_person", []) if len(g) >= 2]
+    out = []
+    for a, b in combinations(sorted(names), 2):
+        if names[a] and names[b] and (_norm(names[a]) == _norm(names[b]) or _pair(names[a], names[b]) in same):
+            out.append(f"{a} and {b} are the same person ({names[a]}): allowed, but recorded")
+    return out
 
 
 def load(path: Optional[Path] = None) -> Dict[str, Any]:

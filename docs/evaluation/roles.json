@@ -1,5 +1,5 @@
 {
- "note": "Names only. The owner (who signed the Release 2 approval as 'Vijay Ramanathan') has stated that Ramanathan is the adjudicator. Whether the owner, the labeler 'Vijay' and the adjudicator 'Ramanathan' are the same person or different people, the custodian and the golden approver are NOT yet stated; they are left empty or undeclared rather than guessed.",
+ "note": "Names only. Stated by the owner on 2026-10-18: Ramanathan is the adjudicator; Vijay (labeler) and Ramanathan (adjudicator) are different people. NOT stated: whether the owner 'Vijay Ramanathan' is the labeler Vijay, the adjudicator Ramanathan, or a third person. The custodian and golden approver named on 2026-10-18 are labelers, so they are kept under 'stated_but_not_valid' and the roles stay empty until valid holders are named.",
  "roles": {
   "labeler_1": "Vijay",
   "labeler_2": "Sara",
@@ -9,6 +9,23 @@
  },
  "golden_author": "the developer (AI assistant)",
  "same_person": [],
- "different_people": [],
- "owner": "Vijay Ramanathan"
+ "different_people": [
+  [
+   "Vijay",
+   "Ramanathan"
+  ]
+ ],
+ "owner": "Vijay Ramanathan",
+ "stated_but_not_valid": {
+  "custodian": {
+   "name": "Vijay",
+   "stated_on": "2026-10-18",
+   "why_not_accepted": "Vijay is a labeler; a labeler must not hold the acceptance package before the freeze"
+  },
+  "golden_approver": {
+   "name": "Sara",
+   "stated_on": "2026-10-18",
+   "why_not_accepted": "Sara is a labeler; a labeler must not see the acceptance goldens before the freeze (amendment A-1 requires an approver who is not a labeler)"
+  }
+ }
 }

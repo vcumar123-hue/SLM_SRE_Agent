@@ -1458,3 +1458,10 @@ without the embedding-model cache returned empty retrieval in both the loop-off 
   `infra/docker-compose.yml`, `scripts/export_postgres.sh`, `scripts/import_postgres.sh`, `sync_client_rag_to_postgres.py` and `historical_backtest_case_builder.py` before this work, and the script's earlier version (commit `4bcbd82`) repeated it; it is
   a development credential and should be rotated and removed from those files as a separate security task.
 * **R2-3 order (approved methodology, 13.1/13.9):** the acceptance package is frozen and hashed **before** Vijay or Sara sees or labels any acceptance ticket. Build, then freeze, then reveal, then label. See `docs/evaluation/R2_3_PROTOCOL.md`.
+
+### 22.4 R2-3 roles and amendment A-1 (2026-10-18)
+
+The owner approved amendment A-1 as written (per-ticket approval by one approver who is not a labeler, expected causes and required evidence on every golden, real-only / golden-only / excluding-goldens reporting, no golden visible to Vijay or Sara
+before the freeze). Roles are recorded in `docs/evaluation/roles.json` and checked by `planner_experiment/roles.py`: a labeler holds no other role; the two labelers differ; look-alike names must be declared; the adjudicator, custodian and golden approver
+may overlap (a warning). Stated: Ramanathan is the adjudicator; Vijay (labeler) and Ramanathan are different people. The owner named Vijay as custodian and Sara as golden approver; both are labelers, so those answers are recorded as not valid
+and the roles stay empty. The private draw is not run until valid holders are named. Unstated: whether the owner "Vijay Ramanathan" is Vijay, Ramanathan or a third person.

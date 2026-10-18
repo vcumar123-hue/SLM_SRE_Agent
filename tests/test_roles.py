@@ -22,10 +22,21 @@ class RoleSeparationTests(unittest.TestCase):
         self.assertEqual(roles.check(record()), [])
 
     def test_one_person_cannot_hold_two_roles(self):
-        for role, name in (("adjudicator", "Vijay"), ("custodian", "Sara"), ("golden_approver", "Vijay"), ("custodian", "Tom Okafor"), ("adjudicator", "Priya Nair")):
+        for role, name in (("adjudicator", "Vijay"), ("custodian", "Sara"), ("golden_approver", "Vijay"), ("custodian", "vijay"), ("golden_approver", "Sara"), ("adjudicator", "Sara")):
             r = record()
             r["roles"][role] = name
             self.assertTrue(any("same person" in p for p in roles.check(r)), (role, name))
+        r = record()
+        r["roles"]["labeler_2"] = "Vijay"
+        self.assertTrue(any("labeler_1 and labeler_2" in p for p in roles.check(r)))
+
+    def test_the_adjudicator_the_custodian_and_the_golden_approver_may_be_one_person_with_a_warning(self):
+        r = record()
+        r["roles"].update(custodian="Ramanathan", golden_approver="Ramanathan")
+        self.assertEqual(roles.check(r), [])
+        self.assertEqual(len(roles.warnings(r)), 3)
+        r["roles"].update(custodian="Priya Nair", golden_approver="Tom Okafor")
+        self.assertEqual(roles.warnings(r), [])
 
     def test_the_same_name_in_a_different_spelling_or_case_is_the_same_person(self):
         r = record()
@@ -90,7 +101,10 @@ class RoleSeparationTests(unittest.TestCase):
         self.assertEqual((repo["roles"]["labeler_1"], repo["roles"]["labeler_2"]), ("Vijay", "Sara"))
         self.assertEqual((repo["roles"]["custodian"], repo["roles"]["golden_approver"]), ("", ""))     # not guessed
         self.assertEqual(repo["owner"], "Vijay Ramanathan")
-        self.assertTrue(roles.check(repo), "until the owner names the custodian and the approver and declares who is who, the roles are not separated")
+        self.assertTrue(roles.check(repo), "until valid holders are named and the identities declared, the roles are not separated")
+        self.assertIn(["Vijay", "Ramanathan"], repo["different_people"])                               # stated by the owner 2026-10-18
+        self.assertEqual(repo["stated_but_not_valid"]["custodian"]["name"], "Vijay")                   # recorded as stated, not accepted: a labeler cannot be the custodian
+        self.assertEqual(repo["stated_but_not_valid"]["golden_approver"]["name"], "Sara")
 
 
 class GoldenReportingTests(unittest.TestCase):

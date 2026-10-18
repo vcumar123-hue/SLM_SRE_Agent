@@ -11,7 +11,7 @@ Until the freeze record exists the acceptance tickets (the 80 real ones **and** 
 
 ## Roles (recorded in `docs/evaluation/roles.json`, enforced by `planner_experiment/roles.py`)
 
-No person may hold more than one of these five roles, and look-alike names must be declared as the same person or different people (never guessed):
+A labeler may hold no other role, the two labelers are different people, and look-alike names must be declared as the same person or different people (never guessed). The adjudicator, custodian and golden approver may be one person or several (an overlap among those three is recorded as a warning):
 
 | Role | Holder | State |
 |---|---|---|
@@ -21,8 +21,10 @@ No person may hold more than one of these five roles, and look-alike names must 
 | Golden approver (A-1) | *not yet named* | must not be a labeler, the adjudicator, the custodian or the author of the goldens (the developer) |
 | Owner / approver of Release 2 | Vijay Ramanathan | signed the R2-2 approval |
 
-**Unresolved:** whether "Vijay Ramanathan" (owner), "Vijay" (labeler) and "Ramanathan" (adjudicator) are one person or different people. If the owner is the labeler Vijay and also the adjudicator, one person would adjudicate their own labels. The
-role check fails until the record declares who is who and names the custodian and the golden approver, and the freeze script refuses to run while it fails.
+**State after the owner's answers of 2026-10-18.** Stated: Ramanathan is the adjudicator; Vijay (labeler) and Ramanathan (adjudicator) are different people; **amendment A-1 is approved as written by the owner**.
+Not valid: the owner named **Vijay as custodian** and **Sara as golden approver**, but both are labelers, which A-1 and the separation rule forbid (they must not see the acceptance set or its goldens before the freeze). They are recorded in
+`roles.json` under `stated_but_not_valid` and the roles stay empty. Still unstated: whether the owner "Vijay Ramanathan" is the labeler Vijay, the adjudicator Ramanathan or a third person.
+A-1's approval therefore stands, but its single approver is not yet validly named.
 
 ## Sequence
 
@@ -87,13 +89,10 @@ Why. Design 13.2 had the two labelling reviewers approve the goldens; that would
 * A-2. Replace the 20 synthetic tickets with 20 further real tickets (50 PYPL, 50 PFG): no content approval is needed, but the 80/20 composition of design 13.2 changes and the acceptance set is then all client data.
 * A-3. Keep the two-reviewer approval of the goldens but have **different** people label the acceptance set: not viable with the reviewers named.
 
-## Needed from the owner now (answer in this form)
+## Needed from the owner now
 
-```
-Vijay (labeler), Ramanathan (adjudicator) and Vijay Ramanathan (owner) are: all different people / <say which are the same person>
-Acceptance-package custodian:
-A-1 golden approver:
-I approve A-1 exactly as written: yes / no
-```
+1. Name a custodian and a golden approver who are **not** Vijay or Sara. The adjudicator (Ramanathan) may hold either or both, if the owner is content with that overlap; otherwise name others.
+2. Say whether the owner "Vijay Ramanathan" is Vijay, Ramanathan, or a third person.
+3. If the owner prefers that Vijay or Sara hold these roles, the alternative is to appoint different labelers; the labelers cannot also be the custodian or the golden approver.
 
-If the owner is the labeler Vijay, a different adjudicator (or a different second labeler) is needed. Nothing is drawn until this record passes `roles.check` and A-1 is approved.
+Nothing is drawn until `roles.check` passes.
