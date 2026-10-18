@@ -11,7 +11,7 @@ subset and its official recording (never the hidden set):
     are never changed anywhere else.
 
 Before it can say a machine *qualifies* it verifies the actual model: the server must serve the manifest's model (publisher, architecture, quantisation), the GGUF file must
-have the manifest's size and SHA-256, the loaded context must be at least the prompt budget, and every reply must come from the manifest's served id. A speed result for a
+have the manifest's size and SHA-256, the loaded context must be at least the prompt budget, and every reply must come from the manifest's served id, and no model request may fail. Both verifications (before and after the warm-up) must pass. A speed result for a
 different model file would be meaningless for the frozen configuration, so any failed check means "does not qualify" whatever the speed.
 
 The report records the execution environment, the model verification, the manifest hash and the prompt hashes, so a run on faster hardware is recorded as such while the
@@ -151,8 +151,16 @@ def run_benchmark(cases: List[Dict[str, Any]], recording_path, repetitions: int,
         problems.append(f"the loaded context length ({context}) is below the {model_manifest.INFERENCE['prompt_budget_tokens']}-token prompt budget")
     if wrong_model:
         problems.append(f"replies came from a model other than {served}: {wrong_model}")
+    if not verification_before.get("ok"):
+        failed_before = "; ".join(f"{c['check']} ({c['detail']})" for c in verification_before.get("checks", []) if not c.get("ok"))
+        problems.append("the model verification before the warm-up failed: " + (failed_before or "no checks ran"))
     if warm_error:
         problems.append("the warm-up request failed: " + warm_error)
+    failed_requests = [c for c in timed.calls if not c["ok"]]
+    if failed_requests:
+        kinds = sorted({str(c["error"]) for c in failed_requests})
+        problems.append(f"{len(failed_requests)} of {len(timed.calls)} model requests failed ({', '.join(kinds)}): a machine whose requests fail does not qualify, "
+                        f"whatever the speed of the ones that succeeded")
     if model_manifest.incomplete():
         problems.append("the model manifest is incomplete")
     qualifies = fits and not problems

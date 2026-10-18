@@ -100,6 +100,36 @@ class BenchmarkTests(unittest.TestCase):
             self.assertTrue(report["problems"], label)
             self.assertIn("does NOT qualify", report["verdict"], label)
 
+    def test_a_failed_model_request_disqualifies_however_fast_the_others_were(self):
+        class OneFails(FakeModel):
+            def complete(self, system, user, name, schema, max_tokens, timeout_s, cancel=None):
+                if name != "warmup" and not getattr(self, "failed_once", False):
+                    self.failed_once = True
+                    self.ticker.now += 1.0
+                    raise ModelUnavailable("connection reset")
+                return super().complete(system, user, name, schema, max_tokens, timeout_s, cancel)
+        ticker = Ticker()
+        report = run_benchmark(self.cases, self.out, 2, client=OneFails(ticker, 2.0), ctx_factory=ctx_factory, clock=ticker, verify=verification)
+        self.assertEqual(report["model_requests"]["failed"], 1)
+        self.assertTrue(report["fits_frozen_budgets"])                                  # the successful requests were fast...
+        self.assertFalse(report["qualifies"])                                             # ...and still the machine does not qualify
+        self.assertTrue(any("model requests failed" in p and "ModelUnavailable" in p for p in report["problems"]))
+        self.assertIn("does NOT qualify", report["verdict"])
+
+    def test_every_request_failing_does_not_qualify_and_no_failure_is_not_hidden_by_the_statistics(self):
+        report, _ = self.run_with(delta=1.0, fail=True)
+        self.assertFalse(report["qualifies"])
+        self.assertEqual(report["model_requests"]["failed"], report["model_requests"]["count"])
+
+    def test_both_verifications_must_pass_not_only_the_one_after_the_warm_up(self):
+        results = iter([verification(ok=False), verification()])                        # fails before the warm-up, passes after
+        report, _ = self.run_with(delta=2.0, repetitions=1, check=lambda: next(results))
+        self.assertFalse(report["qualifies"])
+        self.assertTrue(any("before the warm-up" in p for p in report["problems"]))
+        results = iter([verification(), verification(file_ok=False)])                   # passes before, fails after
+        report, _ = self.run_with(delta=2.0, repetitions=1, check=lambda: next(results))
+        self.assertFalse(report["qualifies"])
+
     def test_the_model_is_verified_before_and_after_the_warm_up_and_recorded(self):
         calls = []
 

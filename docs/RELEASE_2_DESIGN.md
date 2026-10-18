@@ -1320,3 +1320,7 @@ drawn merely to reconfirm this. If faster inference is used, the same model file
   feasibility gate: on the available hardware the frozen model cannot meet the frozen call and run budgets (benchmark of 2026-10-17, section 20.18). R2-2 proceeds with deterministic `rules_only`.
   `rules_then_model` and `model` remain experimental code; no claim is made that they passed the trajectory experiment. No hidden ticket was drawn or exposed." The hidden-50 draw, capture,
   annotation and run would then not be performed for this release; the 100-ticket acceptance evaluation (R2-3) applies to `rules_only`.
+
+**20.18 follow-up 2 (review, 2026-10-17).** Qualification is now all-or-nothing on the checks that matter: any failed model request disqualifies a machine (the successful requests' speed cannot hide
+it), and both the pre-warm-up and post-warm-up model verifications must pass (neither is merely informational). Tests: one failed request among fast ones, every request failing, a failure
+in either verification. The development machine's 30-request benchmark is not to be rerun; its speed failure stands.
