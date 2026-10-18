@@ -109,6 +109,28 @@ class GateTests(Quiet):
         self.assertEqual(gate.effective_mode(None, env_value="shadow", decisions_path=self.dir / "nope.json")[0], "off")
 
 
+class RecordedDecisionsTests(unittest.TestCase):
+    def test_the_repository_has_no_active_deployment_decision_a_completed_test_decision_is_history_only(self):
+        active = gate.read_decisions()
+        self.assertEqual(active, {}, "a test decision must not stay active; move it to 'ended' with the reason")
+        raw = json.loads(gate.DECISIONS_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(raw["decisions"], [])
+        for entry in raw.get("ended", []):
+            self.assertTrue(entry.get("ended_on") and entry.get("ended_because"))
+
+    def test_an_ended_entry_enables_nothing(self):
+        d = pathlib.Path(tempfile.mkdtemp()) / "d.json"
+        d.write_text(json.dumps({"decisions": [], "ended": [valid_decision("client_c")]}), encoding="utf-8")
+        self.assertEqual(gate.read_decisions(d), {})
+
+
+class NoSecretsInTheRepositoryScriptsTests(unittest.TestCase):
+    def test_the_controlled_shadow_test_script_holds_no_default_password(self):
+        text = (pathlib.Path(__file__).resolve().parent.parent / "scripts" / "controlled_shadow_test.py").read_text(encoding="utf-8")
+        self.assertNotIn("StrongPassword", text)
+        self.assertIn('_required("PG_TEST_PASSWORD")', text)
+
+
 class RollbackTests(Quiet):
     def test_the_environment_kill_switch_forces_off(self):
         self.assertEqual(self.mode()[0], "shadow")

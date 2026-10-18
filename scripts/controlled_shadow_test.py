@@ -4,7 +4,7 @@ The controlled shadow test (Release 2, R2-2). Run it in the container, where the
     python scripts/controlled_shadow_test.py [--tenant client_c] [--ticket "..."]
 
 It uses the REAL confirmed release freeze and the REAL recorded deployment decision (nothing is patched), the real /analyze route of the application and the real
-tools. The only thing redirected is where the run record is written: to the throwaway PostgreSQL in PG_TEST_* (default agent-test-pg on host.docker.internal:5455), so
+tools. The only thing redirected is where the run record is written: to the throwaway PostgreSQL in PG_TEST_HOST/PORT/USER/PASSWORD/DB (the password has no default and must be supplied), so
 that no new table appears in the main database. It checks, on one request in shadow and one with the loop off:
 
   1. the response in shadow equals the response with the loop off (volatile ids aside) and has no `investigation`;
@@ -27,6 +27,13 @@ import time
 sys.path.insert(0, os.getcwd())
 
 VOLATILE = {"request_id", "trace_id", "timestamp", "created_at", "updated_at", "generated_at", "latency_ms", "duration_ms", "elapsed_s", "retrieved_at"}
+
+
+def _required(name: str) -> str:
+    value = os.getenv(name, "")
+    if not value:
+        raise SystemExit(f"{name} must be set in the environment (the throwaway PostgreSQL's password is never kept in the repository)")
+    return value
 
 
 def strip(value):
@@ -72,7 +79,7 @@ def main() -> int:
     # -- run records go to the throwaway PostgreSQL only ------------------------------------------------------------------------------
     import psycopg2
     test_params = dict(host=os.getenv("PG_TEST_HOST", "host.docker.internal"), port=int(os.getenv("PG_TEST_PORT", "5455")), user=os.getenv("PG_TEST_USER", "aiops_user"),
-                       password=os.getenv("PG_TEST_PASSWORD", "StrongPassword123"), dbname=os.getenv("PG_TEST_DB", "agent_test"))
+                       password=_required("PG_TEST_PASSWORD"), dbname=os.getenv("PG_TEST_DB", "agent_test"))
 
     def test_connect():
         return psycopg2.connect(**test_params)

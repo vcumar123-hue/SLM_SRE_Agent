@@ -1446,3 +1446,15 @@ the gate resolved `client_c` to shadow and another tenant to off; the freeze rep
 one run was stored (mode shadow, frozen `rules-1`, no model) as ciphertext, decrypting for `client_c` and not for another tenant; after the rollback switch a further request queued and stored nothing.
 The investigation on the test ticket made two tool calls (host history: none; knowledge-base search: five items) and ended `escalated_insufficient` with one weak recurrence hypothesis, as the dev-subset results predicted. A first attempt in a container
 without the embedding-model cache returned empty retrieval in both the loop-off and shadow requests (the application's offline setting); it was rerun with the model reachable. `on` remains blocked until R2-3 passes G1-G8.
+
+### 22.3 Governance corrections (review 2026-10-18)
+
+* **Approval withdrawn.** The approval recorded in 22.1/22.2 was inferred from "review and confirm, approve as release 2 owner" and the reviewer's proposed wording; the owner had not stated it themselves. It is withdrawn
+  (`release.withdraw_approval`): the entry stays in `approval_history` marked withdrawn with the reason, `approval_confirmed` is false and no approver is named, and the gate keeps the loop off. The owner must state the approval
+  (`release.confirm_approval(name, statement)` records exactly what they write). Until then R2-2 is not complete and R2-3 may not begin.
+* **The `client_c` shadow decision has ended.** The controlled shadow test is complete (18 of 18 checks; accepted by the reviewer as technical evidence). The entry moved from `decisions` to `ended` with its end date and reason; no tenant has an
+  active decision. A test asserts the repository holds none.
+* **No default database password in the new script.** `scripts/controlled_shadow_test.py` now requires `PG_TEST_PASSWORD` in the environment. The development default `StrongPassword123` was already present in `postgres_store.py`,
+  `infra/docker-compose.yml`, `scripts/export_postgres.sh`, `scripts/import_postgres.sh`, `sync_client_rag_to_postgres.py` and `historical_backtest_case_builder.py` before this work, and the script's earlier version (commit `4bcbd82`) repeated it; it is
+  a development credential and should be rotated and removed from those files as a separate security task.
+* **R2-3 order (approved methodology, 13.1/13.9):** the acceptance package is frozen and hashed **before** Vijay or Sara sees or labels any acceptance ticket. Build, then freeze, then reveal, then label. See `docs/evaluation/R2_3_PROTOCOL.md`.

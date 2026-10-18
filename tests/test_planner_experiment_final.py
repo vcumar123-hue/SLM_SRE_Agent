@@ -1019,15 +1019,20 @@ class ReviewerCapacityTests(unittest.TestCase):
 
 
 class AcceptanceGoldenSeparationTests(unittest.TestCase):
-    """The acceptance set's own 20% golden component (design 13.2) is separate from the calibration goldens used in development."""
+    """The acceptance set's own 20% golden component (design 13.2) is separate from the calibration goldens used in development, and is approved by people who are
+    not the labelling reviewers."""
 
     NAMES = ["Ann", "Bob"]
+    APPROVERS = ["Cy", "Di"]
 
     def acc(self, **kw):
         base = {"ticket_id": "golden-acc-1", "text": "tape library offline on tape77", "host": "tape77", "opened_at": "2026-06-01 10:00:00",
-                "set": "acceptance", "approved_by": ["Ann", "Bob"]}
+                "set": "acceptance", "approved_by": ["Cy", "Di"]}
         base.update(kw)
         return base
+
+    def parse(self, raw, approvers=None):
+        return golden.parse_acceptance_golden(raw, self.NAMES, self.APPROVERS if approvers is None else approvers)
 
     def test_calibration_loading_refuses_acceptance_ids_and_sets(self):
         with self.assertRaisesRegex(golden.GoldenError, "reserved for the acceptance set"):
@@ -1036,22 +1041,30 @@ class AcceptanceGoldenSeparationTests(unittest.TestCase):
             golden.parse_golden([self.acc()], self.NAMES)                    # set 'acceptance' is not calibration
 
     def test_acceptance_goldens_parse_only_in_their_own_form(self):
-        out = golden.parse_acceptance_golden([self.acc(), self.acc(ticket_id="golden-acc-2", host="tape78")], self.NAMES)
+        out = self.parse([self.acc(), self.acc(ticket_id="golden-acc-2", host="tape78")])
         self.assertEqual(len(out), 2)
-        for bad in (self.acc(ticket_id="golden-1"), self.acc(set="calibration"), self.acc(approved_by=["Ann"]), self.acc(approved_by=["Ann", "Eve"]),
+        for bad in (self.acc(ticket_id="golden-1"), self.acc(set="calibration"), self.acc(approved_by=["Cy"]), self.acc(approved_by=["Cy", "Eve"]),
+                    self.acc(approved_by=["Ann", "Bob"]), self.acc(approved_by=["Cy", "Di", "Ann"]), self.acc(approved_by=[]),
                     self.acc(host=""), self.acc(text=" ")):
             with self.assertRaises(golden.GoldenError, msg=bad):
-                golden.parse_acceptance_golden([bad], self.NAMES)
+                self.parse([bad])
         with self.assertRaises(golden.GoldenError):
-            golden.parse_acceptance_golden([self.acc(), self.acc()], self.NAMES)
+            self.parse([self.acc(), self.acc()])
+
+    def test_the_content_approvers_must_be_two_people_who_are_not_the_reviewers(self):
+        for approvers in (["Cy"], ["Cy", "Cy"], ["Cy", "Ann"], ["Bob", "Ann"], [], ["Cy", " "]):
+            with self.assertRaises(golden.GoldenError, msg=approvers):
+                self.parse([self.acc()], approvers)
+        with self.assertRaisesRegex(golden.GoldenError, "must not be the labelling reviewers"):
+            self.parse([self.acc(approved_by=["ann", "Cy"])], ["Ann", "Cy"])
 
     def test_acceptance_goldens_must_be_disjoint_from_calibration_goldens(self):
         calibration = golden.parse_golden(golden_raw(), self.NAMES)
-        clean = golden.parse_acceptance_golden([self.acc()], self.NAMES)
+        clean = self.parse([self.acc()])
         golden.check_separation(calibration, clean)
-        same_text = golden.parse_acceptance_golden([self.acc(text=calibration[0]["text"], host="elsewhere9")], self.NAMES)
-        same_host = golden.parse_acceptance_golden([self.acc(host=calibration[0]["host"])], self.NAMES)
-        similar = golden.parse_acceptance_golden([self.acc(text=calibration[0]["text"].replace("gold0", "gold999"), host="elsewhere9")], self.NAMES)
+        same_text = self.parse([self.acc(text=calibration[0]["text"], host="elsewhere9")])
+        same_host = self.parse([self.acc(host=calibration[0]["host"])])
+        similar = self.parse([self.acc(text=calibration[0]["text"].replace("gold0", "gold999"), host="elsewhere9")])
         for bad in (same_text, same_host, similar):
             with self.assertRaises(golden.GoldenError):
                 golden.check_separation(calibration, bad)

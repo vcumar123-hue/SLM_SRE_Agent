@@ -56,14 +56,20 @@ def parse_golden(raw: List[Dict[str, Any]], reviewers: List[str]) -> List[Dict[s
     return out
 
 
-def parse_acceptance_golden(raw: List[Dict[str, Any]], reviewers: List[str]) -> List[Dict[str, Any]]:
+def parse_acceptance_golden(raw: List[Dict[str, Any]], reviewers: List[str], approvers: List[str]) -> List[Dict[str, Any]]:
     """The acceptance set's separately held golden/synthetic component (design 13.2: 20% of the 100). Used only at the acceptance freeze.
 
-    Acceptance goldens are acceptance-only cases: ids start 'golden-acc-', set is 'acceptance', approved by exactly the two reviewers, and
-    they must be prepared independently of the calibration goldens (see `check_separation`). They are never visible to planner development.
+    Acceptance goldens are acceptance-only cases: ids start 'golden-acc-', set is 'acceptance', and they are prepared independently of the calibration goldens (see
+    `check_separation`) and never visible to planner development. **Their content is approved by two named content approvers who are NOT the two labelling reviewers**
+    (review 2026-10-18): the reviewers label the acceptance set blind, so they must not have seen any part of it, including its synthetic tickets, before the freeze.
     """
     if not reviewers or len({r.lower() for r in reviewers}) != 2:
         raise GoldenError("acceptance golden tickets can only be loaded against the two named reviewers")
+    content_approvers = {str(a).strip().lower() for a in approvers if str(a).strip()}
+    if len(content_approvers) != 2:
+        raise GoldenError("acceptance golden tickets need exactly two named content approvers")
+    if content_approvers & {r.lower() for r in reviewers}:
+        raise GoldenError("the content approvers of the acceptance goldens must not be the labelling reviewers (they must not see the acceptance set before the freeze)")
     out: List[Dict[str, Any]] = []
     seen = set()
     for item in raw:
@@ -73,9 +79,9 @@ def parse_acceptance_golden(raw: List[Dict[str, Any]], reviewers: List[str]) -> 
         seen.add(tid)
         if item.get("set") != "acceptance":
             raise GoldenError(f"{tid}: set must be 'acceptance'")
-        approvers = {str(a).strip().lower() for a in item.get("approved_by") or []}
-        if approvers != {r.lower() for r in reviewers}:
-            raise GoldenError(f"{tid}: must be approved by both named reviewers, and only by them")
+        given = {str(a).strip().lower() for a in item.get("approved_by") or []}
+        if given != content_approvers:
+            raise GoldenError(f"{tid}: must be approved by both named content approvers, and only by them")
         for field in ("text", "host", "opened_at"):
             if not str(item.get(field) or "").strip():
                 raise GoldenError(f"{tid}: '{field}' is required")

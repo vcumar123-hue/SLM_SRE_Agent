@@ -86,3 +86,6 @@ data/planner_dev/
 docs/baselines/planner_experiment/development_selection.json
 docs/baselines/planner_experiment/development_selection_VOID_*.json
 data/planner_dev/
+
+# ── R2-3 acceptance package: private until the freeze record exists (design 13.1); only hashes are committed ──
+data/acceptance_private/

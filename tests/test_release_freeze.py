@@ -155,6 +155,27 @@ class ApprovalTests(unittest.TestCase):
         self.assertIs(record["approval_confirmed"], False)
         self.assertEqual(len(record["approval_history"]), 1)
 
+    def test_an_approval_can_be_withdrawn_it_stays_on_record_and_the_loop_goes_off(self):
+        release.confirm_approval("Ramanthan", "I approve the Release 2 owner amendment in section 21.", self.path)
+        self.assertEqual(release.problems(self.path), [])
+        with self.assertRaises(release.ReleaseError):
+            release.withdraw_approval("  ", self.path)
+        record = release.withdraw_approval("it was inferred, not stated", self.path)
+        self.assertIs(record["approval_confirmed"], False)
+        self.assertEqual(record["approval_history"][0]["withdrawn"]["reason"], "it was inferred, not stated")
+        self.assertEqual(record["approval_history"][0]["approver"], "Ramanthan")                    # the entry is kept, marked, never deleted
+        self.assertTrue(any("not confirmed" in p for p in release.problems(self.path)))
+        release.confirm_approval("Ramanthan", "I approve the Release 2 owner amendment in section 21, in my own words.", self.path)
+        self.assertEqual(release.problems(self.path), [])
+        self.assertEqual(len(release.load(self.path)["approval_history"]), 2)
+
+    def test_confirmed_without_a_live_statement_is_a_problem(self):
+        record = release.load(self.path)
+        record["approval_confirmed"] = True
+        record["approval_history"] = []
+        self.path.write_text(json.dumps(record), encoding="utf-8")
+        self.assertTrue(any("no approval statement" in p for p in release.problems(self.path)))
+
     def test_the_integration_gate_keeps_the_loop_off_until_the_approval_is_confirmed(self):
         from agentruntime.integration import gate
         gate.reset_cache()

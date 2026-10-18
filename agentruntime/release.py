@@ -164,9 +164,28 @@ def approval_problems(record: Dict[str, Any]) -> List[str]:
     out: List[str] = []
     if record.get("approval_confirmed") is not True:
         out.append("the owner's named approval of the release freeze is not confirmed")
+    history = [h for h in record.get("approval_history", []) if not h.get("withdrawn")]
+    if record.get("approval_confirmed") is True and not history:
+        out.append("the freeze is marked confirmed but no approval statement is on record")
     if not str(record.get("approved_by") or "").strip():
         out.append("the release freeze names no approver")
     return out
+
+
+def withdraw_approval(reason: str, path: Optional[Path] = None) -> Dict[str, Any]:
+    """Withdraw a recorded approval (for example one that was inferred rather than stated). The entry stays in `approval_history`, marked withdrawn with the reason; the
+    freeze is unconfirmed again, so the integration gate keeps the loop off, until the owner states their approval (`confirm_approval`)."""
+    p = Path(path) if path else FREEZE_PATH
+    record = load(p)
+    if not str(reason).strip():
+        raise ReleaseError("withdrawing an approval needs a reason")
+    history = record.setdefault("approval_history", [])
+    for entry in history:
+        if not entry.get("withdrawn"):
+            entry["withdrawn"] = {"reason": reason.strip(), "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    record["approval_confirmed"], record["approved_by"] = False, "(not confirmed: awaiting the owner's own statement)"
+    p.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return record
 
 
 def problems(path: Optional[Path] = None) -> List[str]:
