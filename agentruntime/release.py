@@ -8,15 +8,23 @@ Release 2 ships the deterministic `rules_only` planner. This module defines exac
     context, config, crypto, db limits), the five tools, and `planners/rules_only.py`. Their SHA-256 (CRLF read as LF) is recorded;
   * the budgets in force and their hard maxima, the rule constants and the ruleset version, the tool versions.
 
-Deliberately NOT in the frozen core: the experimental model planners (`rules_then_model`, `model`, their prompts and support code), and the R2-2 integration
-package (`agentruntime/integration/`), which wraps the frozen core and is tested on its own. The model planners are not approved for deployment: `policy_for`
-refuses to build a policy for any planner other than the frozen one.
+Also frozen (review 2026-10-17): the whole R2-2 integration package (`agentruntime/integration/`), and, as source fingerprints of the functions and lines that matter, the
+route hooks (`agents/analyze.py`: the /analyze handler and the `_loop_*` helpers), the pipeline call site and helper (`app.py`: `_r2_before_fallback` and every line that
+mentions `_r2_`), and the confidence input (`confidence_engine.py`: `apply_evidence_grounding`, `compute_confidence_score`, `EVIDENCE_GROUNDING_WEIGHT`). Unrelated edits to
+those big files do not move the freeze; any edit to the loop's hooks does.
+
+Deliberately NOT frozen: the experimental model planners (`rules_then_model`, `model`, their prompts and support code). They are not approved for deployment:
+`policy_for` refuses to build a policy for any planner other than the frozen one.
+
+The freeze also records WHO approved it. `approval_confirmed` stays false until the owner has named themselves and said so (`confirm_approval`); `problems()` reports an
+unconfirmed approval and the integration gate resolves the loop to `off` while it does.
 
 `verify()` compares the code on disk with the record and returns the differences; a test makes any difference a failing build. Changing frozen code is
 allowed only by re-freezing with a recorded reason and approver (`refreeze`), which keeps the earlier record in `history`, so a change is always visible.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -49,6 +57,35 @@ def core_paths() -> Dict[str, Path]:
     for path in sorted((base / "tools").glob("*.py")):
         out[f"agentruntime/tools/{path.name}"] = path
     out["agentruntime/planners/rules_only.py"] = base / "planners" / "rules_only.py"
+    for path in sorted((base / "integration").glob("*.py")):
+        out[f"agentruntime/integration/{path.name}"] = path
+    return out
+
+
+# (file, function names) whose source is fingerprinted, and (file, token) whose mentioning lines are fingerprinted
+FUNCTIONS = (("agents/analyze.py", ("analyze", "_loop_scope", "_loop_after", "_loop_background", "_loop_response")),
+             ("app.py", ("_r2_before_fallback",)),
+             ("confidence_engine.py", ("apply_evidence_grounding", "compute_confidence_score")))
+TOKEN_LINES = (("app.py", "_r2_"), ("confidence_engine.py", "EVIDENCE_GROUNDING_WEIGHT"), ("agents/analyze.py", "_loop_"))
+
+
+def _norm_text(data: bytes) -> str:
+    return data.decode("utf-8").replace("\r\n", "\n")
+
+
+def source_fingerprints() -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for rel, names in FUNCTIONS:
+        text = _norm_text((ROOT / rel).read_bytes())
+        found = {}
+        for node in ast.walk(ast.parse(text)):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names:
+                found[node.name] = ast.get_source_segment(text, node) or ""
+        for name in names:
+            out[f"{rel}::{name}"] = hashlib.sha256(found[name].encode("utf-8")).hexdigest() if name in found else "MISSING"
+    for rel, token in TOKEN_LINES:
+        lines = [ln.rstrip() for ln in _norm_text((ROOT / rel).read_bytes()).split("\n") if token in ln]
+        out[f"{rel}::lines-with::{token}"] = hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
     return out
 
 
@@ -63,6 +100,7 @@ def current() -> Dict[str, Any]:
         "budgets": Budgets().model_dump(), "budget_defaults": dict(BUDGET_DEFAULTS), "budget_hard_max": dict(BUDGET_HARD_MAX),
         "tools": {m.NAME: m.VERSION for m in TOOL_MODULES},
         "files": {name: _sha256(path.read_bytes()) for name, path in core_paths().items()},
+        "source_fingerprints": source_fingerprints(),
     }
 
 
@@ -82,11 +120,41 @@ def differences(record: Dict[str, Any], now: Optional[Dict[str, Any]] = None) ->
                 "budget_defaults", "budget_hard_max", "tools"):
         if record.get(key) != now.get(key):
             out.append(f"{key} differs from the record")
-    frozen, live = record.get("files", {}), now["files"]
-    for name in sorted(set(frozen) | set(live)):
-        if frozen.get(name) != live.get(name):
-            out.append(f"{name}: " + ("added" if name not in frozen else "removed" if name not in live else "changed"))
+    for group in ("files", "source_fingerprints"):
+        frozen, live = record.get(group, {}), now[group]
+        for name in sorted(set(frozen) | set(live)):
+            if frozen.get(name) != live.get(name):
+                out.append(f"{name}: " + ("added" if name not in frozen else "removed" if name not in live else "changed"))
     return out
+
+
+def approval_problems(record: Dict[str, Any]) -> List[str]:
+    """The freeze is usable only once the owner has been named and has confirmed it; until then the loop stays off."""
+    out: List[str] = []
+    if record.get("approval_confirmed") is not True:
+        out.append("the owner's named approval of the release freeze is not confirmed")
+    if not str(record.get("approved_by") or "").strip():
+        out.append("the release freeze names no approver")
+    return out
+
+
+def problems(path: Optional[Path] = None) -> List[str]:
+    """Everything that should keep the loop off: code that differs from the record, and an approval that is not confirmed."""
+    record = load(path)
+    return differences(record) + approval_problems(record)
+
+
+def confirm_approval(approver: str, statement: str, path: Optional[Path] = None) -> Dict[str, Any]:
+    """Record that the named owner has explicitly approved the freeze, with their statement. This function records an approval; it cannot make one."""
+    p = Path(path) if path else FREEZE_PATH
+    record = load(p)
+    if not str(approver).strip() or len(str(statement).strip()) < 20:
+        raise ReleaseError("an approval needs the owner's name and their statement")
+    record.setdefault("approval_history", []).append({"approver": approver.strip(), "statement": statement.strip(),
+                                                      "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "for_record_frozen_at": record.get("frozen_at")})
+    record["approved_by"], record["approval_confirmed"] = approver.strip(), True
+    p.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return record
 
 
 def verify(path: Optional[Path] = None) -> List[str]:
@@ -100,7 +168,8 @@ def write_first(reason: str, approved_by: str, path: Optional[Path] = None) -> D
         raise ReleaseError(f"{p} already exists: use refreeze(), which keeps the earlier record")
     if not str(reason).strip() or not str(approved_by).strip():
         raise ReleaseError("a freeze needs a reason and the name of the owner who approved it")
-    record = {**current(), "frozen_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "reason": reason.strip(), "approved_by": approved_by.strip(), "history": []}
+    record = {**current(), "frozen_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "reason": reason.strip(), "approved_by": approved_by.strip(), "approval_confirmed": False, "approval_history": [],
+              "history": []}
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return record
@@ -118,8 +187,8 @@ def refreeze(reason: str, approved_by: str, path: Optional[Path] = None) -> Dict
     entry = {"frozen_at": old.get("frozen_at"), "reason": old.get("reason"), "approved_by": old.get("approved_by"),
              "record_sha256": _sha256(json.dumps({k: v for k, v in old.items() if k != "history"}, sort_keys=True).encode("utf-8")), "superseded_because": reason.strip(),
              "superseded_by": approved_by.strip(), "changes": changed}
-    record = {**current(), "frozen_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "reason": reason.strip(), "approved_by": approved_by.strip(),
-              "history": list(old.get("history", [])) + [entry]}
+    record = {**current(), "frozen_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "reason": reason.strip(), "approved_by": approved_by.strip(), "approval_confirmed": False,
+              "approval_history": list(old.get("approval_history", [])), "history": list(old.get("history", [])) + [entry]}
     p.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return record
 
@@ -140,6 +209,6 @@ def planner_factory(case: Optional[Dict[str, Any]] = None):
 
 if __name__ == "__main__":
     import sys
-    problems = verify()
-    print("\n".join(problems) if problems else "the release freeze matches the code")
-    sys.exit(1 if problems else 0)
+    found = problems()
+    print("\n".join(found) if found else "the release freeze matches the code and its approval is confirmed")
+    sys.exit(1 if found else 0)

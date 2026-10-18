@@ -7,7 +7,8 @@ The mode is the most restrictive of:
     nothing for anyone (owner decision 5). An entry is valid only with a tenant, a mode of shadow or on, the name of who decided, a date and a reference;
   * for `on`, a recorded R2-3 acceptance result in which every gate G1-G8 passed: until it exists `on` resolves to `off` (not to `shadow`: nobody gets a weaker
     mode than they asked for by surprise);
-  * the release freeze: if the frozen runtime/planner/tools/budgets no longer match their record, the loop resolves to `off`;
+  * the release freeze: if the frozen runtime, planner, tools, budgets, integration package, route hooks or confidence input no longer match their record, or the owner's
+    named approval of the freeze has not been confirmed, the loop resolves to `off`;
   * the kill switch (rollback): the environment variable `AIOPS_AGENTIC_RCA_KILL`, or `rollback()` in this process, forces `off` immediately and cancels queued shadow runs.
 Every failure to read or validate any of these is `off`; nothing here raises.
 """
@@ -27,6 +28,7 @@ RELEASE_DIR = ROOT / "docs" / "baselines" / "release2"
 DECISIONS_PATH = RELEASE_DIR / "deployment_decisions.json"
 ACCEPTANCE_PATH = RELEASE_DIR / "r2_3_acceptance_result.json"
 KILL_ENV = "AIOPS_AGENTIC_RCA_KILL"
+ORCHESTRATOR_ENV = "AIOPS_AGENTIC_ORCHESTRATOR_ENABLED"
 ORDER = {"off": 0, "shadow": 1, "on": 2}
 GATES = tuple(f"G{i}" for i in range(1, 9))
 PLACEHOLDERS = {"", "owner", "admin", "test", "tbd", "todo", "none", "n/a", "name", "unknown", "x"}
@@ -111,7 +113,7 @@ def freeze_problems(force: bool = False) -> List[str]:
             return list(_freeze_cache["problems"])
     try:
         from agentruntime import release
-        problems = release.verify()
+        problems = release.problems()
     except Exception as exc:  # noqa: BLE001 - an unreadable record is a problem, not a pass
         problems = [f"the release freeze could not be verified: {exc}"]
     with _lock:
@@ -149,6 +151,8 @@ def effective_mode(tenant_id: Optional[str], *, env_value: Optional[str] = None,
         allowed = decision["mode"] if ORDER[decision["mode"]] <= ORDER[mode] else mode
         if allowed == "on" and not r2_3_passed(acceptance_path):
             return "off", "on is blocked until R2-3 has passed (no recorded acceptance result with every gate passed)"
+        if allowed == "on" and _truthy(os.getenv(ORCHESTRATOR_ENV)):
+            return "off", "the flag-driven agentic orchestrator path has its own fallback and is not integrated, so on stays off while it is enabled"
         if check_freeze:
             problems = freeze_problems()
             if problems:

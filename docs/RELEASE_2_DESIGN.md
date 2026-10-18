@@ -1396,3 +1396,23 @@ Implemented in `agentruntime/integration/` (outside the frozen core, wrapping it
 **Not yet done:** controlled shadow testing against the live database, model-free (the planner is `rules_only`) but needing the container and a recorded decision for a test tenant; the container and PostgreSQL suites; R2-3.
 
 **Tests:** `tests/test_r2_2_integration.py` (47): the gate (defaults, decisions, caps, R2-3 requirement, freeze, encryption, never raising), rollback, engagement, reconciliation, the shadow queue, the hook, the confidence input, and `off` parity through the route.
+
+### 22.1 Review of R2-2 (2026-10-17): four findings fixed, freeze widened, approval left open
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | The integration package, route hook and confidence change were outside the release freeze | The freeze now covers every file of `agentruntime/integration/` and source fingerprints of the `/analyze` handler and its `_loop_*` helpers (`agents/analyze.py`), `_r2_before_fallback` and every line mentioning `_r2_` (`app.py`), and `apply_evidence_grounding`, `compute_confidence_score` and the weight constant (`confidence_engine.py`). Fingerprints are of function source and of the lines that mention the hook, so unrelated edits to those large files do not move the freeze but any edit to the hooks does. Re-frozen (history kept) |
+| 2 | `on` could modify a response when audit persistence failed | The investigation must be **stored before its result is used**: `_execute` returns `(result, stored)`; an unstored run is discarded, the fallback is not replaced, and the response is the deterministic one. Tested with the store path failing |
+| 3 | Shadow execution could begin before the HTTP response was returned | The route no longer queues anything: it attaches a Starlette `BackgroundTask` (`shadow_background`) to the response, and the task decides, builds the trusted context and queues the run only after the body has been sent. Tested through ASGI with the event order `headers, body_sent, queued`. With the loop off no task is attached and the response is built exactly as before |
+| 4 | The investigation ran after the Groq fallback | **Architecture implemented as designed (section 3.2), not amended:** `_analyze_core_legacy` calls `_r2_before_fallback` immediately before `maybe_run_fallback`. A supported, verified, stored run (merged, or recorded as a conflict) replaces the fallback call (`fallback_reason = "replaced_by_investigation"`); anything else leaves the fallback exactly as today. `after_analysis` then applies the stored run to the final response. An AST test pins the call order. The flag-driven agentic orchestrator path has its own fallback and is not integrated: `on` resolves to `off` while `AIOPS_AGENTIC_ORCHESTRATOR_ENABLED` is set |
+
+**Owner approval is not assumed.** The freeze record has `approval_confirmed: false` and no named approver. `release.confirm_approval(name, statement)` records an explicit statement; until then
+`release.problems()` reports it and the integration gate resolves the loop to `off`, so nothing can start under an unconfirmed freeze. The section 21 amendment and the freeze approver need the
+owner's own statement (for example: "I approve the Release 2 owner amendment in section 21 and authorize deterministic `rules_only` for R2-2, skipping the hidden-50 planner experiment for this
+release. The named freeze approver is <name>."). Any later `refreeze` withdraws the confirmation again.
+
+**The two review-sheet templates in history** (commits `e057818`, `78b0a48`): inspected. `golden_tickets_REVIEW.xlsx` holds the 18 synthetic golden tickets (invented hosts such as `tapelib02`,
+no real ticket ids; the same text is in the committed `data/golden_tickets.json`), and `void_notice_REVIEW.xlsx` is process text naming the clients only as PYPL and PFG. Neither contains a real ticket
+id, client record or personal data, so no history rewrite is proposed; the owner may still decide otherwise.
+
+**Gate for the controlled shadow test:** the four fixes above reviewed, the freeze approval confirmed, and the container and PostgreSQL suites passing.

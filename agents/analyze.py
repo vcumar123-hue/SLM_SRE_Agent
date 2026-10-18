@@ -177,7 +177,7 @@ async def analyze(
             tenant_id=tenant_defaults["tenant_id"],
             knowledge_scope=(knowledge_scope or "").strip() or tenant_defaults["knowledge_scope"],
         )
-        with _loop_track():
+        with _loop_scope(request):
             result = _analyze_core(req)
 
         if ocr_operational:
@@ -208,7 +208,7 @@ async def analyze(
             result["incident_description"] = ocr_text if ocr_operational else enriched_ticket
             result["display_ticket"] = ocr_text if ocr_operational else enriched_ticket
         result["trace_id"] = _trace_id
-        return JSONResponse(content=jsonable_encoder(result))
+        return _loop_response(request, req, result)
 
     try:
         payload = await request.json()
@@ -220,7 +220,7 @@ async def analyze(
     except Exception:
         raise HTTPException(status_code=503, detail="analyze_core not available")
     try:
-        with _loop_track():
+        with _loop_scope(request):
             result = _analyze_core(req)
     except HTTPException:
         raise
@@ -230,16 +230,16 @@ async def analyze(
     result = _loop_after(request, req, result)
     try:
         result["trace_id"] = _trace_id
-        return JSONResponse(content=jsonable_encoder(result))
+        return _loop_response(request, req, result)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Analyze serialization failed: {exc}") from exc
 
 
-def _loop_track():
-    """Release 2 (R2-2): counts the analysis as in flight so a queued shadow run waits; a no-op context while the loop is off (the default)."""
+def _loop_scope(http_request):
+    """Release 2 (R2-2): wraps the analysis call. A no-op context while the loop is off (the default); otherwise it remembers the principal and counts the analysis as in flight."""
     try:
-        from agentruntime.integration.hook import track_analysis
-        return track_analysis()
+        from agentruntime.integration.hook import request_scope
+        return request_scope(http_request)
     except Exception:  # noqa: BLE001 - the loop must never affect the analysis
         import contextlib
         return contextlib.nullcontext()
@@ -252,6 +252,24 @@ def _loop_after(http_request, req, result):
         return after_analysis(http_request, req, result)
     except Exception:  # noqa: BLE001
         return result
+
+
+def _loop_background(http_request, req, result):
+    """Release 2 (R2-2): None while the loop is off. In shadow, a background task that Starlette runs only after the response body has been sent."""
+    try:
+        from agentruntime.integration.hook import shadow_background
+        return shadow_background(http_request, req, result)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _loop_response(http_request, req, result):
+    """The /analyze response. With the loop off it is exactly `JSONResponse(content=jsonable_encoder(result))`, as before Release 2."""
+    response = JSONResponse(content=jsonable_encoder(result))
+    task = _loop_background(http_request, req, result)
+    if task is not None:
+        response.background = task
+    return response
 
 
 @router.post("/feedback")

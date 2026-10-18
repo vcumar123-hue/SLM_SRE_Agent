@@ -4962,6 +4962,19 @@ def analyze_core(request: AnalyzeRequest) -> Dict[str, Any]:
     return result
 
 
+def _r2_before_fallback(request, ticket, analysis, primary_confidence, retrieval_quality, retrieved_incidents, linked_resolution, linked_playbook):
+    """Release 2 (R2-2): None unless the investigation loop is `on` for this tenant (never, until R2-3 passes), in which case it may run just before the one-shot
+    fallback and replace it when it is supported. With the loop off this returns None and the pipeline is exactly what it was."""
+    try:
+        from agentruntime.integration.hook import investigate_before_fallback
+        return investigate_before_fallback(
+            request, ticket, analysis, primary_confidence=primary_confidence, retrieval_quality=retrieval_quality, retrieved_incidents=retrieved_incidents,
+            linked_resolution=linked_resolution, linked_playbook=linked_playbook,
+        )
+    except Exception:  # noqa: BLE001 - the loop must never affect the analysis
+        return None
+
+
 def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
     request_id = str(uuid.uuid4())
     ticket = clean_text(request.ticket)
@@ -5151,7 +5164,10 @@ def _analyze_core_legacy(request: AnalyzeRequest) -> Dict[str, Any]:
                 if reason_override is None:
                     reason_override = "no_reusable_knowledge"
 
-            if request.use_fallback:
+            _r2_loop = _r2_before_fallback(request, ticket, analysis, primary_confidence, retrieval_quality, retrieved_incidents, linked_resolution, linked_playbook)
+            if _r2_loop is not None and _r2_loop.replaces_fallback:
+                fallback_reason = "replaced_by_investigation"
+            elif request.use_fallback:
                 (
                     fallback_used,
                     fallback_analysis,

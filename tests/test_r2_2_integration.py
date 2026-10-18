@@ -352,94 +352,195 @@ class HookTests(Quiet):
         a = write_json(self.dir, "a.json", acceptance if acceptance is not None else {})
         return patch.multiple(gate, DECISIONS_PATH=d, ACCEPTANCE_PATH=a, freeze_problems=lambda force=False: [])
 
-    def test_off_returns_the_same_object_and_does_nothing_else(self):
+    def env(self, mode):
+        return patch.dict("os.environ", {runtime_config.MODE_ENV: mode, gate.ORCHESTRATOR_ENV: ""})
+
+    # -- off ---------------------------------------------------------------------------------------------------------------------
+
+    def test_off_every_entry_point_is_inert(self):
         result = response()
-        with patch.object(gate, "effective_mode") as eff, patch.object(engagement, "should_engage") as eng, patch.object(hook, "get_queue") as q:
+        with patch.object(gate, "effective_mode") as eff, patch.object(engagement, "should_engage") as eng, patch.object(hook, "get_queue") as q, \
+                patch.object(hook, "_execute") as ex:
+            with hook.request_scope(self.http):
+                self.assertEqual(IN_FLIGHT.count, 0)                                 # not even counted
             self.assertIs(hook.after_analysis(self.http, self.req, result), result)
-        eff.assert_not_called()
-        eng.assert_not_called()
-        q.assert_not_called()
-        with hook.track_analysis():
-            self.assertEqual(IN_FLIGHT.count, 0)                                     # off: not even counted
+            self.assertIsNone(hook.shadow_background(self.http, self.req, result))
+            self.assertIsNone(hook.investigate_before_fallback(self.req, "t", {}, primary_confidence=0.1, retrieval_quality=0.0, retrieved_incidents=[],
+                                                               linked_resolution=None, linked_playbook=None))
+        for spy in (eff, eng, q, ex):
+            spy.assert_not_called()
 
     def test_off_in_every_misconfigured_state(self):
         for env in ("", "garbage", "OFF", None):
             with patch.dict("os.environ", {runtime_config.MODE_ENV: env or ""}):
                 result = response()
                 self.assertIs(hook.after_analysis(self.http, self.req, result), result)
+                self.assertIsNone(hook.shadow_background(self.http, self.req, result))
 
-    def test_shadow_queues_a_run_and_returns_the_response_untouched(self):
+    # -- shadow: nothing until the response has gone out ----------------------------------------------------------------------------
+
+    def test_shadow_prepares_a_task_but_queues_nothing_until_that_task_is_run(self):
         result = response()
         before = copy.deepcopy(result)
         queue = MagicMock()
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
-            out = hook.after_analysis(self.http, self.req, result)
-        self.assertIs(out, result)
+        with self.env("shadow"), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
+            task = hook.shadow_background(self.http, self.req, result)
+            self.assertIsNotNone(task)
+            queue.submit.assert_not_called()                                         # preparing the task queues nothing
+            self.assertIs(hook.after_analysis(self.http, self.req, result), result)
+            queue.submit.assert_not_called()
+            task.func(*task.args, **task.kwargs)                                     # what Starlette does after the body has been sent
         self.assertEqual(result, before)
         (job,), _ = queue.submit.call_args
         self.assertEqual((job.ctx.tenant_id, job.ctx.mode, job.policy.mode, job.policy.planner, job.task), ("client_x", "shadow", "shadow", "rules_only", {"ticket_text": "disk full on app01"}))
         self.assertIn("confidence_below_threshold", job.reasons)
 
-    def test_no_run_without_an_authenticated_principal_or_without_engagement(self):
+    def test_the_task_decides_late_no_principal_no_engagement_or_a_changed_mode_means_no_run(self):
         queue = MagicMock()
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
+        with self.env("shadow"), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
             self.http.state.principal = None
-            hook.after_analysis(self.http, self.req, response())
+            t = hook.shadow_background(self.http, self.req, response())
+            t.func(*t.args, **t.kwargs)
             self.http.state.principal = MagicMock(id="svc", allows_tenant=lambda t: True)
             confident = response(confidence={"overall_confidence": 0.95, "retrieval_quality": 0.9}, linked_resolution={"id": 1})
-            self.assertIs(hook.after_analysis(self.http, self.req, confident), confident)
+            t = hook.shadow_background(self.http, self.req, confident)
+            t.func(*t.args, **t.kwargs)
+            t = hook.shadow_background(self.http, self.req, response())
+            gate.rollback("between the response and the task")                      # the switch is pulled after the response
+            t.func(*t.args, **t.kwargs)
         queue.submit.assert_not_called()
 
     def test_a_principal_that_may_not_act_for_the_tenant_gets_no_run(self):
         queue = MagicMock()
         self.http.state.principal = MagicMock(id="svc", allows_tenant=lambda t: False)
-        result = response()
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
-            self.assertIs(hook.after_analysis(self.http, self.req, result), result)
+        with self.env("shadow"), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
+            t = hook.shadow_background(self.http, self.req, response())
+            t.func(*t.args, **t.kwargs)
         queue.submit.assert_not_called()
 
+    def test_a_failure_while_queueing_never_escapes_the_task(self):
+        with self.env("shadow"), self.enabled("shadow"), patch.object(hook, "get_queue", side_effect=RuntimeError("no queue")):
+            t = hook.shadow_background(self.http, self.req, response())
+            t.func(*t.args, **t.kwargs)
+
+    # -- on: before the fallback, stored before it is used ------------------------------------------------------------------------------
+
+    def investigate(self, **kw):
+        args = dict(primary_confidence=0.3, retrieval_quality=0.1, retrieved_incidents=[], linked_resolution=None, linked_playbook=None)
+        args.update(kw)
+        analysis = {"classification": "disk_full", "probable_causes": ["disk quota too small"], "escalate": False}
+        with hook.request_scope(self.http):
+            return hook.investigate_before_fallback(self.req, "disk full on app01", analysis, **args)
+
+    def on(self, acceptance=True):
+        return contextlib_stack(self.env("on"), self.enabled("on", passing_acceptance() if acceptance else None))
+
     def test_on_is_blocked_until_r2_3_passes_so_nothing_runs(self):
-        result = response()
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "on"}), self.enabled("on"), patch.object(hook, "_execute") as ex:
-            self.assertIs(hook.after_analysis(self.http, self.req, result), result)
+        with self.env("on"), self.enabled("on"), patch.object(hook, "_execute") as ex:
+            self.assertIsNone(self.investigate())
         ex.assert_not_called()
 
-    def test_on_after_r2_3_runs_in_the_request_and_returns_a_reconciled_copy(self):
+    def test_a_supported_stored_run_replaces_the_fallback_and_is_applied_to_the_response(self):
         result = response()
         before = copy.deepcopy(result)
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "on"}), self.enabled("on", passing_acceptance()), patch.object(hook, "_execute", return_value=run_result()) as ex:
+        with self.on(), patch.object(hook, "_execute", return_value=(run_result(), True)) as ex:
+            with hook.request_scope(self.http):
+                decision = hook.investigate_before_fallback(self.req, "disk full on app01", result["analysis"], primary_confidence=0.3, retrieval_quality=0.1,
+                                                            retrieved_incidents=[], linked_resolution=None, linked_playbook=None)
+                self.assertEqual((decision.outcome, decision.replaces_fallback), ("merged", True))
             out = hook.after_analysis(self.http, self.req, result)
         self.assertEqual(result, before)
         self.assertIsNot(out, result)
         self.assertEqual(out["analysis"]["probable_causes"][0], "log growth on the data volume")
         self.assertEqual(out["investigation"]["status"], "supported")
         ctx, policy = ex.call_args.args[0], ex.call_args.args[1]
-        self.assertEqual((ctx.mode, policy.mode), ("on", "on"))
+        self.assertEqual((ctx.mode, policy.mode, ctx.tenant_id), ("on", "on", "client_x"))
+        with self.on():
+            self.assertIs(hook.after_analysis(self.http, self.req, result), result)           # consumed: applied once only
 
-    def test_any_failure_returns_the_deterministic_response(self):
-        result = response()
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "on"}), self.enabled("on", passing_acceptance()), patch.object(hook, "_execute", side_effect=RuntimeError("db down")):
-            self.assertIs(hook.after_analysis(self.http, self.req, result), result)
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), self.enabled("shadow"), patch.object(engagement, "should_engage", side_effect=RuntimeError("x")):
-            self.assertIs(hook.after_analysis(self.http, self.req, result), result)
-        self.assertEqual(hook.after_analysis(self.http, self.req, "not a dict"), "not a dict")
+    def test_a_conflicting_run_also_replaces_the_fallback_but_overrides_nothing(self):
+        run = run_result(evidence=[item("e1", "memory_pressure"), item("e2", "memory_pressure")])
+        with self.on(), patch.object(hook, "_execute", return_value=(run, True)):
+            with hook.request_scope(self.http):
+                decision = hook.investigate_before_fallback(self.req, "t", {"classification": "disk_full", "probable_causes": []}, primary_confidence=0.3,
+                                                            retrieval_quality=0.1, retrieved_incidents=[], linked_resolution=None, linked_playbook=None)
+                self.assertEqual((decision.outcome, decision.replaces_fallback), ("conflict", True))
+                out = hook.after_analysis(self.http, self.req, response())
+        self.assertEqual(out["analysis"]["classification"], "disk_full")
+        self.assertTrue(out["analysis"]["escalate"])
 
-    def test_the_rollback_switch_stops_everything_at_once(self):
+    def test_a_run_that_is_not_supported_leaves_the_fallback_in_place(self):
+        run = run_result(status="escalated_insufficient", hyps=[Hypothesis(cause="weak", status="weak", evidence=["e1"])])
+        with self.on(), patch.object(hook, "_execute", return_value=(run, True)):
+            with hook.request_scope(self.http):
+                decision = hook.investigate_before_fallback(self.req, "t", {"classification": "disk_full"}, primary_confidence=0.3, retrieval_quality=0.1,
+                                                            retrieved_incidents=[], linked_resolution=None, linked_playbook=None)
+                self.assertEqual((decision.outcome, decision.replaces_fallback), ("kept", False))
+                out = hook.after_analysis(self.http, self.req, response())
+        self.assertEqual(out["analysis"], response()["analysis"])                       # deterministic result as it was
+        self.assertEqual(out["investigation"]["status"], "escalated_insufficient")      # attached for the operator
+
+    def test_a_run_that_cannot_be_stored_is_discarded_and_changes_nothing(self):
         result = response()
-        queue = MagicMock()
-        with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=queue):
-            hook.after_analysis(self.http, self.req, result)
-            self.assertEqual(queue.submit.call_count, 1)
-            gate.rollback("test")
-            self.assertIs(hook.after_analysis(self.http, self.req, result), result)
-            self.assertEqual(queue.submit.call_count, 1)
+        with self.on(), patch.object(hook, "_execute", return_value=(run_result(), False)):
+            with hook.request_scope(self.http):
+                decision = hook.investigate_before_fallback(self.req, "t", result["analysis"], primary_confidence=0.3, retrieval_quality=0.1,
+                                                            retrieved_incidents=[], linked_resolution=None, linked_playbook=None)
+                self.assertIsNone(decision)                                             # the fallback is not replaced
+                self.assertIs(hook.after_analysis(self.http, self.req, result), result)   # and the response is untouched
+
+    def test_persistence_failure_in_the_real_store_path_is_reported_as_not_stored(self):
+        with patch("agentruntime.store.RunStore", side_effect=RuntimeError("database is down")):
+            self.assertFalse(hook._persist(run_result(), {"ticket_text": "t"}, "req1"))
+
+    def test_no_run_without_engagement_or_a_principal_or_when_the_run_raises(self):
+        with self.on(), patch.object(hook, "_execute") as ex:
+            self.assertIsNone(self.investigate(primary_confidence=0.95, retrieval_quality=0.9, linked_resolution={"id": 1}))
+            self.http.state.principal = None
+            self.assertIsNone(self.investigate())
+        ex.assert_not_called()
+        self.http.state.principal = MagicMock(id="svc", allows_tenant=lambda t: True)
+        with self.on(), patch.object(hook, "_execute", side_effect=RuntimeError("db down")):
+            self.assertIsNone(self.investigate())
+
+    def test_the_mode_is_rechecked_when_the_response_is_finished(self):
+        result = response()
+        with self.on(), patch.object(hook, "_execute", return_value=(run_result(), True)):
+            with hook.request_scope(self.http):
+                self.assertIsNotNone(hook.investigate_before_fallback(self.req, "t", result["analysis"], primary_confidence=0.3, retrieval_quality=0.1,
+                                                                      retrieved_incidents=[], linked_resolution=None, linked_playbook=None))
+                gate.rollback("pulled mid-request")
+                self.assertIs(hook.after_analysis(self.http, self.req, result), result)
+
+    def test_on_stays_off_while_the_orchestrator_path_is_enabled(self):
+        with patch.dict("os.environ", {runtime_config.MODE_ENV: "on", gate.ORCHESTRATOR_ENV: "true"}), self.enabled("on", passing_acceptance()):
+            mode, why = gate.effective_mode("client_x")
+        self.assertEqual(mode, "off")
+        self.assertIn("orchestrator", why)
 
     def test_the_hook_only_ever_builds_the_frozen_planner_policy(self):
-        with patch.object(release, "policy_for", wraps=release.policy_for) as pf, patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), self.enabled("shadow"), \
-                patch.object(hook, "get_queue", return_value=MagicMock()):
-            hook.after_analysis(self.http, self.req, response())
+        with patch.object(release, "policy_for", wraps=release.policy_for) as pf, self.env("shadow"), self.enabled("shadow"), patch.object(hook, "get_queue", return_value=MagicMock()):
+            t = hook.shadow_background(self.http, self.req, response())
+            t.func(*t.args, **t.kwargs)
         self.assertEqual(pf.call_args.args[0], "shadow")
         self.assertNotIn("planner", pf.call_args.kwargs)
+
+
+import contextlib
+
+
+def contextlib_stack(*managers):
+    stack = contextlib.ExitStack()
+
+    class _Ctx:
+        def __enter__(self_inner):
+            for m in managers:
+                stack.enter_context(m)
+            return self_inner
+
+        def __exit__(self_inner, *exc):
+            return stack.__exit__(*exc)
+    return _Ctx()
 
 
 class ConfidenceInputTests(unittest.TestCase):
@@ -470,7 +571,7 @@ class ConfidenceInputTests(unittest.TestCase):
 
 
 class OffParityThroughTheRouteTests(unittest.TestCase):
-    """With the loop off the /analyze route returns exactly what it returned before R2-2."""
+    """With the loop off the /analyze route returns exactly what it returned before R2-2; with shadow, nothing starts until the body has been sent."""
 
     @classmethod
     def setUpClass(cls):
@@ -482,9 +583,9 @@ class OffParityThroughTheRouteTests(unittest.TestCase):
         except Exception as exc:                                                       # pragma: no cover - environment without the web stack
             raise unittest.SkipTest(f"the web stack is not importable here: {exc}")
         cls.application, cls.analyze_module = application, analyze_module
-        web = FastAPI()
-        web.include_router(analyze_module.router)
-        cls.client = TestClient(web)
+        cls.web = FastAPI()
+        cls.web.include_router(analyze_module.router)
+        cls.client = TestClient(cls.web)
 
     CANNED = {"request_id": "r1", "ticket": "disk full on app01", "analysis": {"classification": "disk_full", "probable_causes": ["a"], "escalate": False},
               "confidence": {"overall_confidence": 0.3, "retrieval_quality": 0.1}, "tenant_config": {"tenant_id": "client_x"}, "retrieved_incidents": [],
@@ -494,7 +595,8 @@ class OffParityThroughTheRouteTests(unittest.TestCase):
         patches = [patch.object(self.application, "analyze_core", side_effect=lambda req: copy.deepcopy(self.CANNED))]
         if not hook_enabled:
             patches += [patch.object(self.analyze_module, "_loop_after", side_effect=lambda http, req, result: result),
-                        patch.object(self.analyze_module, "_loop_track", side_effect=lambda: __import__("contextlib").nullcontext())]
+                        patch.object(self.analyze_module, "_loop_scope", side_effect=lambda http: __import__("contextlib").nullcontext()),
+                        patch.object(self.analyze_module, "_loop_background", side_effect=lambda http, req, result: None)]
         for p in patches:
             p.start()
         try:
@@ -504,7 +606,7 @@ class OffParityThroughTheRouteTests(unittest.TestCase):
                 p.stop()
         return r
 
-    def test_the_response_is_byte_identical_with_and_without_the_hook_when_off(self):
+    def test_the_response_is_identical_with_and_without_the_hook_when_off(self):
         with patch.dict("os.environ", {runtime_config.MODE_ENV: ""}, clear=False):
             with_hook, without_hook = self.call(True), self.call(False)
         self.assertEqual(with_hook.status_code, 200)
@@ -513,7 +615,7 @@ class OffParityThroughTheRouteTests(unittest.TestCase):
         b.pop("trace_id", None)
         self.assertEqual(a, b)
         self.assertNotIn("investigation", a)
-        self.assertEqual(set(a), set(self.CANNED) | set())
+        self.assertEqual(set(a), set(self.CANNED))
 
     def test_the_hook_is_called_but_stays_inert_when_off(self):
         with patch.dict("os.environ", {runtime_config.MODE_ENV: ""}), patch.object(gate, "effective_mode") as eff, patch.object(hook, "get_queue") as q:
@@ -522,11 +624,94 @@ class OffParityThroughTheRouteTests(unittest.TestCase):
         eff.assert_not_called()
         q.assert_not_called()
 
+    def test_off_attaches_no_background_task_to_the_response(self):
+        with patch.dict("os.environ", {runtime_config.MODE_ENV: ""}):
+            response = self.analyze_module._loop_response(MagicMock(), MagicMock(), copy.deepcopy(self.CANNED))
+        self.assertIsNone(response.background)
+
     def test_a_crash_inside_the_hook_cannot_break_the_route(self):
         with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), patch.object(gate, "global_mode", side_effect=RuntimeError("boom")):
             r = self.call(True)
         self.assertEqual(r.status_code, 200)
         self.assertNotIn("investigation", r.json())
+
+    def test_in_shadow_the_run_is_queued_only_after_the_response_body_has_been_sent(self):
+        import asyncio
+        events = []
+        Quiet.setUp = Quiet.setUp                                                       # (the cipher patch below plays the part of a usable encryption setup)
+
+        def fake_submit(principal, tenant, snapshot):
+            events.append("queued")
+
+        async def drive():
+            body = json.dumps({"ticket": "disk full on app01", "tenant_id": "client_x"}).encode()
+            scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "POST", "scheme": "http", "path": "/analyze", "raw_path": b"/analyze",
+                     "query_string": b"", "root_path": "", "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode()),
+                                                                      (b"host", b"test")], "client": ("127.0.0.1", 1), "server": ("test", 80)}
+            sent = {"done": False}
+
+            async def receive():
+                if sent["done"]:
+                    await asyncio.sleep(3600)
+                sent["done"] = True
+                return {"type": "http.request", "body": body, "more_body": False}
+
+            async def send(message):
+                if message["type"] == "http.response.start":
+                    events.append("headers")
+                elif message["type"] == "http.response.body" and not message.get("more_body"):
+                    events.append("body_sent")
+            await self.web(scope, receive, send)
+
+        with patch.dict("os.environ", {runtime_config.MODE_ENV: "shadow"}), patch.object(runtime_config.crypto, "get_cipher", return_value=KEY_OK), \
+                patch.object(self.application, "analyze_core", side_effect=lambda req: copy.deepcopy(self.CANNED)), patch.object(hook, "_shadow_submit", fake_submit):
+            asyncio.run(drive())
+        self.assertEqual(events, ["headers", "body_sent", "queued"])
+
+
+class PipelineOrderTests(unittest.TestCase):
+    """The investigation runs before the one-shot fallback, and the call sites are exactly where the freeze expects them."""
+
+    def test_the_investigation_call_precedes_the_fallback_call_in_the_legacy_pipeline(self):
+        import ast
+        import pathlib
+        text = (pathlib.Path(__file__).resolve().parent.parent / "app.py").read_text(encoding="utf-8")
+        tree = ast.parse(text)
+        fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "_analyze_core_legacy")
+        calls = [(c.lineno, c.func.id) for c in ast.walk(fn) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name)]
+        loop = [ln for ln, name in calls if name == "_r2_before_fallback"]
+        fallback = [ln for ln, name in calls if name == "maybe_run_fallback"]
+        self.assertEqual((len(loop), len(fallback)), (1, 1))
+        self.assertLess(loop[0], fallback[0])
+
+    def test_the_helper_returns_none_when_off_or_when_the_hook_raises(self):
+        import app as application
+        with patch.dict("os.environ", {runtime_config.MODE_ENV: ""}):
+            self.assertIsNone(application._r2_before_fallback(MagicMock(tenant_id="client_x"), "t", {}, 0.1, 0.0, [], None, None))
+        with patch("agentruntime.integration.hook.investigate_before_fallback", side_effect=RuntimeError("x")):
+            self.assertIsNone(application._r2_before_fallback(MagicMock(), "t", {}, 0.1, 0.0, [], None, None))
+
+    def test_a_replaced_fallback_is_not_called_and_an_unreplaced_one_is(self):
+        import app as application
+        from agentruntime.integration.hook import LoopDecision
+        calls = []
+        base = dict(ticket="Disk full on the db host", use_fallback=True, force_fallback=False, tenant_id="poc_client", top_k=3, confirm_local_matches=None, knowledge_scope="client_private")
+
+        def run(decision):
+            from models import AnalyzeRequest
+            calls.clear()
+            with patch.object(application, "_r2_before_fallback", return_value=decision), \
+                    patch.object(application, "maybe_run_fallback", side_effect=lambda **kw: (calls.append("groq"), (False, None, 0.0, None, None, None, "no"))[1]), \
+                    patch.object(application, "run_hybrid_retrieval", return_value=([], 0.0, 0.0, None, {"tenant_id": "poc_client", "display_name": "x", "knowledge_scope": "client_private"})), \
+                    patch.object(application, "fetch_rag_context", return_value=""), patch.object(application, "persist_confidence_log"):
+                try:
+                    application._analyze_core_legacy(AnalyzeRequest(**base))
+                except Exception:
+                    pass                                                              # the stubbed pipeline need not complete; only whether the fallback was reached matters
+            return list(calls)
+        self.assertEqual(run(None), ["groq"])
+        self.assertEqual(run(LoopDecision(run=None, outcome="kept", replaces_fallback=False)), ["groq"])
+        self.assertEqual(run(LoopDecision(run=None, outcome="merged", replaces_fallback=True)), [])
 
 
 if __name__ == "__main__":

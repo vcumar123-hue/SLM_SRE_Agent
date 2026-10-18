@@ -1,5 +1,7 @@
 {
- "approved_by": "project owner (instruction of 2026-10-17, design section 21)",
+ "approval_confirmed": false,
+ "approval_history": [],
+ "approved_by": "(not yet named: the owner must confirm)",
  "budget_defaults": {
   "deadline_s": 40,
   "max_evidence_items": 20,
@@ -54,6 +56,12 @@
   "agentruntime/db_limits.py": "81d9c4f60a7f338977d4d1c96689eaf0c06fa2fc3f7596d0895af90912b258fa",
   "agentruntime/executor.py": "2317954c682cf2bc86635a8df196053375b00cf3b794ef57fd3d6835dcae321b",
   "agentruntime/gateway.py": "53815d9125a2da5fd6ba971142148d59acea45f702ee8851d3dd5f8cef8e7e83",
+  "agentruntime/integration/__init__.py": "b7199e808170ca1d23b5a336186704c32d6f0b00a69a2cea45de17549f09db5b",
+  "agentruntime/integration/engagement.py": "3d7d31a0982a9ed766c1d30dacb47ce3222f9790853e696066d1bdaaa0349078",
+  "agentruntime/integration/gate.py": "c174010e4affea650859639163ded3892850b5a84ef49685f571da06b3b9f9e7",
+  "agentruntime/integration/hook.py": "8c6906a8ee38d1aaa6275459c727eeb52559cd97fbeb34df43d380724d0e511d",
+  "agentruntime/integration/reconcile.py": "062a4a2ec4cbf799071b65521c0855afe6ce91cc448259a68d038ac4f1e8aec5",
+  "agentruntime/integration/shadow.py": "3e3bffe0f401c39a73222952da289db4926801596b45a34f994dbf637ca3210d",
   "agentruntime/planners/rules_only.py": "1c56077f2318ad86b9ee335144f2e4beb509a36aa0bd8d5afe9c94f0471cfa1d",
   "agentruntime/registry.py": "f18d1cf282e3f0de374374412abac34423d572284a7b6b37d6d1c58641ec015c",
   "agentruntime/replay.py": "ae088d021c1c323a3bf27e1a27eaebbd03d9be4b4701e5c094c24943ab9ae157",
@@ -70,13 +78,41 @@
   "agentruntime/verifier.py": "609992172dde451aab97342d0180c5c7f9bdaddd9013b8c4c3934cdd279c3be0"
  },
  "freeze_version": "1",
- "frozen_at": "2026-10-18T01:45:43Z",
- "history": [],
+ "frozen_at": "2026-10-18T02:15:05Z",
+ "history": [
+  {
+   "approved_by": "project owner (instruction of 2026-10-17, design section 21)",
+   "changes": [
+    "agentruntime/integration/__init__.py: added",
+    "agentruntime/integration/engagement.py: added",
+    "agentruntime/integration/gate.py: added",
+    "agentruntime/integration/hook.py: added",
+    "agentruntime/integration/reconcile.py: added",
+    "agentruntime/integration/shadow.py: added",
+    "agents/analyze.py::_loop_after: added",
+    "agents/analyze.py::_loop_background: added",
+    "agents/analyze.py::_loop_response: added",
+    "agents/analyze.py::_loop_scope: added",
+    "agents/analyze.py::analyze: added",
+    "agents/analyze.py::lines-with::_loop_: added",
+    "app.py::_r2_before_fallback: added",
+    "app.py::lines-with::_r2_: added",
+    "confidence_engine.py::apply_evidence_grounding: added",
+    "confidence_engine.py::compute_confidence_score: added",
+    "confidence_engine.py::lines-with::EVIDENCE_GROUNDING_WEIGHT: added"
+   ],
+   "frozen_at": "2026-10-18T01:45:43Z",
+   "reason": "Release 2 ships rules_only (design section 21): freeze of the shipped planner, tools, runtime, budgets and default mode",
+   "record_sha256": "9651c5ba7d5d0bd606e5a1acbeab48aed3556335223949e68c26b9804c77657a",
+   "superseded_because": "Review 2026-10-17 findings: the integration package, route hooks, pipeline call site and confidence input are now part of the freeze; shadow runs start only after the response is sent; the investigation runs before the fallback; an unstored run is discarded",
+   "superseded_by": "(not yet named: the owner must confirm)"
+  }
+ ],
  "model_id": null,
  "planner": "rules_only",
  "planner_entry": "agentruntime.planners.rules_only:RulesOnlyPlanner",
  "prompt_version": "none",
- "reason": "Release 2 ships rules_only (design section 21): freeze of the shipped planner, tools, runtime, budgets and default mode",
+ "reason": "Review 2026-10-17 findings: the integration package, route hooks, pipeline call site and confidence input are now part of the freeze; shadow runs start only after the response is sent; the investigation runs before the fallback; an unstored run is discarded",
  "rule_constants": {
   "CAUSE_CHARS": 160,
   "CONFLICT_GAP": 0.05,
@@ -87,6 +123,19 @@
   "QUERY_CHARS": 300
  },
  "ruleset_version": "rules-1",
+ "source_fingerprints": {
+  "agents/analyze.py::_loop_after": "e80f970458c84623f6e08e37ba093b831c5763b376f310db7dbf135715f5406b",
+  "agents/analyze.py::_loop_background": "e7d2b7eaef9afcb6f53dc3596f92e00ff2500fd0b7b990a70b5b03a3a6bbcad1",
+  "agents/analyze.py::_loop_response": "910fda2c26cf9ac53a5fc5d5c971921ec02b5a67be971ccc39d2317dea3f94ec",
+  "agents/analyze.py::_loop_scope": "74b21c4dabf6526199d93c167dd28c531da4bd2a804c85dcb5b29cba026945d9",
+  "agents/analyze.py::analyze": "0c81eff629ae740934f066532ad5b3b70563f9940b601911529b51a4f00a74a0",
+  "agents/analyze.py::lines-with::_loop_": "bd8d9d9d81ea1a898409b03ae7ea6e468a249aa4f20f5491b6bc4c2e80a0b90e",
+  "app.py::_r2_before_fallback": "dfce03272e226b28c3d5215d521ee2754e5a6aaaae720a4c20933e2f9058ff37",
+  "app.py::lines-with::_r2_": "6abb23395d1f1d878141fb3199a6f09a25cec89ae8e012d19066f34cf5ff0c5f",
+  "confidence_engine.py::apply_evidence_grounding": "01f82d38f343134fc74080e0fe4899e4a9a612a9c786e25b41851d61ea8f8335",
+  "confidence_engine.py::compute_confidence_score": "7e93df914de6c324039396eeeda8e4517e30f22da8d36b0a8a27e2e6a1b0792c",
+  "confidence_engine.py::lines-with::EVIDENCE_GROUNDING_WEIGHT": "16e5b7e3da0852fa4c10d76beffc08a284b197e23e39562f1a979ae986f4ec65"
+ },
  "tools": {
   "evidence_lookup": "1",
   "incident_kb_search": "1",
