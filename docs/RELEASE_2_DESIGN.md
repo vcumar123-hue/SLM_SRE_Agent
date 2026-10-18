@@ -1424,3 +1424,9 @@ Live PostgreSQL (`agent-test-pg`, `AIOPS_TEST_AGENT_PG=1`): the run-store, tools
 now fingerprints, for `_analyze_core_legacy`: the assignment that calls the hook, the whole `if/elif` that reads its result (so the complete `maybe_run_fallback(...)` call and the condition guarding it), the order of the watched calls
 (`_r2_before_fallback`, `maybe_run_fallback`, `finalize_post_rca_state`, `apply_shared_post_rca_guards`, `create_knowledge_candidate`) and an outline of the statements around the hook. Tests cover moving the fallback ahead of the hook,
 turning the `elif` into an `if`, dropping the guard, changing the call, a second call, inserting a statement, moving the hook out of its block and moving the finalisation, and show unrelated edits leave it unchanged. The freeze was re-recorded (history kept; approval still unconfirmed).
+
+**Shadow rehearsal (2026-10-18), before any real tenant.** `tests/test_r2_2_live.py` drives the real `/analyze` route, hook, shadow queue, runner, frozen planner and encrypted `RunStore` against a real PostgreSQL
+(`agent-test-pg`) with fake tools, a throwaway tenant and a temporary decision file (a rehearsal, not a recorded decision). It shows: the response body equals the deterministic one with no `investigation` key; the run is
+queued only after the response body has been sent; the run completes and is stored (`mode = shadow`, ticket hash present); evidence and events are ciphertext at rest and decrypt for their tenant but not another; and after
+`gate.rollback()` a further request queues nothing and stores nothing. It passes. The container suite after the fallback-placement fix: 997 tests, 30 skipped, OK. The controlled shadow test on a recorded non-production tenant still needs
+the owner's approval statement and shadow decision.
