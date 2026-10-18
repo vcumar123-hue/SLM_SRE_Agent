@@ -514,11 +514,19 @@ class BoundaryScanTests(unittest.TestCase):
                 self.assertIn(path.name, tool_modules, f"{path} imports {hits}")
                 self.assertEqual(path.parent.name, "tools")
 
+    # The runtime, the tools and the planners create no threads of their own: calls run on the bounded executor. The one named exception is the R2-2 shadow queue
+    # (design 8.2), whose worker is by definition a background thread separate from request threads; it lives in the integration package, outside the frozen core.
+    THREAD_EXCEPTIONS = ("integration/shadow.py",)
+
     def test_only_the_executor_creates_threads(self):
         for path in self.modules():
-            if path.name == "executor.py":
+            if path.name == "executor.py" or path.as_posix().endswith(self.THREAD_EXCEPTIONS):
                 continue
             self.assertIsNone(self.THREADS.search(path.read_text(encoding="utf-8")), f"{path} creates its own threads")
+
+    def test_the_thread_exception_is_exactly_the_shadow_queue(self):
+        threaded = [p.as_posix() for p in self.modules() if p.name != "executor.py" and self.THREADS.search(p.read_text(encoding="utf-8"))]
+        self.assertEqual([t.split("agentruntime/")[-1] for t in threaded], list(self.THREAD_EXCEPTIONS))
 
     def test_tools_take_the_tenant_from_the_context_only(self):
         for path in (self.ROOT / "tools").glob("*.py"):

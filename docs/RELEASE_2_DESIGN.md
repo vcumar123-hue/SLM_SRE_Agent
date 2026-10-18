@@ -1357,3 +1357,42 @@ build on any difference; changing frozen code needs `refreeze` with a reason and
 5. prepare the separate 100-ticket R2-3 acceptance set and complete reviewer labelling;
 6. run R2-3 once against `rules_only` and evaluate G1-G8;
 7. only after R2-3 passes, a recorded pilot decision for one tenant.
+
+---
+
+## 22. R2-2 application integration (2026-10-17)
+
+Implemented in `agentruntime/integration/` (outside the frozen core, wrapping it) plus three small edits: `agents/analyze.py` (two hook calls in the `/analyze` route),
+`confidence_engine.py` (an optional input) and nothing else in the application. The frozen core (section 21) is untouched; `python -m agentruntime.release` still matches.
+
+| Piece | What it does |
+|---|---|
+| `gate.py` | The only place that decides the mode. Most restrictive of: the global setting (`AIOPS_AGENTIC_RCA_LOOP`; missing, empty or invalid is `off`; needs a usable encryption setup), the tenant's **recorded deployment decision** (`docs/baselines/release2/deployment_decisions.json`; absent file or tenant = `off`; an entry needs tenant, mode shadow/on, a named decider that is not a placeholder, a date and a reference), a recorded **R2-3 result with G1-G8 all true** for `on` (until then `on` resolves to `off`, never to `shadow`), the **release-freeze check** (any difference = `off`), and the **kill switch**. Nothing raises; every doubt is `off` |
+| Rollback switch | `AIOPS_AGENTIC_RCA_KILL=1`, or `gate.rollback(reason)` in-process: `off` for every tenant at once, queued shadow runs dropped. Tested, including with a real queue |
+| `engagement.py` | Engage when confidence is below the threshold, retrieval quality below the minimum, no linked resolution or playbook, or the two leading incidents disagree on classification (within 0.05). "High impact with an uncertain cause" needs an impact field the response does not carry and is not engaged on |
+| `shadow.py` | Bounded queue (20), one worker, idle-aware (a run waits while any user analysis is in flight, dropped after 600 s), `submit` never blocks or raises, shutdown/rollback drop what is queued, memory-only |
+| `hook.py` | `after_analysis(request, req, result)` called by the route. **Off returns the very same object after one cheap check of the global setting** (no file read, no other import). Shadow: engagement, then queue, response untouched. `on`: run inside the request under the run deadline, reconcile, return a copy. Any failure returns the deterministic response. A run needs an authenticated principal that may act for the tenant (`build_context`); none = no run |
+| `reconcile.py` | Section 10.2: a supported, verified run with the same (or no) classification is merged (loop causes first, up to 3 with their evidence ids, then the deterministic causes not contradicted); a different classification keeps the deterministic one, sets `escalate`, records the conflict for an operator (no automatic override); anything else leaves the result as it was. An `investigation` block (steps, sanitised evidence, hypotheses, counters, versions, the deterministic result) is attached |
+| Confidence | `compute_confidence_score(..., evidence_grounding=None)`: absent = exactly today's result. When given it is recorded and `EVIDENCE_GROUNDING_WEIGHT` (a constant, **0.0 until set from calibration evidence**) decides its effect, so today it changes no confidence |
+| Persistence | A finished run is stored through the existing encrypted `RunStore` (fail-open: a storage failure is logged and changes nothing) |
+
+**Deliberate limits (to be confirmed by the reviewer).**
+1. In `on`, the loop runs after the deterministic pipeline, including its one-shot external fallback; it does not replace that fallback (section 3.2 would let it when the run is `supported`). The fallback stays the safety net, which is the conservative reading while `on` is blocked anyway.
+2. Only the `/analyze` route is hooked. Other internal callers of `analyze_core` (telemetry, batch) are unaffected.
+3. No operator panel (R2-4). `shadow` results are stored but not yet shown anywhere.
+
+**Merge controls (decision 5), status.**
+
+| Control | Status |
+|---|---|
+| Default mode is `off` | yes: unset, empty, invalid, killed, no tenant decision, failed freeze check, encryption missing all resolve to `off` (tested) |
+| CI proves `off` changes no response or behaviour | route-level test: with the hook live and the loop off the response equals the response with the hook removed, and the gate, queue and engagement are never called |
+| Migrations backward-compatible | no new migration; the run tables are `CREATE ... IF NOT EXISTS` from R2-0 |
+| No tenant enabled by the merge | `deployment_decisions.json` does not exist; nothing is enabled |
+| Enabling `shadow` is a separate recorded decision | yes: needs a valid entry in that file |
+| `on` blocked until R2-3 passes | yes: needs a recorded acceptance result with G1-G8 all true |
+| Rollback switch tested | yes |
+
+**Not yet done:** controlled shadow testing against the live database, model-free (the planner is `rules_only`) but needing the container and a recorded decision for a test tenant; the container and PostgreSQL suites; R2-3.
+
+**Tests:** `tests/test_r2_2_integration.py` (47): the gate (defaults, decisions, caps, R2-3 requirement, freeze, encryption, never raising), rollback, engagement, reconciliation, the shadow queue, the hook, the confidence input, and `off` parity through the route.

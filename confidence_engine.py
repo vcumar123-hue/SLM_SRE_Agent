@@ -225,6 +225,23 @@ def compute_confidence(
     }
 
 
+# Release 2 (design 10.3): the optional verified-investigation input. Its weight is a constant that may only be set from calibration evidence; until then it is 0.0,
+# so supplying a grounding value is recorded in the result but changes no confidence. Without a value the function behaves exactly as it always has.
+EVIDENCE_GROUNDING_WEIGHT = 0.0
+
+
+def apply_evidence_grounding(primary_confidence: float, evidence_grounding: Any, weight: float = None) -> float:
+    """Move the confidence toward the grounding by `weight` (0 = unchanged). None, a non-number or an out-of-range value leaves it unchanged."""
+    w = EVIDENCE_GROUNDING_WEIGHT if weight is None else weight
+    try:
+        g = float(evidence_grounding)
+    except (TypeError, ValueError):
+        return primary_confidence
+    if w <= 0.0 or not 0.0 <= g <= 1.0:
+        return primary_confidence
+    return clamp01(primary_confidence + clamp01(w) * (g - primary_confidence))
+
+
 def compute_confidence_score(
     embedding_score: float,
     llm_score: float,
@@ -234,6 +251,7 @@ def compute_confidence_score(
     source_alignment: float = 0.50,
     staleness_score: float = 0.70,
     collection_priority_score: float = 0.75,
+    evidence_grounding: Any = None,
 ) -> Dict[str, Any]:
     """
     app.py-compatible entry point.
@@ -256,8 +274,12 @@ def compute_confidence_score(
     # Cap confidence at 0.35 so the UI never shows a misleadingly high score.
     if retrieval_quality == 0.0:
         primary_confidence = min(primary_confidence, 0.35)
+    if evidence_grounding is not None:
+        primary_confidence = apply_evidence_grounding(primary_confidence, evidence_grounding)
     decision = decide_action(primary_confidence)
+    extra = {"evidence_grounding": evidence_grounding} if evidence_grounding is not None else {}
     return {
+        **extra,
         "embedding_score": round(clamp01(embedding_score), 4),
         "llm_score": round(clamp01(llm_score), 4),
         "retrieval_quality": round(clamp01(retrieval_quality), 4),

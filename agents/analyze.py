@@ -177,10 +177,12 @@ async def analyze(
             tenant_id=tenant_defaults["tenant_id"],
             knowledge_scope=(knowledge_scope or "").strip() or tenant_defaults["knowledge_scope"],
         )
-        result = _analyze_core(req)
+        with _loop_track():
+            result = _analyze_core(req)
 
         if ocr_operational:
             result = apply_operational_ocr_override(result, ocr_text)
+        result = _loop_after(request, req, result)
 
         # Always attach the real incident text used for analysis.
         # This prevents the UI feedback panel from showing
@@ -218,17 +220,38 @@ async def analyze(
     except Exception:
         raise HTTPException(status_code=503, detail="analyze_core not available")
     try:
-        result = _analyze_core(req)
+        with _loop_track():
+            result = _analyze_core(req)
     except HTTPException:
         raise
     except Exception as exc:
         import traceback as _tb
         raise HTTPException(status_code=500, detail=f"Analyze failed: {exc}") from exc
+    result = _loop_after(request, req, result)
     try:
         result["trace_id"] = _trace_id
         return JSONResponse(content=jsonable_encoder(result))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Analyze serialization failed: {exc}") from exc
+
+
+def _loop_track():
+    """Release 2 (R2-2): counts the analysis as in flight so a queued shadow run waits; a no-op context while the loop is off (the default)."""
+    try:
+        from agentruntime.integration.hook import track_analysis
+        return track_analysis()
+    except Exception:  # noqa: BLE001 - the loop must never affect the analysis
+        import contextlib
+        return contextlib.nullcontext()
+
+
+def _loop_after(http_request, req, result):
+    """Release 2 (R2-2): with the loop off (the default) this returns `result` itself, untouched."""
+    try:
+        from agentruntime.integration.hook import after_analysis
+        return after_analysis(http_request, req, result)
+    except Exception:  # noqa: BLE001
+        return result
 
 
 @router.post("/feedback")
