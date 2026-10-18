@@ -8,6 +8,9 @@ Release 2 ships the deterministic `rules_only` planner. This module defines exac
     context, config, crypto, db limits), the five tools, and `planners/rules_only.py`. Their SHA-256 (CRLF read as LF) is recorded;
   * the budgets in force and their hard maxima, the rule constants and the ruleset version, the tool versions.
 
+Also frozen (review 2026-10-17; the fallback placement added after the second review): where the investigation sits relative to the one-shot fallback in the legacy
+pipeline (`fallback_placement`: the hook assignment, the whole `if/elif` that guards `maybe_run_fallback(...)`, the order of the watched calls, and the surrounding statements).
+
 Also frozen (review 2026-10-17): the whole R2-2 integration package (`agentruntime/integration/`), and, as source fingerprints of the functions and lines that matter, the
 route hooks (`agents/analyze.py`: the /analyze handler and the `_loop_*` helpers), the pipeline call site and helper (`app.py`: `_r2_before_fallback` and every line that
 mentions `_r2_`), and the confidence input (`confidence_engine.py`: `apply_evidence_grounding`, `compute_confidence_score`, `EVIDENCE_GROUNDING_WEIGHT`). Unrelated edits to
@@ -73,6 +76,32 @@ def _norm_text(data: bytes) -> str:
     return data.decode("utf-8").replace("\r\n", "\n")
 
 
+WATCHED_CALLS = ("_r2_before_fallback", "maybe_run_fallback", "finalize_post_rca_state", "apply_shared_post_rca_guards", "create_knowledge_candidate")
+
+
+def fallback_placement(text: str, function: str = "_analyze_core_legacy") -> str:
+    """A canonical description of WHERE the investigation sits relative to the one-shot fallback in the legacy pipeline, so moving either one is a visible change.
+
+    It contains: the assignment that calls the hook; the whole `if/elif` statement that reads its result (and therefore the complete `maybe_run_fallback(...)` call and
+    the condition that guards it); the order in which the watched calls occur in the function; and an outline of the statements that surround the hook (type and first
+    line of every sibling in the block that holds it), which pins its position. Returns 'MISSING' when the function or the hook is not found."""
+    tree = ast.parse(text)
+    fn = next((n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == function), None)
+    if fn is None:
+        return "MISSING"
+    parents = {child: parent for parent in ast.walk(fn) for child in ast.iter_child_nodes(parent)}
+    assign = next((n for n in ast.walk(fn) if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "_r2_loop" for t in n.targets)), None)
+    branch = next((n for n in ast.walk(fn) if isinstance(n, ast.If) and "_r2_loop" in (ast.get_source_segment(text, n.test) or "")), None)
+    if assign is None or branch is None:
+        return "MISSING"
+    calls = sorted(((c.lineno, c.col_offset, c.func.id) for c in ast.walk(fn) if isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id in WATCHED_CALLS))
+    block = next((getattr(parents[assign], field) for field in ("body", "orelse", "finalbody") if assign in getattr(parents[assign], field, [])), [])
+    outline = [f"{type(stmt).__name__}:{(ast.get_source_segment(text, stmt) or '').strip().splitlines()[0][:80]}" for stmt in block]
+    parts = ["ASSIGN", ast.get_source_segment(text, assign) or "", "BRANCH", ast.get_source_segment(text, branch) or "", "ORDER", ",".join(c[2] for c in calls),
+             "OUTLINE", "\n".join(outline)]
+    return "\n".join(parts)
+
+
 def source_fingerprints() -> Dict[str, str]:
     out: Dict[str, str] = {}
     for rel, names in FUNCTIONS:
@@ -83,6 +112,8 @@ def source_fingerprints() -> Dict[str, str]:
                 found[node.name] = ast.get_source_segment(text, node) or ""
         for name in names:
             out[f"{rel}::{name}"] = hashlib.sha256(found[name].encode("utf-8")).hexdigest() if name in found else "MISSING"
+    placement = fallback_placement(_norm_text((ROOT / "app.py").read_bytes()))
+    out["app.py::_analyze_core_legacy::fallback-placement"] = hashlib.sha256(placement.encode("utf-8")).hexdigest() if placement != "MISSING" else "MISSING"
     for rel, token in TOKEN_LINES:
         lines = [ln.rstrip() for ln in _norm_text((ROOT / rel).read_bytes()).split("\n") if token in ln]
         out[f"{rel}::lines-with::{token}"] = hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()

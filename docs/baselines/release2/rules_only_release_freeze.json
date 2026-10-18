@@ -78,7 +78,7 @@
   "agentruntime/verifier.py": "609992172dde451aab97342d0180c5c7f9bdaddd9013b8c4c3934cdd279c3be0"
  },
  "freeze_version": "1",
- "frozen_at": "2026-10-18T02:15:05Z",
+ "frozen_at": "2026-10-18T02:29:05Z",
  "history": [
   {
    "approved_by": "project owner (instruction of 2026-10-17, design section 21)",
@@ -106,13 +106,24 @@
    "record_sha256": "9651c5ba7d5d0bd606e5a1acbeab48aed3556335223949e68c26b9804c77657a",
    "superseded_because": "Review 2026-10-17 findings: the integration package, route hooks, pipeline call site and confidence input are now part of the freeze; shadow runs start only after the response is sent; the investigation runs before the fallback; an unstored run is discarded",
    "superseded_by": "(not yet named: the owner must confirm)"
+  },
+  {
+   "approved_by": "(not yet named: the owner must confirm)",
+   "changes": [
+    "app.py::_analyze_core_legacy::fallback-placement: added"
+   ],
+   "frozen_at": "2026-10-18T02:15:05Z",
+   "reason": "Review 2026-10-17 findings: the integration package, route hooks, pipeline call site and confidence input are now part of the freeze; shadow runs start only after the response is sent; the investigation runs before the fallback; an unstored run is discarded",
+   "record_sha256": "9b70d0e3114bb90c71bd81748e34dd739888e677f4906a8597276305e40c65ea",
+   "superseded_because": "Review 2026-10-17 (second): the placement of the investigation relative to the one-shot fallback in the legacy pipeline is now fingerprinted",
+   "superseded_by": "(not yet named: the owner must confirm)"
   }
  ],
  "model_id": null,
  "planner": "rules_only",
  "planner_entry": "agentruntime.planners.rules_only:RulesOnlyPlanner",
  "prompt_version": "none",
- "reason": "Review 2026-10-17 findings: the integration package, route hooks, pipeline call site and confidence input are now part of the freeze; shadow runs start only after the response is sent; the investigation runs before the fallback; an unstored run is discarded",
+ "reason": "Review 2026-10-17 (second): the placement of the investigation relative to the one-shot fallback in the legacy pipeline is now fingerprinted",
  "rule_constants": {
   "CAUSE_CHARS": 160,
   "CONFLICT_GAP": 0.05,
@@ -130,6 +141,7 @@
   "agents/analyze.py::_loop_scope": "74b21c4dabf6526199d93c167dd28c531da4bd2a804c85dcb5b29cba026945d9",
   "agents/analyze.py::analyze": "0c81eff629ae740934f066532ad5b3b70563f9940b601911529b51a4f00a74a0",
   "agents/analyze.py::lines-with::_loop_": "bd8d9d9d81ea1a898409b03ae7ea6e468a249aa4f20f5491b6bc4c2e80a0b90e",
+  "app.py::_analyze_core_legacy::fallback-placement": "4ff9f0480ab7e9056e96ee0380cd13fc0761c614e25694aa642294b4a4678ac0",
   "app.py::_r2_before_fallback": "dfce03272e226b28c3d5215d521ee2754e5a6aaaae720a4c20933e2f9058ff37",
   "app.py::lines-with::_r2_": "6abb23395d1f1d878141fb3199a6f09a25cec89ae8e012d19066f34cf5ff0c5f",
   "confidence_engine.py::apply_evidence_grounding": "01f82d38f343134fc74080e0fe4899e4a9a612a9c786e25b41851d61ea8f8335",

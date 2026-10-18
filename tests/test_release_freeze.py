@@ -72,6 +72,60 @@ class FrozenCoreTests(unittest.TestCase):
         self.assertIn("default_mode differs from the record", release.differences(changed))
 
 
+BASE = """
+def _analyze_core_legacy(request):
+    a = 1
+    if cond:
+        x = 2
+    else:
+        _r2_loop = _r2_before_fallback(request)
+        if _r2_loop is not None and _r2_loop.replaces_fallback:
+            reason = "replaced"
+        elif request.use_fallback:
+            out = maybe_run_fallback(ticket=t, force=f)
+        _post = finalize_post_rca_state(s)
+    return a
+"""
+
+
+class FallbackPlacementTests(unittest.TestCase):
+    """Moving the investigation relative to the one-shot fallback, or changing what guards the fallback, must change the fingerprint."""
+
+    def fp(self, text):
+        return release.fallback_placement(text)
+
+    def test_the_real_pipeline_is_fingerprinted(self):
+        record = release.load()["source_fingerprints"]
+        self.assertIn("app.py::_analyze_core_legacy::fallback-placement", record)
+        self.assertNotEqual(record["app.py::_analyze_core_legacy::fallback-placement"], "MISSING")
+
+    def test_unrelated_edits_do_not_change_it(self):
+        base = self.fp(BASE)
+        self.assertEqual(self.fp(BASE.replace("    a = 1\n", "    a = 1  # a comment\n")), base)
+        self.assertEqual(self.fp(BASE + "\n\ndef another():\n    return maybe_run_fallback()\n"), base)          # other functions are not part of it
+        self.assertEqual(self.fp(BASE.replace("return a", "return a + 0")), base)
+
+    def test_every_way_of_moving_or_re_guarding_the_fallback_is_detected(self):
+        base = self.fp(BASE)
+        variants = {
+            "the fallback moved before the investigation": BASE.replace("        _r2_loop = _r2_before_fallback(request)\n", "        out0 = maybe_run_fallback(ticket=t, force=f)\n        _r2_loop = _r2_before_fallback(request)\n"),
+            "the elif became an if (the fallback runs even when replaced)": BASE.replace("        elif request.use_fallback:", "        if request.use_fallback:"),
+            "the guard no longer reads the investigation": BASE.replace("_r2_loop is not None and _r2_loop.replaces_fallback", "False"),
+            "the fallback call changed": BASE.replace("maybe_run_fallback(ticket=t, force=f)", "maybe_run_fallback(ticket=t, force=True)"),
+            "the fallback is called twice": BASE.replace("            out = maybe_run_fallback(ticket=t, force=f)\n", "            out = maybe_run_fallback(ticket=t, force=f)\n            out2 = maybe_run_fallback(ticket=t)\n"),
+            "a statement was inserted between the hook and the branch": BASE.replace("        if _r2_loop is not None", "        extra = 1\n        if _r2_loop is not None"),
+            "the hook moved out of its block": BASE.replace("        _r2_loop = _r2_before_fallback(request)\n", "").replace("    a = 1\n", "    a = 1\n    _r2_loop = _r2_before_fallback(request)\n"),
+            "the finalisation moved ahead of the hook": BASE.replace("        _post = finalize_post_rca_state(s)\n", "").replace("        _r2_loop = _r2_before_fallback", "        _post = finalize_post_rca_state(s)\n        _r2_loop = _r2_before_fallback"),
+        }
+        for label, text in variants.items():
+            self.assertNotEqual(self.fp(text), base, label)
+        self.assertEqual(len({self.fp(t) for t in variants.values()}), len(variants))                       # and each differently
+
+    def test_a_missing_function_or_hook_is_reported_as_missing(self):
+        self.assertEqual(self.fp("def other():\n    pass\n"), "MISSING")
+        self.assertEqual(self.fp(BASE.replace("_r2_loop", "_loop2")), "MISSING")
+
+
 class ApprovalTests(unittest.TestCase):
     def setUp(self):
         self.dir = pathlib.Path(tempfile.mkdtemp())

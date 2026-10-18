@@ -1419,3 +1419,8 @@ id, client record or personal data, so no history rewrite is proposed; the owner
 
 **Suites after the R2-2 review fixes (2026-10-17).** Windows: 992 tests, 56 skipped (dependencies absent). Container (`aiops-baseline-env`, live `aiops` database): 992 tests, 29 skipped, OK.
 Live PostgreSQL (`agent-test-pg`, `AIOPS_TEST_AGENT_PG=1`): the run-store, tools, core, review-fix, integration and freeze modules, 255 tests, none skipped, OK.
+
+**22.1 follow-up (review, 2026-10-17, second pass): the fallback placement is frozen.** The line-and-function fingerprints did not pin where the investigation sits relative to the one-shot fallback. `release.fallback_placement`
+now fingerprints, for `_analyze_core_legacy`: the assignment that calls the hook, the whole `if/elif` that reads its result (so the complete `maybe_run_fallback(...)` call and the condition guarding it), the order of the watched calls
+(`_r2_before_fallback`, `maybe_run_fallback`, `finalize_post_rca_state`, `apply_shared_post_rca_guards`, `create_knowledge_candidate`) and an outline of the statements around the hook. Tests cover moving the fallback ahead of the hook,
+turning the `elif` into an `if`, dropping the guard, changing the call, a second call, inserting a statement, moving the hook out of its block and moving the finalisation, and show unrelated edits leave it unchanged. The freeze was re-recorded (history kept; approval still unconfirmed).
