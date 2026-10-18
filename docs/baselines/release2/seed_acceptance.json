@@ -1,0 +1,10 @@
+{
+ "algorithm": "int(sha256(f'{purpose}:{artifact}').hexdigest()[:8], 16)",
+ "artifact": "e363d99bfaae3ed7b10b49291bfbc8c49c98a31e",
+ "note": "",
+ "purpose": "acceptance-selection",
+ "retired_seeds": {
+  "20261014": "chosen by hand; its calibration draw counts were observed before review"
+ },
+ "seed": 2621718407
+}

@@ -22,12 +22,12 @@ Until the freeze record exists the acceptance tickets (the 80 real ones **and** 
 
 | # | Step | Status |
 |---|---|---|
-| 0 | Owner states the Release 2 approval (`release.confirm_approval`); freeze reports zero problems | **open: the earlier approval was inferred and has been withdrawn** |
+| 0 | Owner states the Release 2 approval (`release.confirm_approval`); freeze reports zero problems | **done 2026-10-18**: stated in the owner's own words and signed Vijay Ramanathan; recorded verbatim; the earlier inferred approval stays in the history as withdrawn |
 | 1 | Release configuration frozen (`rules_only`, runtime, tools, budgets, integration, hooks) | done (`docs/baselines/release2/rules_only_release_freeze.json`); re-confirmed after step 0 |
 | 2 | Draft 20 acceptance-only synthetic goldens (`golden-acc-1..20`), disjoint from the 18 calibration goldens | **drafted privately, unapproved** (`data/acceptance_private/acceptance_golden_DRAFT.json`; separation from the calibration goldens verified, 20 distinct hosts and patterns) |
-| 3 | Two content approvers (not Vijay or Sara) approve those goldens | **open: approvers to be named** |
-| 4 | Calibration work finishes (grounding constants stay at weight 0; blinding-check layout; agreement subset) | open: needs reviewers; see "Calibration before the freeze" |
-| 5 | Privately draw the 80 real tickets (40 PYPL, 40 PFG): acceptance buckets 40-79, incident-only, one per cluster, type cap 20%, clusters of the development subset excluded, seed fixed beforehand | tooling to build; run by the owner's custodian |
+| 3 | Content approval of those goldens | **open: the owner chose to skip the two-approver rule; the replacement is the proposed amendment A-1 below, which the owner must approve in its exact wording. Until then the goldens stay private and unapproved** |
+| 4 | Calibration work finishes (grounding constants stay at weight 0; blinding-check layout; agreement subset) | owner decision 2026-10-18: **run as designed**; materials to build (review layout, calibration set); then Vijay and Sara label calibration tickets only |
+| 5 | Privately draw the 80 real tickets (40 PYPL, 40 PFG): acceptance buckets 40-79, incident-only, one per cluster, type cap 20%, seed fixed beforehand | **tool built and tested** (`planner_experiment/acceptance.py`, `cli draw-acceptance`); seed recorded (`docs/baselines/release2/seed_acceptance.json`, artifact = the tool's commit `e363d99`); **not run**: the draw is automated (owner decision) but needs a named human custodian who is not a labelling reviewer, and it runs on the controlled machine, not in the developer session |
 | 6 | Build the leave-cluster-out capture for the 100 (held-out tickets and clusters removed from what the tools return) | reuses `planner_experiment.capture` / `exclusion`; acceptance wiring to build |
 | 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | to build |
 | 8 | **Freeze and hash** (13.9): gates and rubric (this protocol and design 13.4-13.6), acceptance id list and draw script, analysis code, batch runner and configuration, versions (`rules_only` release freeze) | after 2-7 |
@@ -55,9 +55,26 @@ The design requires calibration to finish before the freeze: a 60-ticket calibra
 sample (reviewers' guess of which output is which must be at most 60%). Under the owner amendment the planner no longer needs tuning, but these checks still gate the rubric and the review layout. They need Vijay and Sara
 **on calibration tickets only**, which is permitted before the freeze. Open: whether the owner wants them done as designed or amends them in writing.
 
+## Proposed methodology amendment A-1 (NOT APPROVED): content approval of the 20 acceptance goldens
+
+Why. Design 13.2 had the two labelling reviewers approve the goldens; that would show Vijay and Sara part of the acceptance set before the freeze, which 13.1 forbids. The owner chose to skip the
+"two other approvers" correction, so an amendment is needed. The wording below is a proposal; it takes effect only when the owner approves it in these words (or edits them).
+
+* **A-1 (recommended).** The 20 acceptance goldens are drafted by the developer from a written brief (varied infrastructure, application, identity, data and network incidents; no real client text), checked by the
+  tooling (`golden.check_separation`, ticket-type cap, 20 distinct hosts and patterns, no real ticket ids or client names), and approved for realism and safety by **one named content approver who is not a labelling
+  reviewer and not an adjudicator of the acceptance labels**. The labelling reviewers see them only after the freeze, blind, like every other ticket. The reduction from two approvers to one is recorded as a deviation
+  from the approved process, and the approver's name is in the freeze record.
+* A-2. Replace the 20 synthetic tickets with 20 further real tickets (50 PYPL, 50 PFG): no content approval is needed, but the 80/20 composition of design 13.2 changes and the acceptance set is then all client data.
+* A-3. Keep the two-reviewer approval of the goldens but have **different** people label the acceptance set: not viable with the reviewers named.
+
+**Identity check the owner must answer.** The reviewer record names "Vijay" and "Sara" as the labelling reviewers and "Ramanthan" as recorder/adjudicator; the approval above is signed "Vijay Ramanathan". If the owner,
+the adjudicator and the labelling reviewer "Vijay" are one person, then that person cannot be the single content approver (A-1), cannot be the acceptance-package custodian (they would see the tickets before the
+freeze), and the design's separation of adjudicator and labellers (13.3: "separate from the two initial judgments when practical") is not met. In that case another person must hold those roles, or the amendment must say
+which separations are waived and why.
+
 ## Needed from the owner now
 
-1. The Release 2 approval statement in the owner's own words (step 0).
-2. The names of the two people who approve the content of the 20 acceptance goldens (step 3), or a written methodology amendment instead.
-3. Who runs the private draw and holds the acceptance package (step 5).
-4. Whether to run the calibration checks as designed (step 4) or amend them.
+1. Approve (or edit) amendment A-1, and name the one content approver for the goldens.
+2. Confirm who the acceptance-package custodian is: a named person who is **not** a labelling reviewer (the recommended wording: "<name> is the acceptance-package custodian and authorizes the automated private draw"). The draw runs
+   automatically, on a controlled machine outside Git; the developer session does not read the output.
+3. Answer the identity check above.
