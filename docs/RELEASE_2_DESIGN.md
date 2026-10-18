@@ -1416,3 +1416,6 @@ no real ticket ids; the same text is in the committed `data/golden_tickets.json`
 id, client record or personal data, so no history rewrite is proposed; the owner may still decide otherwise.
 
 **Gate for the controlled shadow test:** the four fixes above reviewed, the freeze approval confirmed, and the container and PostgreSQL suites passing.
+
+**Suites after the R2-2 review fixes (2026-10-17).** Windows: 992 tests, 56 skipped (dependencies absent). Container (`aiops-baseline-env`, live `aiops` database): 992 tests, 29 skipped, OK.
+Live PostgreSQL (`agent-test-pg`, `AIOPS_TEST_AGENT_PG=1`): the run-store, tools, core, review-fix, integration and freeze modules, 255 tests, none skipped, OK.
