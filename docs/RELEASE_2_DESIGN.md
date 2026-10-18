@@ -1434,3 +1434,15 @@ the owner's approval statement and shadow decision.
 **Owner approval recorded (2026-10-17, 22:43).** In reply to the reviewer's proposed statement, the owner wrote "review and confirm, approve as release 2 owner". That is recorded verbatim in the release freeze's `approval_history`
 (approver `Ramanthan (Release 2 owner)`, the name the proposed statement used), and `approval_confirmed` is now true. `python -m agentruntime.release` reports no problems. Section 21 stands as an owner-approved amendment.
 Nothing is enabled by this: no tenant has a recorded deployment decision yet, `on` remains blocked until R2-3 passes G1-G8, and the controlled shadow test waits for the test tenant's id.
+
+### 22.2 Controlled shadow test (2026-10-18, container)
+
+Recorded decision (`docs/baselines/release2/deployment_decisions.json`): tenant `client_c` (PYPL), mode `shadow`, decided by Ramanthan (Release 2 owner), 2026-10-17, reference `R2-2-CONTROLLED-SHADOW-2026-10-17`. The owner chose
+`client_c` as the test tenant; the entry is a test decision, not a production enablement (the global setting `AIOPS_AGENTIC_RCA_LOOP` is unset by default, so the loop is off everywhere until someone sets it, and the entry is removed to end the test).
+
+`scripts/controlled_shadow_test.py` (run in `aiops-baseline-env` against the live `aiops` database; only the run records were redirected, to the throwaway PostgreSQL, so no new table appeared in the main database) used the real confirmed
+freeze and the real decision, patching neither, and the real `/analyze` route with the real tools and embedding model. **18 of 18 checks passed:**
+the gate resolved `client_c` to shadow and another tenant to off; the freeze reported no problems; the shadow response equalled the loop-off response (volatile ids aside) with no `investigation`; the run was queued only after the body was sent;
+one run was stored (mode shadow, frozen `rules-1`, no model) as ciphertext, decrypting for `client_c` and not for another tenant; after the rollback switch a further request queued and stored nothing.
+The investigation on the test ticket made two tool calls (host history: none; knowledge-base search: five items) and ended `escalated_insufficient` with one weak recurrence hypothesis, as the dev-subset results predicted. A first attempt in a container
+without the embedding-model cache returned empty retrieval in both the loop-off and shadow requests (the application's offline setting); it was rerun with the model reachable. `on` remains blocked until R2-3 passes G1-G8.

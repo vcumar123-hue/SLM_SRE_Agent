@@ -1,0 +1,12 @@
+{
+ "decisions": [
+  {
+   "tenant_id": "client_c",
+   "mode": "shadow",
+   "decided_by": "Ramanthan (Release 2 owner)",
+   "date": "2026-10-17",
+   "reference": "R2-2-CONTROLLED-SHADOW-2026-10-17",
+   "scope": "controlled shadow test only: the owner chose client_c (PYPL) as the test tenant on 2026-10-17; the test reads its tickets and knowledge read-only and stores its run records in a throwaway PostgreSQL. This is not a production enablement: end the decision by removing this entry."
+  }
+ ]
+}
