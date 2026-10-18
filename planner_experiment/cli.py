@@ -14,6 +14,8 @@ Command line for the preparation steps that need the live ticket data (see steps
     python -m planner_experiment.cli verify-model                                              (the served model and its file against the manifest)
     python -m planner_experiment.cli freeze-planners --round 1 --planner rules_only=pkg.mod:Class ...
     python -m planner_experiment.cli draw-experiment --round 1
+    python -m planner_experiment.cli acceptance-seed --artifact <full commit id>        (R2-3: records the derived acceptance draw seed)
+    python -m planner_experiment.cli draw-acceptance                                    (R2-3: private draw of the 80 real tickets; prints counts and hashes only)
     python -m planner_experiment.cli capture-development --out <recording>          (no key; the 10 development tickets)
     python -m planner_experiment.cli capture-experiment --round 1 --out <file outside the repository>   (key holder only)
     python -m planner_experiment.cli build-cases --round 1 --out <file outside the repository>
@@ -114,6 +116,10 @@ def main(argv=None) -> int:
     cf.add_argument("--out", default=None)
     rx = sub.add_parser("run-experiment")
     rx.add_argument("--record", required=True)
+    sa = sub.add_parser("acceptance-seed")
+    sa.add_argument("--artifact", required=True, help="a full 40-character commit id fixed before the draw")
+    da = sub.add_parser("draw-acceptance")
+    da.add_argument("--out", default=None, help="a private folder (default data/acceptance_private, git-ignored)")
     cd = sub.add_parser("capture-development")
     cd.add_argument("--out", required=True)
     cd.add_argument("--cases-out", default=None, help="also write the development cases (their ticket text, for local use: keep out of git) for benchmark-model")
@@ -206,6 +212,15 @@ def main(argv=None) -> int:
                 print("refused:", exc)
                 return 2
             print(json.dumps({"verdict": out["decision"]["verdict"], "conditions": out["decision"]["conditions"]}, indent=1))
+        elif args.cmd == "acceptance-seed":
+            from planner_experiment import seed as seed_mod
+            record = seed_mod.write_record(ROOT / "docs" / "baselines" / "release2" / "seed_acceptance.json", args.artifact, "acceptance-selection")
+            print(json.dumps({"purpose": record["purpose"], "artifact": record["artifact"], "seed": record["seed"]}, indent=1))
+        elif args.cmd == "draw-acceptance":
+            from planner_experiment import acceptance
+            summary = acceptance.draw_private(load_tickets(steps.reviewer_names(base)), steps.paths(base)["partition_seed"], ROOT / "docs" / "baselines" / "release2" / "seed_acceptance.json",
+                                              Path(args.out) if args.out else None)
+            print(json.dumps(summary, indent=1))
         elif args.cmd in ("capture-development", "capture-experiment"):
             tickets = load_tickets(steps.reviewer_names(base))
             if args.cmd == "capture-development":
