@@ -9,14 +9,20 @@ is frozen; it does not change the gates (13.6) or the rubric (13.4, 13.5).
 Until the freeze record exists the acceptance tickets (the 80 real ones **and** the 20 synthetic ones) stay private: they are not committed, not in a shared folder and not shown to Vijay or Sara.
 (`data/acceptance_private/` is git-ignored for this reason; only hashes are committed at the freeze.)
 
-## Roles
+## Roles (recorded in `docs/evaluation/roles.json`, enforced by `planner_experiment/roles.py`)
 
-| Role | Who | Notes |
+No person may hold more than one of these five roles, and look-alike names must be declared as the same person or different people (never guessed):
+
+| Role | Holder | State |
 |---|---|---|
-| Labelling reviewers | Vijay, Sara | label independently, blind, on all 100; must not see any acceptance ticket (real or synthetic) before the freeze |
-| Adjudicator | Ramanthan | resolves disagreements |
-| Content approvers of the 20 acceptance goldens | **two named people who are neither Vijay nor Sara** | *to be named by the owner*; `golden.parse_acceptance_golden` refuses approvers who are the reviewers |
-| Draw and package custodian | the owner (or a gated machine they control) | runs the seeded draw; the developer does not read the acceptance tickets |
+| Labeler 1, labeler 2 | Vijay, Sara | named; label independently, blind, on all 100; must not see any acceptance ticket before the freeze |
+| Adjudicator | Ramanathan | stated by the owner 2026-10-18 |
+| Acceptance-package custodian | *not yet named* | must not be a labeler or the adjudicator; holds the private package; the automated draw runs on a controlled machine and the developer session does not read the output |
+| Golden approver (A-1) | *not yet named* | must not be a labeler, the adjudicator, the custodian or the author of the goldens (the developer) |
+| Owner / approver of Release 2 | Vijay Ramanathan | signed the R2-2 approval |
+
+**Unresolved:** whether "Vijay Ramanathan" (owner), "Vijay" (labeler) and "Ramanathan" (adjudicator) are one person or different people. If the owner is the labeler Vijay and also the adjudicator, one person would adjudicate their own labels. The
+role check fails until the record declares who is who and names the custodian and the golden approver, and the freeze script refuses to run while it fails.
 
 ## Sequence
 
@@ -70,21 +76,24 @@ sample (reviewers' guess of which output is which must be at most 60%). Under th
 Why. Design 13.2 had the two labelling reviewers approve the goldens; that would show Vijay and Sara part of the acceptance set before the freeze, which 13.1 forbids. The owner chose to skip the
 "two other approvers" correction, so an amendment is needed. The wording below is a proposal; it takes effect only when the owner approves it in these words (or edits them).
 
-* **A-1 (recommended).** The 20 acceptance goldens are drafted by the developer from a written brief (varied infrastructure, application, identity, data and network incidents; no real client text), checked by the
-  tooling (`golden.check_separation`, ticket-type cap, 20 distinct hosts and patterns, no real ticket ids or client names), and approved for realism and safety by **one named content approver who is not a labelling
-  reviewer and not an adjudicator of the acceptance labels**. The labelling reviewers see them only after the freeze, blind, like every other ticket. The reduction from two approvers to one is recorded as a deviation
-  from the approved process, and the approver's name is in the freeze record.
+* **A-1 (recommended).** The 20 acceptance goldens are drafted by the developer from a written brief (varied infrastructure, application, identity, data and network incidents; no real client text) and checked by the
+  tooling (`golden.check_separation`, ticket-type cap, 20 distinct hosts and patterns, no real ticket ids or client names). Then:
+  1. They are approved by **one named content approver** who is not a labelling reviewer, not the adjudicator, not the package custodian and not the author. The reduction from two approvers to one is a recorded deviation.
+  2. **Approval is recorded per ticket** (`approved_by` and `approved_on` on each of the 20), not once for the batch.
+  3. Each ticket carries its **expected causes (1 to 3) and the evidence a correct answer needs**, and the approver reviews those, not just the ticket text, before the freeze. (`golden.parse_acceptance_golden` refuses a ticket without them.)
+  4. Results are reported **separately for the real tickets and for the goldens**, and a **sensitivity result excluding all 20 goldens** is included next to the gating result. Neither is gating; they exist so that a pass cannot
+     rest on the synthetic tickets without anyone noticing. (`evaluate_release2` computes both.)
+  5. Vijay and Sara cannot see any golden before the complete package is frozen; the goldens are not committed, and only their hash is recorded at the freeze.
 * A-2. Replace the 20 synthetic tickets with 20 further real tickets (50 PYPL, 50 PFG): no content approval is needed, but the 80/20 composition of design 13.2 changes and the acceptance set is then all client data.
 * A-3. Keep the two-reviewer approval of the goldens but have **different** people label the acceptance set: not viable with the reviewers named.
 
-**Identity check the owner must answer.** The reviewer record names "Vijay" and "Sara" as the labelling reviewers and "Ramanthan" as recorder/adjudicator; the approval above is signed "Vijay Ramanathan". If the owner,
-the adjudicator and the labelling reviewer "Vijay" are one person, then that person cannot be the single content approver (A-1), cannot be the acceptance-package custodian (they would see the tickets before the
-freeze), and the design's separation of adjudicator and labellers (13.3: "separate from the two initial judgments when practical") is not met. In that case another person must hold those roles, or the amendment must say
-which separations are waived and why.
+## Needed from the owner now (answer in this form)
 
-## Needed from the owner now
+```
+Vijay (labeler), Ramanathan (adjudicator) and Vijay Ramanathan (owner) are: all different people / <say which are the same person>
+Acceptance-package custodian:
+A-1 golden approver:
+I approve A-1 exactly as written: yes / no
+```
 
-1. Approve (or edit) amendment A-1, and name the one content approver for the goldens.
-2. Confirm who the acceptance-package custodian is: a named person who is **not** a labelling reviewer (the recommended wording: "<name> is the acceptance-package custodian and authorizes the automated private draw"). The draw runs
-   automatically, on a controlled machine outside Git; the developer session does not read the output.
-3. Answer the identity check above.
+If the owner is the labeler Vijay, a different adjudicator (or a different second labeler) is needed. Nothing is drawn until this record passes `roles.check` and A-1 is approved.

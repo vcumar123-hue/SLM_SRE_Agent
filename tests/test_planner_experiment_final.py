@@ -1027,12 +1027,13 @@ class AcceptanceGoldenSeparationTests(unittest.TestCase):
 
     def acc(self, **kw):
         base = {"ticket_id": "golden-acc-1", "text": "tape library offline on tape77", "host": "tape77", "opened_at": "2026-06-01 10:00:00",
-                "set": "acceptance", "approved_by": ["Cy", "Di"]}
+                "set": "acceptance", "approved_by": ["Cy", "Di"], "approved_on": "2026-11-02", "expected_causes": ["tape drive fault"],
+                "required_evidence": ["a similar earlier incident naming the drive"]}
         base.update(kw)
         return base
 
-    def parse(self, raw, approvers=None):
-        return golden.parse_acceptance_golden(raw, self.NAMES, self.APPROVERS if approvers is None else approvers)
+    def parse(self, raw, approvers=None, excluded=()):
+        return golden.parse_acceptance_golden(raw, self.NAMES, self.APPROVERS if approvers is None else approvers, excluded)
 
     def test_calibration_loading_refuses_acceptance_ids_and_sets(self):
         with self.assertRaisesRegex(golden.GoldenError, "reserved for the acceptance set"):
@@ -1051,11 +1052,24 @@ class AcceptanceGoldenSeparationTests(unittest.TestCase):
         with self.assertRaises(golden.GoldenError):
             self.parse([self.acc(), self.acc()])
 
-    def test_the_content_approvers_must_be_two_people_who_are_not_the_reviewers(self):
-        for approvers in (["Cy"], ["Cy", "Cy"], ["Cy", "Ann"], ["Bob", "Ann"], [], ["Cy", " "]):
+    def test_one_approver_is_enough_but_never_a_reviewer_the_adjudicator_or_the_custodian(self):
+        out = self.parse([self.acc(approved_by=["Cy"])], ["Cy"])
+        self.assertEqual((len(out), out[0]["source"]), (1, "golden"))
+        for approvers, excluded in ((["Cy", "Ann"], ()), (["Bob"], ()), ([], ()), (["Cy", "Di", "Ev"], ()), (["Cy"], ["Cy"]), (["Cy", "Di"], ["di"])):
+            with self.assertRaises(golden.GoldenError, msg=(approvers, excluded)):
+                self.parse([self.acc(approved_by=approvers or ["Cy"])], approvers, excluded)
+
+    def test_approval_is_recorded_per_ticket_with_the_expected_causes_and_evidence(self):
+        for bad in (self.acc(approved_on=""), self.acc(expected_causes=[]), self.acc(expected_causes=["a", "b", "c", "d"]), self.acc(expected_causes=[" "]),
+                    self.acc(required_evidence=[]), self.acc(required_evidence=[""]), self.acc(approved_by=["Cy"])):
+            with self.assertRaises(golden.GoldenError, msg=bad):
+                self.parse([bad])
+
+    def test_the_content_approvers_must_be_people_who_are_not_the_reviewers(self):
+        for approvers in (["Cy", "Ann"], ["Bob", "Ann"], [], ["Cy", " ", "Di", "Ev"]):
             with self.assertRaises(golden.GoldenError, msg=approvers):
                 self.parse([self.acc()], approvers)
-        with self.assertRaisesRegex(golden.GoldenError, "must not be the labelling reviewers"):
+        with self.assertRaisesRegex(golden.GoldenError, "must not be a labelling reviewer"):
             self.parse([self.acc(approved_by=["ann", "Cy"])], ["Ann", "Cy"])
 
     def test_acceptance_goldens_must_be_disjoint_from_calibration_goldens(self):

@@ -67,6 +67,8 @@ def validate(records: Sequence[Dict[str, Any]]) -> None:
         raise EvaluationError("case ids must be present and unique")
     for r in records:
         label, cand, base = r.get("label") or {}, r.get("candidate") or {}, r.get("baseline") or {}
+        if r.get("source", "real") not in SOURCES:
+            raise EvaluationError(f"{r['case_id']}: source must be one of {SOURCES}")
         if label.get("determinable") not in DETERMINABLE:
             raise EvaluationError(f"{r['case_id']}: label.determinable must be one of {DETERMINABLE}")
         if label.get("determinable") != "indeterminate":
@@ -117,7 +119,37 @@ def paired_bootstrap(candidate: Sequence[bool], baseline: Sequence[bool], seed: 
     return 100.0 * sum(diffs) / n, lo, hi
 
 
+SOURCES = ("real", "golden")
+
+
+def _gate_summary(report: Dict[str, Any]) -> Dict[str, Any]:
+    if report.get("verdict") != "evaluated":
+        return {"verdict": report.get("verdict"), "tickets": report.get("tickets")}
+    keep = {}
+    for g in ("G1", "G2", "G3", "G6"):
+        v = report["gates"][g]
+        keep[g] = {k: v[k] for k in v if k in ("delta_points", "ci", "candidate_rate", "baseline_rate", "recall_pct", "precision_pct", "not_determinable_tickets", "escalations")}
+    return {"verdict": "evaluated", "tickets": report["tickets"], "eligible": report["eligible"], "gates": keep}
+
+
 def evaluate(records: Sequence[Dict[str, Any]], safety: Dict[str, Any], replay: Dict[str, Any], seed: int, resamples: int = BOOTSTRAP_RESAMPLES) -> Dict[str, Any]:
+    """The gating evaluation over all tickets, plus (reported, never gating; amendment A-1) the real-ticket-only and golden-only results and the result with all goldens
+    excluded. Each record carries `source`: "real" or "golden" (default "real")."""
+    report = _evaluate_core(records, safety, replay, seed, resamples)
+    by_source = {name: [r for r in records if r.get("source", "real") == name] for name in SOURCES}
+    if report.get("verdict") == "evaluated" and by_source["real"] and by_source["golden"]:
+        subsets: Dict[str, Any] = {}
+        for name, subset in by_source.items():
+            try:
+                subsets[f"{name}_only"] = _gate_summary(_evaluate_core(subset, safety, replay, seed + 10, resamples))
+            except EvaluationError as exc:
+                subsets[f"{name}_only"] = {"verdict": "not evaluated", "note": str(exc)}
+        report["subsets"] = {"note": "reported separately, not gating; the real-ticket-only result is also the sensitivity result excluding all goldens (A-1)", **subsets}
+        report["sensitivity_excluding_goldens"] = subsets["real_only"]
+    return report
+
+
+def _evaluate_core(records: Sequence[Dict[str, Any]], safety: Dict[str, Any], replay: Dict[str, Any], seed: int, resamples: int = BOOTSTRAP_RESAMPLES) -> Dict[str, Any]:
     """Evaluate G1-G8. `safety`: cross_tenant_leaks, egress_violations, boundary_violations, injection_cases, injection_successes.
     `replay`: valid (records that are valid and version-matched), identical (of those, replayed identically), stale (reported, not counted)."""
     validate(records)

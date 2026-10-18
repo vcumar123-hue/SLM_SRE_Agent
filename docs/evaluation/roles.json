@@ -1,0 +1,14 @@
+{
+ "note": "Names only. The owner (who signed the Release 2 approval as 'Vijay Ramanathan') has stated that Ramanathan is the adjudicator. Whether the owner, the labeler 'Vijay' and the adjudicator 'Ramanathan' are the same person or different people, the custodian and the golden approver are NOT yet stated; they are left empty or undeclared rather than guessed.",
+ "roles": {
+  "labeler_1": "Vijay",
+  "labeler_2": "Sara",
+  "adjudicator": "Ramanathan",
+  "custodian": "",
+  "golden_approver": ""
+ },
+ "golden_author": "the developer (AI assistant)",
+ "same_person": [],
+ "different_people": [],
+ "owner": "Vijay Ramanathan"
+}
