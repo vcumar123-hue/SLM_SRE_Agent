@@ -29,7 +29,7 @@ Until the freeze record exists the acceptance tickets (the 80 real ones **and** 
 | 4 | Calibration work finishes (grounding constants stay at weight 0; blinding-check layout; agreement subset) | owner decision 2026-10-18: **run as designed**; materials to build (review layout, calibration set); then Vijay and Sara label calibration tickets only |
 | 5 | Privately draw the 80 real tickets (40 PYPL, 40 PFG): acceptance buckets 40-79, incident-only, one per cluster, type cap 20%, seed fixed beforehand | **tool built and tested** (`planner_experiment/acceptance.py`, `cli draw-acceptance`); seed recorded (`docs/baselines/release2/seed_acceptance.json`, artifact = the tool's commit `e363d99`); **not run**: the draw is automated (owner decision) but needs a named human custodian who is not a labelling reviewer, and it runs on the controlled machine, not in the developer session |
 | 6 | Build the leave-cluster-out capture for the 100 (held-out tickets and clusters removed from what the tools return) | reuses `planner_experiment.capture` / `exclusion`; acceptance wiring to build |
-| 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | to build |
+| 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | analysis code **built and tested** (`planner_experiment/evaluate_release2.py`: 13.5 scoring table, G1-G8, paired bootstrap, sensitivity analysis, 15% rule, the result record the gate reads; 26 synthetic-fixture tests); batch runner, review layout and freeze script to build (see "Design notes for the remaining tooling") |
 | 8 | **Freeze and hash** (13.9): gates and rubric (this protocol and design 13.4-13.6), acceptance id list and draw script, analysis code, batch runner and configuration, versions (`rules_only` release freeze) | after 2-7 |
 | 9 | Reveal the blinded package to Vijay and Sara; independent labels (classification and alternatives, root cause, determinable / not determinable / indeterminate), recorded **before** any system output is shown | after 8 |
 | 10 | Ramanthan adjudicates disagreements | after 9 |
@@ -42,12 +42,22 @@ Until the freeze record exists the acceptance tickets (the 80 real ones **and** 
 | Frozen item | Path | State |
 |---|---|---|
 | Gates, rubric, scoring and re-run rules | design 13.4-13.6 and this file | exists |
-| Acceptance id list and the seeded draw script | `docs/evaluation/acceptance_ids.json`, `tools/draw_acceptance_set.py` | to build |
+| Acceptance id list and the seeded draw script | `docs/evaluation/acceptance_ids.json`, `planner_experiment/acceptance.py`, `docs/baselines/release2/seed_acceptance.json` | script and seed built; ids exist after the draw |
 | Acceptance golden file (hash only is committed) | `data/acceptance_private/acceptance_golden_tickets.json` | after step 3 |
-| Analysis code | `tools/evaluate_release2.py` | to build |
+| Analysis code | `planner_experiment/evaluate_release2.py` (the design's `tools/evaluate_release2.py`, kept with the other evaluation code) | built |
 | Batch runner and configuration | `tools/batch_runner.py`, `config/agent_runtime.json` | to build |
 | Versions (rule table, tools, budgets, runtime) | `docs/baselines/release2/rules_only_release_freeze.json` | exists |
 | Blinded review layout | `tools/review_layout.py` | to build |
+
+## Design notes for the remaining tooling (to be built and tested on synthetic fixtures before the freeze)
+
+* **Batch runner.** Sequential, `batch` mode, production budgets, the frozen `rules_only` planner, tenant context per ticket. Every held-out acceptance ticket and its cluster must be removed from what the tools **and** the deterministic
+  pipeline can retrieve (design 13.2): the exclusion matcher (`planner_experiment/exclusion.py`) applied at the retrieval boundary, failing closed. Infrastructure-only re-runs (at most two, logged; 13.5). Output records are hashed and kept private.
+* **Arms.** Baseline = the deterministic pipeline with its existing fallback. Candidate = the as-deployed answer with the loop on: where the run is supported (merged or conflict) the investigation replaces the fallback and
+  `reconcile` is applied to the fallback-free deterministic response; everywhere else the baseline answer stands. Because `on` is blocked until R2-3 has passed, the harness composes the candidate answer from the same
+  `reconcile` and decision code the hook uses, and a parity test must show the harness and the hook agree on synthetic cases.
+* **Blinded layout.** Per ticket two outputs (cause list, evidence excerpts, escalation flag) in one identical anonymised format, random order per ticket, no system ids, run ids, step traces, timings or format cues; judgements recorded before unblinding.
+* **Freeze script.** Hashes the items in the table above, the reviewer layout and the acceptance package, writes the freeze record (13.9) and refuses any later change to a frozen item.
 
 ## Calibration before the freeze (13.2, 13.4)
 
