@@ -1430,3 +1430,7 @@ turning the `elif` into an `if`, dropping the guard, changing the call, a second
 queued only after the response body has been sent; the run completes and is stored (`mode = shadow`, ticket hash present); evidence and events are ciphertext at rest and decrypt for their tenant but not another; and after
 `gate.rollback()` a further request queues nothing and stores nothing. It passes. The container suite after the fallback-placement fix: 997 tests, 30 skipped, OK. The controlled shadow test on a recorded non-production tenant still needs
 the owner's approval statement and shadow decision.
+
+**Owner approval recorded (2026-10-17, 22:43).** In reply to the reviewer's proposed statement, the owner wrote "review and confirm, approve as release 2 owner". That is recorded verbatim in the release freeze's `approval_history`
+(approver `Ramanthan (Release 2 owner)`, the name the proposed statement used), and `approval_confirmed` is now true. `python -m agentruntime.release` reports no problems. Section 21 stands as an owner-approved amendment.
+Nothing is enabled by this: no tenant has a recorded deployment decision yet, `on` remains blocked until R2-3 passes G1-G8, and the controlled shadow test waits for the test tenant's id.

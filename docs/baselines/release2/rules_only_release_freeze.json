@@ -1,7 +1,14 @@
 {
- "approval_confirmed": false,
- "approval_history": [],
- "approved_by": "(not yet named: the owner must confirm)",
+ "approval_confirmed": true,
+ "approval_history": [
+  {
+   "approver": "Ramanthan (Release 2 owner)",
+   "at": "2026-10-18T02:44:54Z",
+   "for_record_frozen_at": "2026-10-18T02:29:05Z",
+   "statement": "The Release 2 owner, in the session of 2026-10-17 at 22:43, answered the reviewer's proposed statement with: \"review and confirm, approve as release 2 owner\". The proposed statement was: \"I approve the Release 2 owner amendment in section 21 and authorize deterministic rules_only for R2-2, skipping the hidden-50 planner experiment for this release. The named freeze approver is Ramanthan.\""
+  }
+ ],
+ "approved_by": "Ramanthan (Release 2 owner)",
  "budget_defaults": {
   "deadline_s": 40,
   "max_evidence_items": 20,
