@@ -23,6 +23,12 @@ GOOD_ROLES = {"roles": {"labeler_1": "Vijay", "labeler_2": "Sara", "adjudicator"
               "owner": "Tom Okafor", "golden_author": "the developer (AI assistant)", "same_person": [], "different_people": []}
 
 
+PASSING_CALIBRATION = {"passed": True, "recorded_by": "Ramanathan", "reviewers": ["Vijay", "Sara"], "calibration_tickets_only": True,
+                       "agreement": {"passed": True, "kappa_determinable": 0.72},
+                       "blinding": {"near_chance": True, "accuracy": 0.55, "reviewers": {
+                           "Vijay": {"near_chance": True, "accuracy": 0.55}, "Sara": {"near_chance": True, "accuracy": 0.50}}}}
+
+
 def golden_items(n=20, approver="Ramanathan"):
     topics = ["tape", "cert", "queue", "login", "print", "disk", "mail", "vpn", "dns", "cpu", "memory", "backup", "batch", "export", "sync", "search", "audio", "cron", "orders", "gateway"]
     return [{"ticket_id": f"golden-acc-{i}", "text": f"acceptance synthetic {topics[i - 1]} problem number {i} observed on the {topics[i - 1]} service", "host": f"accsrv{i:02d}",
@@ -33,7 +39,7 @@ def golden_items(n=20, approver="Ramanathan"):
 class World:
     """A temporary repository root with the frozen public items, an approved A-1, valid roles, and a private package drawn from synthetic tickets."""
 
-    def __init__(self, goldens=None, roles_record=None, approve=True):
+    def __init__(self, goldens=None, roles_record=None, approve=True, calibrated=True):
         self.root = pathlib.Path(tempfile.mkdtemp(prefix="acc-world-"))
         for rel in af.PUBLIC_ITEMS.values():
             dst = self.root / rel
@@ -42,6 +48,10 @@ class World:
         (self.root / "data").mkdir(exist_ok=True)
         shutil.copy(REPO / "data" / "golden_tickets.json", self.root / "data" / "golden_tickets.json")
         (self.root / "docs" / "evaluation" / "roles.json").write_text(json.dumps(roles_record or GOOD_ROLES), encoding="utf-8")
+        if calibrated:
+            (self.root / "docs" / "evaluation" / "calibration_result.json").write_text(json.dumps(PASSING_CALIBRATION), encoding="utf-8")
+        else:
+            (self.root / "docs" / "evaluation" / "calibration_result.json").write_text(json.dumps({"passed": False}), encoding="utf-8")
         am = {"amendments": [{"id": "A-1", "approvals": ([{"approver": "Tom Okafor", "statement": "I approve amendment A-1 exactly as written, in my own words.", "recorded_at": "x"}] if approve else [])}]}
         (self.root / "docs" / "evaluation" / "amendments.json").write_text(json.dumps(am), encoding="utf-8")
         self.private = self.root / "private"
@@ -89,8 +99,8 @@ class AmendmentTests(unittest.TestCase):
         amendments.approve("A-1", "Pat", "I approve methodology amendment A-1, restated in my own words.", self.path)
         self.assertTrue(amendments.is_approved("A-1", self.path))
 
-    def test_the_repository_record_shows_a1_withdrawn_until_the_owner_restates_it(self):
-        self.assertFalse(amendments.is_approved("A-1"))
+    def test_the_repository_record_has_the_owners_explicit_a1_approval(self):
+        self.assertTrue(amendments.is_approved("A-1"))
         entry = amendments.load()["amendments"][0]["approvals"][0]
         self.assertTrue(entry["withdrawn"]["reason"])
 
@@ -119,6 +129,11 @@ class FreezeTests(unittest.TestCase):
     def test_it_refuses_without_a_standing_a1_approval(self):
         w = World(approve=False)
         with valid_release(), self.assertRaisesRegex(af.FreezeError, "amendment A-1"):
+            w.freeze()
+
+    def test_it_refuses_until_the_calibration_checks_have_passed(self):
+        w = World(calibrated=False)
+        with valid_release(), self.assertRaisesRegex(af.FreezeError, "calibration checks"):
             w.freeze()
 
     def test_it_refuses_when_the_roles_are_not_separated(self):

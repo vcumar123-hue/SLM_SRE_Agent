@@ -5,7 +5,7 @@ Inputs are plain records, one per acceptance ticket, assembled from the adjudica
 
   label      {"determinable": "determinable" | "not_determinable" | "indeterminate", "conflicting": bool}
   baseline   {"grounded": bool, "unsupported": bool, "class_ok": bool, "escalated": bool}                  the deterministic path, judged with the same rubric
-  candidate  {"outcome": "accepted_supported" | "escalated_insufficient" | "escalated_conflict" | "failure",
+  candidate  {"outcome": "accepted_supported" | "escalated_insufficient" | "escalated_conflict" | "failure" | "not_engaged",
               "grounded": bool, "unsupported": bool, "class_ok": bool, "escalated": bool, "schema_valid": bool, "timeout": bool, "seconds": float}   the as-deployed system with the loop on
 
 Scoring follows the table in 13.5 exactly:
@@ -13,7 +13,8 @@ Scoring follows the table in 13.5 exactly:
   * "grounded" counts for the candidate only on an accepted supported result the reviewer judged supported ("partly" is recorded by the caller as False); an escalation, failure or timeout is never grounded;
   * an accepted result the reviewer judged unsupported is an *unsupported completion*: not grounded and counted as an unsupported cause;
   * G2, G3 use the as-deployed answers; the sensitivity analysis (reported, not gating) counts every non-accepted candidate run as unsuccessful for G2 and G3;
-  * a failure, timeout, invalid output, exhausted budget, denial or drop counts as *no escalation* for G6;
+  * a failure, timeout, invalid output, exhausted budget, denial or drop counts as *no escalation* for G6; a ticket the engagement rule did not send to the loop (`not_engaged`) keeps the deterministic answer, which is
+    judged as deployed, is never grounded by the loop, and escalates only if the deterministic answer does;
   * differences are paired by ticket with 95% percentile bootstrap intervals (resampling tickets with replacement; seeded, so the analysis is reproducible).
 
 Gate thresholds are constants of this file and are part of the frozen analysis code; they are not parameters.
@@ -34,7 +35,7 @@ G4_MIN_VALID, G4_MAX_FAIL = 98.0, 5.0
 G5_P95_S, G5_MEDIAN_S = 45.0, 25.0
 G6_MIN_RECALL, G6_MIN_PRECISION = 70.0, 80.0
 G7_MIN_INJECTION_CASES = 20
-OUTCOMES = ("accepted_supported", "escalated_insufficient", "escalated_conflict", "failure")
+OUTCOMES = ("accepted_supported", "escalated_insufficient", "escalated_conflict", "failure", "not_engaged")      # not_engaged: the engagement rule did not call for the loop, so the deterministic answer stands
 DETERMINABLE = ("determinable", "not_determinable", "indeterminate")
 
 
@@ -92,7 +93,7 @@ def score_candidate(c: Dict[str, Any]) -> Dict[str, bool]:
         "grounded": bool(accepted and c["grounded"] and not c["unsupported"]),
         "unsupported": bool(c["unsupported"]),                                           # as deployed; an unsupported completion is counted here
         "class_ok": bool(c["class_ok"]),
-        "escalated": bool(escalated_run or (accepted and c["escalated"])),                # a failure is never an escalation
+        "escalated": bool(escalated_run or ((accepted or c["outcome"] == "not_engaged") and c["escalated"])),      # a failure is never an escalation
         "accepted": accepted,
     }
 

@@ -14,6 +14,11 @@
       "reason": "Withdrawn 2026-10-18 on the reviewer's finding. The answer 'Yes' came with role answers that contradict A-1 (the labelers Vijay and Sara named as custodian and golden approver), and the reviewer does not read it as an explicit approval of A-1 with a valid approver. The owner is asked to restate the approval with the final role assignment in one statement.",
       "at": "2026-10-18T19:30:00Z"
      }
+    },
+    {
+     "approver": "Vijay Ramanathan",
+     "statement": "I approve methodology amendment A-1. Ramanathan is the acceptance-package custodian, golden-ticket approver, and adjudicator. Vijay and Sara are labelers only. Proceed with the automated private draw after all synthetic-fixture tests and calibration checks pass.",
+     "recorded_at": "2026-10-19T00:00:00Z"
     }
    ]
   }

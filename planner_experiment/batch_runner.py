@@ -41,11 +41,13 @@ class HeldOutFilter:
         self.matcher = Matcher(held_out)
         self.matcher.self_test()
         self.removed = 0
+        self.undecided = 0                                  # items whose exclusion could not be decided: any makes the whole run invalid
 
     def keep(self, tenant: str, source_id: str, excerpt: str) -> bool:
         try:
             why = self.matcher.reason(tenant, source_id, excerpt)
         except Undecidable as exc:
+            self.undecided += 1
             raise BatchError(f"held-out exclusion could not be decided for an item ({exc}); the run is stopped") from exc
         if why:
             self.removed += 1

@@ -1,0 +1,4 @@
+{
+ "passed": false,
+ "note": "The calibration checks (reviewer agreement kappa >= 0.6 on a 30-ticket double-labelled subset; blinding accuracy <= 60% on 20 tickets) have not been done. Replace this file with the recorded result (planner_experiment.calibration.record_result)."
+}

@@ -99,12 +99,14 @@ class RoleSeparationTests(unittest.TestCase):
         repo = roles.load()
         self.assertEqual(repo["roles"]["adjudicator"], "Ramanathan")
         self.assertEqual((repo["roles"]["labeler_1"], repo["roles"]["labeler_2"]), ("Vijay", "Sara"))
-        self.assertEqual((repo["roles"]["custodian"], repo["roles"]["golden_approver"]), ("", ""))     # not guessed
+        self.assertEqual((repo["roles"]["custodian"], repo["roles"]["golden_approver"]), ("Ramanathan", "Ramanathan"))
+        self.assertEqual(repo["role_approval"]["approver"], "Vijay Ramanathan")
         self.assertEqual(repo["owner"], "Vijay Ramanathan")
-        self.assertTrue(roles.check(repo), "until valid holders are named and the identities declared, the roles are not separated")
+        self.assertEqual(roles.check(repo), [])
+        self.assertEqual(len(roles.warnings(repo)), 3)
         self.assertIn(["Vijay", "Ramanathan"], repo["different_people"])                               # stated by the owner 2026-10-18
-        self.assertEqual(repo["stated_but_not_valid"]["custodian"]["name"], "Vijay")                   # recorded as stated, not accepted: a labeler cannot be the custodian
-        self.assertEqual(repo["stated_but_not_valid"]["golden_approver"]["name"], "Sara")
+        self.assertEqual(repo["superseded_statements"]["custodian"]["name"], "Vijay")
+        self.assertEqual(repo["superseded_statements"]["golden_approver"]["name"], "Sara")
 
 
 class GoldenReportingTests(unittest.TestCase):

@@ -9,6 +9,7 @@ from that file only and recompute it before use.
 Purposes:
   calibration-selection   the bucket partition (calibration / acceptance / headroom) of ticket clusters; recorded once
   development-selection   the 10-ticket development subset used to build and tune the candidate planners
+  calibration-set         the 60-ticket calibration set for the reviewers' agreement and blinding checks (calibration.py)
   acceptance-selection    the 80 real tickets of the R2-3 acceptance set; its artifact is a commit fixed before the draw (acceptance.py)
   planner-experiment-N    the N-th 50-ticket planner-selection set; its artifact is the hash of the planner-freeze record, so the draw
                           cannot happen before the planners are frozen and cannot be steered by anything learned from the set
@@ -23,7 +24,7 @@ from typing import Any, Dict
 
 ALGORITHM = "int(sha256(f'{purpose}:{artifact}').hexdigest()[:8], 16)"
 RETIRED_SEEDS = {20261014: "chosen by hand; its calibration draw counts were observed before review"}
-FIXED_PURPOSES = ("calibration-selection", "development-selection", "acceptance-selection")
+FIXED_PURPOSES = ("calibration-selection", "development-selection", "acceptance-selection", "calibration-set")
 EXPERIMENT_PURPOSE = re.compile(r"planner-experiment-([1-9][0-9]*)")
 HEX = set("0123456789abcdef")
 

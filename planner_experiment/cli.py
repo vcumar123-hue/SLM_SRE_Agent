@@ -131,6 +131,25 @@ def main(argv=None) -> int:
     fa.add_argument("--private", default=None, help="the private package folder (default data/acceptance_private)")
     vf = sub.add_parser("verify-acceptance-freeze")
     vf.add_argument("--private", default=None)
+    cs = sub.add_parser("calibration-seed")
+    cs.add_argument("--artifact", required=True, help="a full 40-character commit id fixed before the calibration draw")
+    cm = sub.add_parser("calibration-materials")
+    cm.add_argument("--out", default="data/calibration_materials")
+    cm.add_argument("--reviewers", nargs=2, default=["Vijay", "Sara"])
+    cb = sub.add_parser("calibration-blinding")
+    cb.add_argument("--dir", default="data/calibration_materials")
+    cb.add_argument("--labels-first", required=True)
+    cb.add_argument("--labels-second", required=True)
+    ck = sub.add_parser("calibration-score")
+    ck.add_argument("--dir", default="data/calibration_materials")
+    ck.add_argument("--labels-first", required=True, help="the first reviewer's completed sheet (.xlsx or .json)")
+    ck.add_argument("--labels-second", required=True, help="the second reviewer's completed sheet")
+    ck.add_argument("--guesses-first", required=True, help="the first reviewer's independent blinding guesses JSON")
+    ck.add_argument("--guesses-second", required=True, help="the second reviewer's independent blinding guesses JSON")
+    ck.add_argument("--by", required=True, help="who records the result")
+    ra = sub.add_parser("run-acceptance")
+    ra.add_argument("--labels", required=True, help="the adjudicated labels file (private)")
+    ra.add_argument("--results", default="data/acceptance_private/results")
     da = sub.add_parser("draw-acceptance")
     da.add_argument("--out", default=None, help="a private folder (default data/acceptance_private, git-ignored)")
     cd = sub.add_parser("capture-development")
@@ -225,6 +244,65 @@ def main(argv=None) -> int:
                 print("refused:", exc)
                 return 2
             print(json.dumps({"verdict": out["decision"]["verdict"], "conditions": out["decision"]["conditions"]}, indent=1))
+        elif args.cmd == "calibration-seed":
+            from planner_experiment import seed as seed_mod
+            record = seed_mod.write_record(ROOT / "docs" / "baselines" / "release2" / "seed_calibration_set.json", args.artifact, "calibration-set")
+            print(json.dumps({"purpose": record["purpose"], "artifact": record["artifact"], "seed": record["seed"]}, indent=1))
+        elif args.cmd == "calibration-materials":
+            from planner_experiment import calibration as cal, seed as seed_mod, select_cases as sc
+            tickets = load_tickets(steps.reviewer_names(base))
+            dev = json.loads(steps.paths(base)["development"].read_text(encoding="utf-8"))
+            exclude = frozenset((c["pool"], str(c["ticket_id"])) for c in dev["cases"])
+            exclude_clusters = frozenset(sc.cluster_id({**c, "text": c.get("ticket_text", c.get("text", ""))}) for c in dev["cases"] if c.get("pool") != "golden")
+            partition = seed_mod.load_record(steps.paths(base)["partition_seed"], "calibration-selection")["seed"]
+            draw = seed_mod.load_record(ROOT / "docs" / "baselines" / "release2" / "seed_calibration_set.json", "calibration-set")["seed"]
+            cases = cal.draw_calibration([t for t in tickets if t.get("pool") != "golden"], [t for t in tickets if t.get("pool") == "golden"], partition, draw, exclude,
+                                         exclude_clusters)
+            manifest = cal.build_label_materials(cases, Path(args.out), args.reviewers, draw)
+            (Path(args.out) / "cases_private.json").write_text(json.dumps({"cases": cases}, indent=1), encoding="utf-8")
+            print(json.dumps({"tickets": len(cases), "files": manifest["files"], "stage": manifest["stage"]}, indent=1))
+        elif args.cmd == "calibration-blinding":
+            from planner_experiment import acceptance_executor as ax, calibration as cal, seed as seed_mod
+            d = Path(args.dir)
+            manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+            first, second = manifest["reviewers"]
+            stem = lambda name: name.lower().replace(" ", "_")
+            labels_a = cal.read_completed(Path(args.labels_first), json.loads((d / f"alias_map_{stem(first)}.json").read_text(encoding="utf-8")))
+            labels_b = cal.read_completed(Path(args.labels_second), json.loads((d / f"alias_map_{stem(second)}.json").read_text(encoding="utf-8")))
+            manifest = cal.mark_labels_complete(manifest, labels_a, labels_b)
+            cases = json.loads((d / "cases_private.json").read_text(encoding="utf-8"))["cases"]
+            held_out = [{"pool": c["pool"], "tenant_id": c["tenant_id"], "ticket_id": c["ticket_id"], "text": c["ticket_text"], "host": c["host"]} for c in cases]
+            executor, filt = ax.build_live(held_out)
+            with ax.live_scope(filt):
+                outcome = executor(cases)
+            draw = seed_mod.load_record(ROOT / "docs" / "baselines" / "release2" / "seed_calibration_set.json", "calibration-set")["seed"]
+            manifest = cal.build_blinding_materials(ax.review_items(outcome["records"], cases), d, manifest, draw)
+            print(json.dumps({"tickets": len(cases), "stage": manifest["stage"], "held_out_items_removed": outcome["held_out_items_removed"], "reruns": len(outcome["reruns"])}, indent=1))
+        elif args.cmd == "calibration-score":
+            from planner_experiment import calibration as cal
+            d = Path(args.dir)
+            manifest = json.loads((d / "manifest.json").read_text(encoding="utf-8"))
+            first, second = manifest["reviewers"]
+            stem = lambda name: name.lower().replace(" ", "_")
+            labels_a = cal.read_completed(Path(args.labels_first), json.loads((d / f"alias_map_{stem(first)}.json").read_text(encoding="utf-8")))
+            labels_b = cal.read_completed(Path(args.labels_second), json.loads((d / f"alias_map_{stem(second)}.json").read_text(encoding="utf-8")))
+            key = json.loads((d / "blinding_key.json").read_text(encoding="utf-8"))
+            guesses = {first: json.loads(Path(args.guesses_first).read_text(encoding="utf-8")), second: json.loads(Path(args.guesses_second).read_text(encoding="utf-8"))}
+            result = cal.score(labels_a, labels_b, manifest["plan"], guesses, key, manifest["reviewers"], args.by)
+            print(json.dumps({"passed": result["passed"], "kappa_determinable": result["agreement"]["kappa_determinable"], "blinding_accuracy": result["blinding"]["accuracy"]}, indent=1))
+            return 0 if result["passed"] else 2
+        elif args.cmd == "run-acceptance":
+            from planner_experiment import acceptance, acceptance_executor as ax, acceptance_run as ar
+            private = acceptance.PRIVATE_DIR
+            cases = ar.load_cases(private)
+            held_out = [{"pool": c["pool"], "tenant_id": c["tenant_id"], "ticket_id": c["ticket_id"], "text": c["ticket_text"], "host": c.get("host", "")} for c in cases]
+            executor, filt = ax.build_live(held_out)
+
+            def live(all_cases):
+                with ax.live_scope(filt):
+                    return executor(all_cases)
+            summary = ar.run_once(private, Path(args.labels), Path(args.results), live)
+            print(json.dumps(summary, indent=1))
         elif args.cmd == "roles-check":
             from planner_experiment import roles as roles_mod
             record = roles_mod.load()

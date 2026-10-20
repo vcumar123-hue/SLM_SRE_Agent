@@ -17,14 +17,11 @@ A labeler may hold no other role, the two labelers are different people, and loo
 |---|---|---|
 | Labeler 1, labeler 2 | Vijay, Sara | named; label independently, blind, on all 100; must not see any acceptance ticket before the freeze |
 | Adjudicator | Ramanathan | stated by the owner 2026-10-18 |
-| Acceptance-package custodian | *not yet named* | must not be a labeler or the adjudicator; holds the private package; the automated draw runs on a controlled machine and the developer session does not read the output |
-| Golden approver (A-1) | *not yet named* | must not be a labeler, the adjudicator, the custodian or the author of the goldens (the developer) |
+| Acceptance-package custodian | Ramanathan | holds the private package; the automated draw runs on a controlled machine and the developer session does not read the output |
+| Golden approver (A-1) | Ramanathan | approves every golden ticket; also adjudicator and custodian under approved A-1 |
 | Owner / approver of Release 2 | Vijay Ramanathan | signed the R2-2 approval |
 
-**State after the owner's answers of 2026-10-18.** Stated: Ramanathan is the adjudicator; Vijay (labeler) and Ramanathan (adjudicator) are different people; **amendment A-1 is approved as written by the owner**.
-Not valid: the owner named **Vijay as custodian** and **Sara as golden approver**, but both are labelers, which A-1 and the separation rule forbid (they must not see the acceptance set or its goldens before the freeze). They are recorded in
-`roles.json` under `stated_but_not_valid` and the roles stay empty. Still unstated: whether the owner "Vijay Ramanathan" is the labeler Vijay, the adjudicator Ramanathan or a third person.
-A-1's approval therefore stands, but its single approver is not yet validly named.
+**Current state.** A-1 was explicitly approved by Vijay Ramanathan on 2026-10-19. Ramanathan is the adjudicator, custodian and golden approver; this permitted overlap is recorded as a warning. Vijay and Sara are labelers only. Earlier inferred approvals remain withdrawn in the audit history.
 
 ## Sequence
 
@@ -34,10 +31,10 @@ A-1's approval therefore stands, but its single approver is not yet validly name
 | 1 | Release configuration frozen (`rules_only`, runtime, tools, budgets, integration, hooks) | done (`docs/baselines/release2/rules_only_release_freeze.json`); re-confirmed after step 0 |
 | 2 | Draft 20 acceptance-only synthetic goldens (`golden-acc-1..20`), disjoint from the 18 calibration goldens | **drafted privately, unapproved** (`data/acceptance_private/acceptance_golden_DRAFT.json`; separation from the calibration goldens verified, 20 distinct hosts and patterns) |
 | 3 | Content approval of those goldens | **open: the owner chose to skip the two-approver rule; the replacement is the proposed amendment A-1 below, which the owner must approve in its exact wording. Until then the goldens stay private and unapproved** |
-| 4 | Calibration work finishes (grounding constants stay at weight 0; blinding-check layout; agreement subset) | owner decision 2026-10-18: **run as designed**; materials to build (review layout, calibration set); then Vijay and Sara label calibration tickets only |
+| 4 | Calibration work finishes (grounding constants stay at weight 0; blinding-check layout; agreement subset) | tooling built and tested. Stage 1 produces ticket-only ground-truth sheets with no system-selected evidence; only after both sheets are complete may stage 2 run the live arms and create blinded outputs. Both Vijay and Sara must independently score <=60% on the blinding check |
 | 5 | Privately draw the 80 real tickets (40 PYPL, 40 PFG): acceptance buckets 40-79, incident-only, one per cluster, type cap 20%, seed fixed beforehand | **tool built and tested** (`planner_experiment/acceptance.py`, `cli draw-acceptance`); seed recorded (`docs/baselines/release2/seed_acceptance.json`, artifact = the tool's commit `e363d99`); **not run**: the draw is automated (owner decision) but needs a named human custodian who is not a labelling reviewer, and it runs on the controlled machine, not in the developer session |
 | 6 | Build the leave-cluster-out capture for the 100 (held-out tickets and clusters removed from what the tools return) | reuses `planner_experiment.capture` / `exclusion`; acceptance wiring to build |
-| 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | analysis code **built and tested** (`planner_experiment/evaluate_release2.py`: 13.5 scoring table, G1-G8, paired bootstrap, sensitivity analysis, 15% rule, the result record the gate reads; 26 synthetic-fixture tests); **batch runner** (`batch_runner.py`: retrieval-boundary exclusion on the tools and the pipeline, sequential batch mode, infrastructure re-run rule), **blinded review layout** (`review_layout.py`), **freeze command** (`acceptance_freeze.py`, `cli freeze-acceptance`) and **run-once command** (`acceptance_run.py`) built and tested on synthetic fixtures (35 tests); still to build: the live arm-composition executor (baseline pipeline + loop, reconcile) and the calibration materials |
+| 7 | Build and commit the analysis code (gate evaluation, paired bootstrap), the batch runner, the blinded review layout and the freeze script | built and tested on synthetic fixtures: gate analysis, batch runner, blinded layout, freeze, run-once, live executor and staged calibration tooling. The executor decides engagement from the fallback-free state, prevents baseline-fallback side effects from influencing the candidate, excludes held-out clusters and hashes corpus row contents before/after |
 | 8 | **Freeze and hash** (13.9): gates and rubric (this protocol and design 13.4-13.6), acceptance id list and draw script, analysis code, batch runner and configuration, versions (`rules_only` release freeze) | after 2-7 |
 | 9 | Reveal the blinded package to Vijay and Sara; independent labels (classification and alternatives, root cause, determinable / not determinable / indeterminate), recorded **before** any system output is shown | after 8 |
 | 10 | Ramanthan adjudicates disagreements | after 9 |
@@ -70,13 +67,13 @@ A-1's approval therefore stands, but its single approver is not yet validly name
 ## Calibration before the freeze (13.2, 13.4)
 
 The design requires calibration to finish before the freeze: a 60-ticket calibration set with one reviewer, a 30-ticket subset labelled by two reviewers to reach kappa >= 0.6, and a blinding check on a 20-ticket
-sample (reviewers' guess of which output is which must be at most 60%). Under the owner amendment the planner no longer needs tuning, but these checks still gate the rubric and the review layout. They need Vijay and Sara
-**on calibration tickets only**, which is permitted before the freeze. Open: whether the owner wants them done as designed or amends them in writing.
+sample. Calibration is staged: first, Vijay and Sara return ground-truth sheets containing no system output; second, the custodian generates the blinded output packets. Vijay and Sara submit independent guesses and each must score
+at most 60%. Only calibration tickets are involved. A passing signed calibration result is a required frozen input.
 
-## Proposed methodology amendment A-1 (NOT APPROVED): content approval of the 20 acceptance goldens
+## Methodology amendment A-1 (APPROVED 2026-10-19): content approval of the 20 acceptance goldens
 
 Why. Design 13.2 had the two labelling reviewers approve the goldens; that would show Vijay and Sara part of the acceptance set before the freeze, which 13.1 forbids. The owner chose to skip the
-"two other approvers" correction, so an amendment is needed. The wording below is a proposal; it takes effect only when the owner approves it in these words (or edits them).
+"two other approvers" correction, so this approved amendment records the replacement method.
 
 * **A-1 (recommended).** The 20 acceptance goldens are drafted by the developer from a written brief (varied infrastructure, application, identity, data and network incidents; no real client text) and checked by the
   tooling (`golden.check_separation`, ticket-type cap, 20 distinct hosts and patterns, no real ticket ids or client names). Then:
@@ -90,10 +87,14 @@ Why. Design 13.2 had the two labelling reviewers approve the goldens; that would
 * A-2. Replace the 20 synthetic tickets with 20 further real tickets (50 PYPL, 50 PFG): no content approval is needed, but the 80/20 composition of design 13.2 changes and the acceptance set is then all client data.
 * A-3. Keep the two-reviewer approval of the goldens but have **different** people label the acceptance set: not viable with the reviewers named.
 
-## Needed from the owner now
+## Next required actions
 
-1. Name a custodian and a golden approver who are **not** Vijay or Sara. The adjudicator (Ramanathan) may hold either or both, if the owner is content with that overlap; otherwise name others.
-2. Say whether the owner "Vijay Ramanathan" is Vijay, Ramanathan, or a third person.
-3. If the owner prefers that Vijay or Sara hold these roles, the alternative is to appoint different labelers; the labelers cannot also be the custodian or the golden approver.
+The role gate now passes. Before the private acceptance draw:
 
-Nothing is drawn until `roles.check` passes.
+1. Commit the completed calibration tooling and derive the calibration seed from that immutable commit.
+2. Generate the ticket-only calibration label sheets for Vijay and Sara.
+3. Vijay and Sara label independently and return their completed sheets.
+4. Generate the blinded system-output packets only after both label sheets validate.
+5. Vijay and Sara submit independent blinding guesses; both must score at most 60%, and the agreement gate must pass.
+6. Ramanathan reviews and approves each of the 20 synthetic acceptance goldens.
+7. Only after those checks pass may the custodian run the automated private 80-ticket draw and freeze the complete 100-ticket package.

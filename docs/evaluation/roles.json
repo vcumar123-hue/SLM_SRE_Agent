@@ -1,11 +1,11 @@
 {
- "note": "Names only. Stated by the owner on 2026-10-18: Ramanathan is the adjudicator; Vijay (labeler) and Ramanathan (adjudicator) are different people. NOT stated: whether the owner 'Vijay Ramanathan' is the labeler Vijay, the adjudicator Ramanathan, or a third person. The custodian and golden approver named on 2026-10-18 are labelers, so they are kept under 'stated_but_not_valid' and the roles stay empty until valid holders are named.",
+ "note": "Names and role separation recorded from the owner's explicit methodology amendment A-1 approval. Ramanathan is the adjudicator, acceptance-package custodian and golden-ticket approver. Vijay and Sara are labelers only.",
  "roles": {
   "labeler_1": "Vijay",
   "labeler_2": "Sara",
   "adjudicator": "Ramanathan",
-  "custodian": "",
-  "golden_approver": ""
+  "custodian": "Ramanathan",
+  "golden_approver": "Ramanathan"
  },
  "golden_author": "the developer (AI assistant)",
  "same_person": [],
@@ -13,10 +13,18 @@
   [
    "Vijay",
    "Ramanathan"
+  ],
+  [
+   "Vijay Ramanathan",
+   "Vijay"
+  ],
+  [
+   "Vijay Ramanathan",
+   "Ramanathan"
   ]
  ],
  "owner": "Vijay Ramanathan",
- "stated_but_not_valid": {
+ "superseded_statements": {
   "custodian": {
    "name": "Vijay",
    "stated_on": "2026-10-18",
@@ -28,10 +36,9 @@
    "why_not_accepted": "Sara is a labeler; a labeler must not see the acceptance goldens before the freeze (amendment A-1 requires an approver who is not a labeler)"
   }
  },
- "proposed_not_stated": {
-  "note": "The reviewer proposed (not the owner) that Ramanathan be the custodian, the golden approver and the adjudicator, with Vijay and Sara as labelers only. It takes effect only when the owner states it.",
-  "custodian": "Ramanathan",
-  "golden_approver": "Ramanathan",
-  "adjudicator": "Ramanathan"
+ "role_approval": {
+  "approver": "Vijay Ramanathan",
+  "statement": "I approve methodology amendment A-1. Ramanathan is the acceptance-package custodian, golden-ticket approver, and adjudicator. Vijay and Sara are labelers only. Proceed with the automated private draw after all synthetic-fixture tests and calibration checks pass.",
+  "recorded_on": "2026-10-19"
  }
 }

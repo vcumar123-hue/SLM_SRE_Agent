@@ -4,6 +4,7 @@ The R2-3 freeze (design 13.1 and 13.9): everything that decides the acceptance r
 `create_freeze` refuses unless, at that moment:
   * the role record passes (`roles.require`: a labeler holds no other role; named holders; identities declared);
   * amendment A-1 has a standing approval in the owner's own words (`amendments.require`);
+  * the calibration checks (reviewer agreement, blinding) have been recorded as passed (`calibration.require_passed`), on calibration tickets only;
   * the Release 2 configuration freeze is intact and its approval is confirmed (`release.problems()` is empty);
   * the 20 acceptance goldens parse under A-1 (per-ticket approval by the named golden approver, who is not a labeler; expected causes and evidence on each) and are
     separate from the calibration goldens;
@@ -38,6 +39,9 @@ PUBLIC_ITEMS = {
     "batch_runner": "planner_experiment/batch_runner.py",
     "review_layout": "planner_experiment/review_layout.py",
     "run_once": "planner_experiment/acceptance_run.py",
+    "live_executor": "planner_experiment/acceptance_executor.py",
+    "calibration_code": "planner_experiment/calibration.py",
+    "calibration_result": "docs/evaluation/calibration_result.json",
     "exclusion": "planner_experiment/exclusion.py",
     "freeze_code": "planner_experiment/acceptance_freeze.py",
     "release_freeze": "docs/baselines/release2/rules_only_release_freeze.json",
@@ -89,6 +93,11 @@ def preflight(private_dir: Path, root: Path = ROOT) -> Dict[str, Any]:
     try:
         amendments.require("A-1", root / "docs" / "evaluation" / "amendments.json")
     except amendments.AmendmentError as exc:
+        raise FreezeError(str(exc)) from exc
+    from planner_experiment import calibration
+    try:
+        calibration.require_passed(root / "docs" / "evaluation" / "calibration_result.json")
+    except calibration.CalibrationError as exc:
         raise FreezeError(str(exc)) from exc
     from agentruntime import release
     problems = release.problems()
