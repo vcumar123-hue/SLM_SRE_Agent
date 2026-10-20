@@ -98,3 +98,16 @@ The role gate now passes. Before the private acceptance draw:
 5. Vijay and Sara submit independent blinding guesses; both must score at most 60%, and the agreement gate must pass.
 6. Ramanathan reviews and approves each of the 20 synthetic acceptance goldens.
 7. Only after those checks pass may the custodian run the automated private 80-ticket draw and freeze the complete 100-ticket package.
+
+## Proposed methodology amendment A-2 (NOT YET APPROVED): proposal-verification calibration
+
+The owner requested that the calibration fields be pre-populated and that Vijay and Sara record only `correct` or `incorrect`. This replaces the independent ground-truth labelling method above. Under A-2:
+
+1. The deterministic proposal generator fills determinability, classification, alternatives, root cause and conflict status before review.
+2. Vijay reviews all 60 calibration cases and Sara independently reviews the fixed 30-case agreement subset. They see neither the other reviewer's decisions nor system comparison outputs.
+3. Each reviewer records only `correct` or `incorrect`. Raw decision agreement on the shared subset must be at least 80%; Cohen's kappa is reported but is not gated because the expected prevalence is strongly skewed toward accepted proposals.
+4. Ramanathan adjudicates every case marked incorrect by either reviewer. The adjudicated values become the calibration reference labels. Every rejected proposal must have a final action and final values.
+5. The original two independent blinding checks remain unchanged: Vijay and Sara separately guess the newer output on the 20-case blinded packet, and each accuracy must be at most 60%.
+6. The calibration result records the method as `proposal_verification_v1`, the reviewer decision counts, raw agreement, reported kappa, adjudication count and hashes of all three completed workbooks.
+
+This amendment does not take effect until the owner explicitly approves A-2 in their own words. Until then the blinded packet and private acceptance draw remain blocked.

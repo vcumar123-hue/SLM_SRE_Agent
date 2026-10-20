@@ -21,6 +21,12 @@
      "recorded_at": "2026-10-19T00:00:00Z"
     }
    ]
+  },
+  {
+   "id": "A-2",
+   "title": "Proposal-verification calibration with independent reviewer decisions and adjudication",
+   "text": "docs/evaluation/R2_3_PROTOCOL.md, section 'Proposed methodology amendment A-2'",
+   "approvals": []
   }
  ]
 }
