@@ -26,7 +26,13 @@
    "id": "A-2",
    "title": "Proposal-verification calibration with independent reviewer decisions and adjudication",
    "text": "docs/evaluation/R2_3_PROTOCOL.md, section 'Proposed methodology amendment A-2'",
-   "approvals": []
+   "approvals": [
+    {
+     "approver": "Vijay Ramanathan",
+     "statement": "I approve methodology amendment A-2 for proposal-verification calibration. Vijay reviews all 60 calibration cases, Sara independently reviews the fixed 30-case subset, Ramanathan adjudicates every rejected proposal, raw reviewer agreement must be at least 80%, and both original independent blinding checks remain required. \u2014 Vijay Ramanathan",
+     "recorded_at": "2026-10-20T20:15:50Z"
+    }
+   ]
   }
  ]
 }

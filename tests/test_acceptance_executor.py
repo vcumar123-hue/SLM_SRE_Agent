@@ -211,6 +211,22 @@ class PipelineLeakGuardTests(unittest.TestCase):
             self.assertIsNot(retrieval_engine.retrieve_incidents, before[1])
         self.assertEqual((app.retrieve_incidents, retrieval_engine.retrieve_incidents), before)
 
+    def test_live_scope_suppresses_learning_writes_and_model_generated_playbooks(self):
+        import long_term_memory
+        import resolution_outcome
+        from agents import playbook_agent
+        filt = HeldOutFilter(HELD)
+        originals = (long_term_memory.record_outcome, resolution_outcome.record_outcome, playbook_agent.generate_playbook)
+        with patch.object(playbook_agent, "get_cached_playbook", return_value=None) as cached:
+            with ax.live_scope(filt):
+                long_term_memory.record_outcome("x", success=True)
+                resolution_outcome.record_outcome(incident_id="i", classification="x", outcome_status="resolved")
+                self.assertEqual(playbook_agent.generate_playbook("uncached"), [])
+                long_term_memory.record_outcome.assert_called_once()
+                resolution_outcome.record_outcome.assert_called_once()
+                cached.assert_called_once_with("uncached")
+        self.assertEqual((long_term_memory.record_outcome, resolution_outcome.record_outcome, playbook_agent.generate_playbook), originals)
+
 
 class OutputTests(unittest.TestCase):
     def test_outputs_are_sanitised_and_bounded(self):

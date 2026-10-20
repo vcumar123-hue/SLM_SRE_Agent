@@ -99,7 +99,7 @@ The role gate now passes. Before the private acceptance draw:
 6. Ramanathan reviews and approves each of the 20 synthetic acceptance goldens.
 7. Only after those checks pass may the custodian run the automated private 80-ticket draw and freeze the complete 100-ticket package.
 
-## Proposed methodology amendment A-2 (NOT YET APPROVED): proposal-verification calibration
+## Approved methodology amendment A-2: proposal-verification calibration
 
 The owner requested that the calibration fields be pre-populated and that Vijay and Sara record only `correct` or `incorrect`. This replaces the independent ground-truth labelling method above. Under A-2:
 
@@ -110,4 +110,4 @@ The owner requested that the calibration fields be pre-populated and that Vijay 
 5. The original two independent blinding checks remain unchanged: Vijay and Sara separately guess the newer output on the 20-case blinded packet, and each accuracy must be at most 60%.
 6. The calibration result records the method as `proposal_verification_v1`, the reviewer decision counts, raw agreement, reported kappa, adjudication count and hashes of all three completed workbooks.
 
-This amendment does not take effect until the owner explicitly approves A-2 in their own words. Until then the blinded packet and private acceptance draw remain blocked.
+The owner approved A-2 in their own words on 2026-10-20. The exact signed statement is retained in `docs/evaluation/amendments.json`. The method is now in force for Release 2 calibration.

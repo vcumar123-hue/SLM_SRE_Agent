@@ -39,6 +39,10 @@ def forbidden_cues(text: str) -> List[str]:
 def _clean(text: Any, limit: int) -> str:
     t = " ".join(str(text or "").split())
     t = re.sub(r"\[REDACTED[^\]]*\]", "[removed]", t)                          # one neutral marker on both sides
+    replacements = {"an evidence id": "reference", "a system name": "system", "a component name": "component",
+                    "a status word": "reported", "a timing": "", "an id": "identifier"}
+    for pattern, label in CUES:
+        t = pattern.sub(replacements[label], t)
     t = _PREFIXES.sub("", t).strip(" -*•\t")
     t = re.sub(r"\s+", " ", t)
     if t:

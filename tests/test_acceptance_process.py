@@ -251,11 +251,11 @@ class LayoutTests(unittest.TestCase):
         redacted = review_layout.normalise_output(["Cause [REDACTED_TOKEN] here"], [], True)
         self.assertIn("[removed]", redacted["causes"][0])
 
-    def test_a_packet_that_would_reveal_its_source_is_refused(self):
+    def test_source_revealing_words_are_neutrally_removed_before_the_packet(self):
         for leak in ("Investigation found e3 supports it", "The rules_only planner chose this", "weak hypothesis", "completed in 12 seconds", "baseline answer", "Groq said so"):
             item = sample_item(1, candidate={"causes": [leak], "evidence": ["x"], "escalate": False})
-            with self.assertRaises(review_layout.LayoutError, msg=leak):
-                review_layout.build_packets([item], seed=1)
+            packets, _ = review_layout.build_packets([item], seed=1)
+            self.assertEqual(review_layout.forbidden_cues(json.dumps(packets)), [], leak)
 
     def test_judgements_are_unblinded_only_when_complete(self):
         packets, key = review_layout.build_packets([sample_item(i) for i in range(3)], seed=2)

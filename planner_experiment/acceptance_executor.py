@@ -203,14 +203,31 @@ def build_live(held_out: List[Dict[str, Any]], fingerprint: Optional[Callable[[]
 
 
 def live_scope(filt: "batch_runner.HeldOutFilter"):
-    """Patch every place the deterministic pipeline reads incidents from (the retrieval engine's functions, and the copy of `retrieve_incidents` that app.py imported at load) for the block."""
+    """Make an evaluation run read-only and apply held-out filtering.
+
+    Besides patching every deterministic retrieval entry point, suppress outcome
+    learning and on-demand playbook generation. Existing cached playbooks may be
+    read, but a cache miss returns no playbook; it must never call a model or
+    mutate PostgreSQL/JSON while a calibration or acceptance corpus is running.
+    """
     import contextlib
+    from unittest import mock
     import app
+    import long_term_memory
+    import resolution_outcome
     import retrieval_engine
+    from agents import playbook_agent
+
+    def cached_playbook_only(classification: str, *args, **kwargs):
+        return playbook_agent.get_cached_playbook(classification) or []
 
     @contextlib.contextmanager
     def scope():
-        with batch_runner.held_out_retrieval(filt, retrieval_engine):
-            with batch_runner.held_out_retrieval(filt, app, names=("retrieve_incidents",)):
-                yield
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(batch_runner.held_out_retrieval(filt, retrieval_engine))
+            stack.enter_context(batch_runner.held_out_retrieval(filt, app, names=("retrieve_incidents",)))
+            stack.enter_context(mock.patch.object(long_term_memory, "record_outcome", autospec=True))
+            stack.enter_context(mock.patch.object(resolution_outcome, "record_outcome", autospec=True))
+            stack.enter_context(mock.patch.object(playbook_agent, "generate_playbook", side_effect=cached_playbook_only))
+            yield
     return scope()
