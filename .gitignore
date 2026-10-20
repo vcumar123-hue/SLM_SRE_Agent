@@ -89,3 +89,6 @@ data/planner_dev/
 
 # ── R2-3 acceptance package: private until the freeze record exists (design 13.1); only hashes are committed ──
 data/acceptance_private/
+
+# R2-3 calibration sheets contain ticket text and reviewer labels; never commit them
+data/calibration_materials/
