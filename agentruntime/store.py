@@ -39,9 +39,18 @@ CREATE TABLE IF NOT EXISTS agent_run_events (
   PRIMARY KEY (tenant_id, run_id, step, kind),
   FOREIGN KEY (tenant_id, run_id) REFERENCES agent_runs (tenant_id, run_id) ON DELETE CASCADE);
 CREATE INDEX IF NOT EXISTS idx_agent_runs_expiry ON agent_runs (expires_at);
+CREATE INDEX IF NOT EXISTS idx_agent_runs_request ON agent_runs (tenant_id, request_id);
 """
 
 SUMMARY_STEP = -1    # the event that carries hypotheses, analysis and flags
+
+# Bounds for the operator-visible summary (`summarize_run`): a sanitised, size-capped view, never the raw record.
+SUMMARY_MAX_STEPS = 20
+SUMMARY_MAX_HYPOTHESES = 5
+SUMMARY_MAX_FLAGS = 10
+SUMMARY_MAX_REASON_CHARS = 300
+SUMMARY_MAX_CAUSE_CHARS = 200
+SUMMARY_COUNTER_KEYS = ("steps", "tool_calls", "model_calls", "tokens", "no_progress", "invalid_actions", "tool_failures", "skipped_duplicates", "elapsed_s")
 
 
 class StoreError(Exception):
@@ -183,6 +192,21 @@ class RunStore:
             analysis=summary.get("analysis"), evidence_grounding=summary.get("evidence_grounding"),
             counters=counters or {}, versions=versions or {}, mode=mode, flags=summary.get("flags", []))
 
+    def load_run_by_request(self, tenant_id: str, request_id: str) -> Optional[AgentRunResult]:
+        """The newest run of THIS tenant's stored under this analysis `request_id` (the value `agentruntime.integration.hook` persists
+        alongside every run it stores), or None when none is stored yet — a background shadow run may still be queued or running, or
+        none may ever have been queued. Tenant-scoped like every read here: a request id from another tenant can never match, because
+        the WHERE clause binds both tenant_id and request_id as parameters."""
+        if not tenant_id or not request_id:
+            raise StoreError("a tenant and a request id are required to look up a run")
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("SELECT run_id FROM agent_runs WHERE tenant_id = %s AND request_id = %s ORDER BY created_at DESC LIMIT 1",
+                        (tenant_id, request_id))
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return self.load_run(tenant_id, row[0])
+
     # -- retention and deletion ---------------------------------------------------------------------------------------------
 
     def purge_expired(self, now: Optional[datetime] = None) -> int:
@@ -201,3 +225,42 @@ class RunStore:
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM agent_runs WHERE tenant_id = %s", (tenant_id,))
             return int(cur.fetchone()[0])
+
+
+# -- operator-visible summary ------------------------------------------------------------------------------------------------
+
+def summarize_run(run: AgentRunResult) -> Dict[str, Any]:
+    """A bounded, sanitised view of a decrypted `AgentRunResult`, for the Incident Console (design: operator-visible shadow inspection).
+
+    Pure (no I/O): decryption already happened inside `RunStore.load_run`/`load_run_by_request`; this only shapes what is already in
+    memory. It never returns encryption metadata, ticket text, tool inputs, raw tool output, or an unbounded amount of evidence: steps,
+    hypotheses and flags are each capped in count, and every free-text field is capped in length. The caller decides what else (state,
+    response_applied, response_impact) to add; this function speaks only to what the stored run itself says.
+    """
+    from agentruntime.release import RELEASE_PLANNER            # every run the integration stores was built by this planner (lazy import: no cycle, avoids importing release at module load)
+
+    counters_in = run.counters or {}
+    counters = {k: counters_in[k] for k in SUMMARY_COUNTER_KEYS if k in counters_in}
+    duration_ms = int(round(float(counters_in.get("elapsed_s") or 0.0) * 1000))
+
+    tools = []
+    for step in run.steps:
+        if step.kind != "tool" or step.skipped:
+            continue
+        tools.append({"step": step.n, "name": str(step.tool or ""), "ok": step.error is None, "evidence_added": len(step.evidence_added or []),
+                      "duration_ms": int(step.duration_ms or 0)})
+        if len(tools) >= SUMMARY_MAX_STEPS:
+            break
+
+    hypotheses = []
+    for h in run.hypotheses[:SUMMARY_MAX_HYPOTHESES]:
+        hypotheses.append({"cause": sanitize_text(h.cause, SUMMARY_MAX_CAUSE_CHARS)[0], "status": h.status, "verified": bool(h.verified),
+                           "evidence_count": len(h.evidence or [])})
+
+    versions = run.versions or {}
+    return {
+        "run_id": run.run_id, "mode": run.mode, "status": run.status, "reason": sanitize_text(run.reason, SUMMARY_MAX_REASON_CHARS)[0],
+        "duration_ms": duration_ms, "planner": RELEASE_PLANNER, "ruleset": str(versions.get("ruleset") or ""), "model": versions.get("model"),
+        "tool_versions": dict(versions.get("tools") or {}), "counters": counters, "hypotheses": hypotheses, "tools": tools,
+        "tool_count": len(tools), "evidence_count": len(run.evidence), "flags": [sanitize_text(f, 80)[0] for f in (run.flags or [])][:SUMMARY_MAX_FLAGS],
+    }

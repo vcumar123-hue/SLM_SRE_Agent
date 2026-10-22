@@ -6,6 +6,7 @@ These tests need a PostgreSQL reachable through the usual PG* variables and run 
 
     AIOPS_TEST_AGENT_PG=1 python -m unittest tests.test_agentruntime_store -v
 """
+import json
 import os
 import unittest
 import uuid
@@ -212,6 +213,122 @@ class SharedStoreTests(StoreBase):
         self.store.save_run(result)
         with self.assertRaises(Exception):
             self.store.save_run(result)
+
+
+class RequestLookupTests(StoreBase):
+    """`load_run_by_request` (design: operator-visible shadow inspection, section 22.6): the Incident Console's correlation path from
+    an /analyze response's own request_id back to the stored run, tenant-scoped like every other read here."""
+
+    def test_lookup_succeeds_for_the_correct_tenant_and_request(self):
+        t = self.tenant()
+        _r, _c, result = make_run(t)
+        self.store.save_run(result, ticket_ref="INC1", request_id="req-abc")
+        found = self.store.load_run_by_request(t, "req-abc")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.run_id, result.run_id)
+        self.assertEqual(found.status, "supported")
+
+    def test_another_tenant_cannot_retrieve_the_run(self):
+        a, b = self.tenant(), self.tenant()
+        _r, _c, result = make_run(a)
+        self.store.save_run(result, request_id="req-shared-name")
+        self.assertIsNotNone(self.store.load_run_by_request(a, "req-shared-name"))
+        self.assertIsNone(self.store.load_run_by_request(b, "req-shared-name"))
+
+    def test_an_unknown_request_id_is_none_not_an_error(self):
+        t = self.tenant()
+        self.assertIsNone(self.store.load_run_by_request(t, "never-stored"))
+
+    def test_missing_identifiers_are_refused(self):
+        t = self.tenant()
+        with self.assertRaises(StoreError):
+            self.store.load_run_by_request("", "req-1")
+        with self.assertRaises(StoreError):
+            self.store.load_run_by_request(t, "")
+        with self.assertRaises(StoreError):
+            self.store.load_run_by_request("", "")
+
+    def test_multiple_runs_under_the_same_request_id_return_the_newest(self):
+        t = self.tenant()
+        _r, _c, older = make_run(t, run_id="run-older")
+        _r, _c, newer = make_run(t, run_id="run-newer")
+        self.store.save_run(older, request_id="req-rerun")
+        self.store.save_run(newer, request_id="req-rerun")
+        with self.store._connect() as conn, conn.cursor() as cur:
+            cur.execute("UPDATE agent_runs SET created_at = created_at - interval '1 minute' WHERE tenant_id = %s AND run_id = %s", (t, "run-older"))
+        found = self.store.load_run_by_request(t, "req-rerun")
+        self.assertEqual(found.run_id, "run-newer")
+
+    def test_the_request_id_column_is_plaintext_but_the_run_is_still_decrypted_only_through_the_store(self):
+        t = self.tenant()
+        _r, _c, result = make_run(t, marker=SECRET_EXCERPT)
+        self.store.save_run(result, request_id="req-plain-lookup")
+        row = self.raw("SELECT request_id FROM agent_runs WHERE tenant_id = %s", (t,))[0][0]
+        self.assertEqual(row, "req-plain-lookup")                           # the lookup key itself is never secret
+        evidence_text = " ".join(str(r) for r in self.raw("SELECT item::text FROM agent_evidence WHERE tenant_id = %s", (t,)))
+        self.assertNotIn("UNIQUE-EVIDENCE-MARKER", evidence_text)           # but the run content stored alongside it still is
+        found = self.store.load_run_by_request(t, "req-plain-lookup")
+        self.assertIn("UNIQUE-EVIDENCE-MARKER", found.evidence[0].excerpt)  # decrypted only by going through the store
+
+
+class SummarizeRunTests(unittest.TestCase):
+    """`summarize_run` is pure: no I/O, callable without a database. Bounds every free-text and list field."""
+
+    def result(self, **over):
+        from agentruntime.contracts import AgentRunResult, AgentStep, EvidenceItem, Hypothesis
+        from datetime import datetime, timezone
+        steps = over.pop("steps", [
+            AgentStep(n=1, kind="tool", tool="ticket_history_lookup", result_summary="0 evidence item(s)", evidence_added=[], duration_ms=30),
+            AgentStep(n=2, kind="tool", tool="incident_kb_search", result_summary="1 evidence item(s)", evidence_added=["e1"], duration_ms=90),
+        ])
+        hyps = over.pop("hypotheses", [Hypothesis(cause="disk full on the data volume", status="supported", evidence=["e1"], verified=True)])
+        evidence = over.pop("evidence", [EvidenceItem(evidence_id="e1", run_id="r1", tenant_id="t1", tool="incident_kb_search", tool_version="1",
+                                                      source_type="incident", source_id="inc-1", provenance="tenant_data", retrieved_at=datetime.now(timezone.utc),
+                                                      sanitization="clean", relevance=0.8, excerpt="file system full", content_hash="h")])
+        base = dict(run_id="r1", tenant_id="t1", status="supported", reason="a verified hypothesis is supported by evidence", hypotheses=hyps,
+                    evidence=evidence, steps=steps, counters={"steps": 2, "tool_calls": 2, "model_calls": 0, "elapsed_s": 0.121, "secret_internal_counter": 999},
+                    versions={"ruleset": "rules-1", "model": None, "tools": {"incident_kb_search": "1"}, "policy_hash": "abc123"}, mode="shadow", flags=[])
+        base.update(over)
+        return AgentRunResult(**base)
+
+    def test_the_summary_has_no_encryption_metadata_ticket_text_or_the_full_counters_dict(self):
+        from agentruntime.store import summarize_run
+        summary = summarize_run(self.result())
+        blob = json.dumps(summary)
+        self.assertNotIn("encryption", summary)
+        self.assertNotIn("policy_hash", blob)
+        self.assertNotIn("secret_internal_counter", blob)
+        self.assertEqual(summary["counters"], {"steps": 2, "tool_calls": 2, "model_calls": 0, "elapsed_s": 0.121})
+
+    def test_tool_steps_carry_only_name_and_counts_never_inputs_or_raw_output(self):
+        from agentruntime.store import summarize_run
+        summary = summarize_run(self.result())
+        self.assertEqual(summary["tool_count"], 2)
+        self.assertEqual([t["name"] for t in summary["tools"]], ["ticket_history_lookup", "incident_kb_search"])
+        for t in summary["tools"]:
+            self.assertEqual(set(t), {"step", "name", "ok", "evidence_added", "duration_ms"})
+
+    def test_hypotheses_and_reason_are_length_bounded(self):
+        from agentruntime.store import summarize_run, SUMMARY_MAX_CAUSE_CHARS, SUMMARY_MAX_REASON_CHARS, SUMMARY_MAX_HYPOTHESES
+        from agentruntime.contracts import Hypothesis
+        long_cause = "x" * 5000
+        many = [Hypothesis(cause=f"cause {i}", status="weak", evidence=[]) for i in range(20)]
+        many[0] = Hypothesis(cause=long_cause, status="weak", evidence=[])
+        summary = summarize_run(self.result(hypotheses=many, reason="y" * 5000))
+        self.assertLessEqual(len(summary["hypotheses"]), SUMMARY_MAX_HYPOTHESES)
+        self.assertLessEqual(len(summary["hypotheses"][0]["cause"]), SUMMARY_MAX_CAUSE_CHARS)
+        self.assertLessEqual(len(summary["reason"]), SUMMARY_MAX_REASON_CHARS)
+
+    def test_evidence_count_is_a_count_only(self):
+        from agentruntime.store import summarize_run
+        summary = summarize_run(self.result())
+        self.assertEqual(summary["evidence_count"], 1)
+        self.assertNotIn("file system full", json.dumps(summary))           # the excerpt itself is never in the summary
+
+    def test_planner_is_the_frozen_release_planner(self):
+        from agentruntime.store import summarize_run
+        from agentruntime.release import RELEASE_PLANNER
+        self.assertEqual(summarize_run(self.result())["planner"], RELEASE_PLANNER)
 
 
 class PlaintextWaiverTests(StoreBase):

@@ -1474,3 +1474,53 @@ and no label exists; then hashes the gates and rubric (design 13.1-13.8), draw s
 `review_layout.py` (identical anonymised layout, seeded random order per ticket, a cue guard that refuses a packet revealing its source, key kept apart, blinding-check accuracy at most 60%), `batch_runner.py` (held-out items removed at the tools and at the deterministic retrieval, failing closed;
 sequential batch mode; infrastructure-only re-run at most twice, logged, more than 5% a deviation) and `acceptance_run.py` (`run_once`: freeze must verify, adjudicated labels complete first and the adjudicator rules only on disagreements, atomic claim kept whatever happens, output hashed).
 **Amendment A-1 status:** the owner's earlier "Yes" was withdrawn at the reviewer's finding and is not standing; A-1's approver rule was relaxed to the reviewer's 2026-10-18 arrangement (the approver may be the adjudicator and the custodian; never a labeler or the author), so it needs the owner's single restated approval.
+
+### 22.6 Operator-visible shadow inspection (2026-10-22)
+
+A background `shadow` run has always been stored (section 22.2) but was invisible to an operator working the Incident Console. This adds a read-only path from the console back to that stored run, correlated by the same `request_id` the `/analyze` response already
+carries, with no new write path and no change to the investigation loop itself: it runs whether or not anyone ever looks.
+
+**Storage (`agentruntime/store.py`).** `RunStore.load_run_by_request(tenant_id, request_id)`: `SELECT run_id ... WHERE tenant_id = %s AND request_id = %s ORDER BY created_at DESC LIMIT 1`, then the existing `load_run` (tenant-scoped, decrypts). A new index
+(`idx_agent_runs_request`) backs the query. `request_id` was already a plain (unencrypted) column that `agentruntime.integration.hook._persist` has written since section 22.1 — the lookup key itself was never secret; the run's content stored alongside it still is,
+and decryption still happens only inside `RunStore`. A module-level `summarize_run(run)` turns a decrypted `AgentRunResult` into a bounded, sanitised dict: run id, mode, status, a reason capped at 300 characters, duration (derived from `counters["elapsed_s"]`), the
+planner name (`agentruntime.release.RELEASE_PLANNER` — every stored run was built by it), ruleset and model versions, a whitelisted subset of counters, up to 5 hypotheses (cause capped at 200 characters, status, verified, an evidence *count* only) and up to 20 tool
+steps (name, ok/error, evidence-added count, duration — never the tool's input or raw output), and the evidence count. It never includes encryption metadata, `policy_hash`, ticket text or an evidence excerpt.
+
+**API (`agents/agentic_runs.py`).** One route: `GET /agentic/runs/by-request/{request_id}?tenant_id=...`. Authentication and the tenant check are the same pattern as every other read route (`security.principal_from_request`, then `principal.allows_tenant`); no
+additional role is required — any authenticated principal authorized for the tenant may read that tenant's own sanitised summary, consistent with the rest of this read-only surface. There is no "list every run" or "list a tenant's runs" endpoint: a caller must
+already hold the specific `request_id` an `/analyze` response gave it. States, always returned with HTTP 200 (so polling never has to special-case an error status):
+  * **A stored run always wins first**, regardless of the tenant's *current* mode: the store is queried before the mode is ever read. A `shadow` decision that has since ended (section 22.2's `ended` entries) does not erase what it already produced — turning
+    shadow off again must not make a completed investigation disappear from the record an operator already saw.
+  * `disabled` — no run is stored **and** the loop is currently off for this tenant.
+  * `pending` — no run is stored, but the loop is on/shadow for this tenant: a background run may still be running. Nothing distinguishes "about to finish" from "never engaged" (the engagement rule may simply not have fired); a caller polls for a bounded time
+    and then stops, which looks the same either way.
+  * `unavailable` — the lookup itself failed (database or store construction error). Caught and logged inside this route; it cannot reach or disturb `/analyze`, which never calls this endpoint and shares no mutable state with it.
+  `response_applied` is **never inferred from the run's mode**: it is `false` for every run today, because the stored record carries no field recording a reconciliation outcome. `response_impact` says why rather than claiming "none" by default: `"none_shadow"`
+  for a `shadow` run (true today — shadow never changes the response), `"not_recorded"` for an `on` run (so a future `on` run, once it exists, is never mistaken for "no impact" merely because today's code cannot yet say otherwise), `"unknown"` for any other
+  stored mode. Only once `on`-mode runs persist their own reconciliation outcome in the stored record can this honestly report `true`.
+
+**Incident Console (`ui.py`).** `get_agentic_run` makes one bounded GET through the existing authenticated `SESSION`; any exception, non-200 status or unparsable body becomes `{"state": "unavailable"}`, never an exception into the page. `agentic_panel_view` is a
+pure function (no `st.*` calls) mapping that response to display text, which is what makes it unit-testable without a live Streamlit run. `render_agentic_investigation` renders it as a panel visually distinct from the existing fallback/source banner, always
+stating "*The Agentic investigation ran independently after this response and did not modify the result*" so the fallback's wording is never mistaken for Agentic output or vice versa. Polling is non-blocking: `render_agentic_panel_section` uses `st.fragment(run_every="1s")`
+when the installed Streamlit has it, so only that small fragment reruns itself on a timer (`agentic_poll_should_continue`, capped at 20 s) without blocking or rerunning the rest of the page; on a Streamlit build without fragments it degrades to one fetch per
+full page rerun — never a synchronous `time.sleep` loop either way. The whole panel is wrapped in a `try/except` at its one call site in `render_assistant_result`, so a defect here cannot disrupt the Incident Console's primary result.
+
+**Security and safety properties carried over unchanged:** `on` remains blocked until R2-3 passes (section 21/22.1); shadow output still never changes a response; every lookup is tenant-scoped and authenticated; sensitive run content stays encrypted at rest and
+is decrypted only inside `RunStore`; only the bounded, sanitised summary above ever reaches the API or the UI.
+
+**Governance note (not fixed; recorded as a known limitation, not applied).** For `shadow` runs the `request_id` this endpoint correlates on is reliably the `/analyze` response's own `request_id` (`hook._shadow_submit` reads it from the response snapshot). For an
+`on` run, `hook.investigate_before_fallback` currently mints its **own** `uuid.uuid4().hex` rather than reusing the pipeline's already-generated `request_id`, so an `on` run's stored record would not yet correlate with its own response's `request_id`. This is
+latent and today unreachable (`on` is gate-blocked until R2-3 passes), and the fix touches `agentruntime/integration/hook.py` and `app.py::_r2_before_fallback`, both part of the frozen Release 2 core/fingerprints (section 22.1) — changing them was out of scope
+for this read-only visibility feature and was deliberately not done here, to avoid invalidating the frozen runtime (and the active live `shadow` test, section 22.2) for a path that cannot run yet. It should be fixed before `on` is ever exercised.
+
+**Freeze impact (reported, not corrected here — owner decision).** `agentruntime/store.py` is part of the frozen Release 2 core (`agentruntime.release.CORE_FILES`); adding `load_run_by_request` and `summarize_run` to it changes its hash, so
+`agentruntime.release.verify()`/`problems()` now report `"agentruntime/store.py: changed"`, and the integration gate (`agentruntime.integration.gate.freeze_problems`) will therefore resolve the loop to `off` for every tenant — including the active `client_c`
+live-shadow test (section 22.2's `R2-AGENTIC-LIVE-SHADOW-2026-10-22` decision) — until the owner re-freezes (`agentruntime.release.refreeze(reason, approved_by)`) and restates approval in their own words (`agentruntime.release.confirm_approval`). Neither was
+done as part of this change: per the standing rule of this project (sections 21-22.3), an approval is never inferred, and a re-freeze is the owner's own ritual to invoke. `agents/agentic_runs.py` is new and not part of any frozen file set; the router-registration
+lines added to `app.py` touch neither the `_r2_before_fallback` function nor any line containing `_r2_`, so they do not themselves move the freeze (confirmed: `agentruntime.release.verify()` before this change reported `agentruntime/store.py: changed` and nothing
+else after it — `app.py` and the new module contributed no additional difference).
+
+**Tests:** `tests/test_agentruntime_store.py` (+16: tenant-scoped lookup, newest-of-several, missing identifiers refused, the lookup key is plaintext while the run content stays encrypted, and `summarize_run`'s bounds, all 10 PostgreSQL-dependent ones re-run live
+and green); `tests/test_agentic_runs_api.py` (20: authentication, tenant authorization with no extra role required, malformed identifiers, every state including a completed run surviving the tenant going back to `off`, `response_applied`/`response_impact` never
+inferred from mode, sanitisation, and that the store is queried with exactly the requested identifiers); `tests/test_agentic_incident_console.py` (24, needs an interpreter with Streamlit: pure-function panel-view and poll-stop tests, plus a Streamlit `AppTest`
+layer confirming the real rendered text for each state and that the polling fragment genuinely stops calling the backend once a run is no longer pending, not merely that the predicate says it should).

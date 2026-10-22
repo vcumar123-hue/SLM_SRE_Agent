@@ -5,6 +5,7 @@ import os
 import re
 import uuid
 import random
+import time
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -1885,6 +1886,178 @@ def render_status_banners(result: dict):
         st.info("This incident is flagged for escalation or manual review.")
 
 
+# ── Release 2: operator-visible Agentic investigation panel ──────────────────────────────────────────────────────────────────────
+# The /analyze response above is already final and unaffected by any of this (off by default; shadow never changes it; on is
+# blocked until R2-3 passes, see docs/RELEASE_2_DESIGN.md section 22.6). This section only asks, separately, whether an
+# investigation ran in the background for this same request and shows what it found. It never blocks the page: a single failed
+# or slow lookup degrades to "unavailable", not an error, and polling for a pending run happens on a timer, not a sleep loop.
+
+AGENTIC_POLL_INTERVAL_S = 1.0
+AGENTIC_POLL_TIMEOUT_S = 20.0
+
+
+def get_agentic_run(tenant_id: str, request_id: str) -> dict:
+    """One GET to the Agentic-run endpoint. Never raises and never blocks the console: any failure, timeout or non-200 response is
+    reported as {"state": "unavailable"} rather than propagated."""
+    tenant_id = str(tenant_id or "").strip()
+    request_id = str(request_id or "").strip()
+    if not tenant_id or not request_id:
+        return {"state": "unavailable"}
+    try:
+        response = SESSION.get(f"{BACKEND_URL}/agentic/runs/by-request/{quote(request_id, safe='')}", params={"tenant_id": tenant_id},
+                               timeout=REQUEST_TIMEOUT_SHORT)
+    except Exception:
+        return {"state": "unavailable"}
+    if response.status_code != 200:
+        return {"state": "unavailable"}
+    try:
+        data = response.json()
+    except Exception:
+        return {"state": "unavailable"}
+    return data if isinstance(data, dict) else {"state": "unavailable"}
+
+
+def agentic_poll_should_continue(poll_state: dict, now: float) -> bool:
+    """Pure decision, no I/O: keep polling only while the last known state is 'pending' and we are still inside the timeout window.
+    Used both by the live fragment and by tests, so the stop condition is checked exactly the same way everywhere."""
+    if not isinstance(poll_state, dict) or poll_state.get("state") != "pending":
+        return False
+    started = poll_state.get("started_at")
+    if not isinstance(started, (int, float)):
+        return True
+    return (now - started) < AGENTIC_POLL_TIMEOUT_S
+
+
+_AGENTIC_STATUS_TEXT = {
+    "supported": "Supported — a cited cause is backed by evidence.",
+    "escalated_insufficient": "Escalated — insufficient evidence.",
+    "escalated_conflict": "Escalated — conflicting evidence.",
+}
+_AGENTIC_IMPACT_TEXT = {
+    "none_shadow": "None — shadow evaluation only. This did not change the response above.",
+    "not_recorded": "Not recorded for this run.",
+    "unknown": "Not recorded for this run.",
+}
+
+
+def agentic_panel_view(run: Any) -> dict:
+    """Pure: the API's response dict -> exactly what the panel should say, with no Streamlit calls. Keeping this separate from
+    rendering is what makes it unit-testable without a Streamlit interpreter (see tests/test_agentic_incident_console.py)."""
+    run = run if isinstance(run, dict) else {}
+    state = run.get("state")
+    if state == "disabled":
+        return {"state": "disabled", "visible": True, "headline": "Agentic investigation not enabled."}
+    if state == "pending":
+        return {"state": "pending", "visible": True, "headline": "Agentic investigation running…", "mode": run.get("mode", "shadow")}
+    if state != "complete":
+        return {"state": "unavailable", "visible": False, "headline": None}
+
+    status = str(run.get("status") or "")
+    hypotheses = [h for h in (run.get("hypotheses") or []) if isinstance(h, dict)]
+    supported = [h for h in hypotheses if h.get("status") == "supported" and h.get("verified")]
+    return {
+        "state": "complete", "visible": True, "headline": "Agentic Investigation",
+        "mode": str(run.get("mode") or "shadow"),
+        "status": status,
+        "status_text": _AGENTIC_STATUS_TEXT.get(status, f"Finished ({status or 'unknown'})."),
+        "reason": str(run.get("reason") or ""),
+        "cause": supported[0]["cause"] if supported else None,
+        "hypotheses": hypotheses,
+        "planner": str(run.get("planner") or "rules_only"),
+        "ruleset": str(run.get("ruleset") or ""),
+        "tool_count": int(run.get("tool_count") or 0),
+        "evidence_count": int(run.get("evidence_count") or 0),
+        "duration_ms": int(run.get("duration_ms") or 0),
+        "tools": [t for t in (run.get("tools") or []) if isinstance(t, dict)],
+        "flags": [f for f in (run.get("flags") or []) if isinstance(f, str)],
+        "response_applied": bool(run.get("response_applied", False)),
+        "impact_text": _AGENTIC_IMPACT_TEXT.get(str(run.get("response_impact") or ""), _AGENTIC_IMPACT_TEXT["unknown"]),
+        "independent_note": "The Agentic investigation ran independently after this response and did not modify the result.",
+    }
+
+
+def render_agentic_investigation(run: Any) -> None:
+    """Renders `agentic_panel_view(run)`. Visually separate from the fallback/source banner above, with its own explicit statement
+    that it ran independently, so an operator never mistakes the fallback's wording for Agentic output or vice versa."""
+    view = agentic_panel_view(run)
+    if not view.get("visible"):
+        return
+    if view["state"] in ("disabled", "pending"):
+        st.caption(f"🧭 {view['headline']}")
+        return
+
+    icon = "✅" if view["response_applied"] else "🧭"
+    with st.container():
+        st.markdown(
+            f'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid #7c3aed;border-radius:6px;'
+            f'padding:10px 14px;margin:8px 0;">'
+            f'<div style="font-size:0.78rem;font-weight:700;color:#5b21b6;margin-bottom:6px;">{icon} AGENTIC INVESTIGATION'
+            f'&nbsp;&nbsp;<span style="background:#7c3aed;color:#fff;padding:1px 7px;border-radius:4px;font-weight:600;">'
+            f'{view["mode"].upper()}</span></div>'
+            f'<div style="font-size:0.82rem;color:#3730a3;margin-bottom:4px;">{view["status_text"]}</div>'
+            + (f'<div style="font-size:0.8rem;color:#475569;margin-bottom:4px;"><strong>Cause:</strong> {html.escape(view["cause"])}</div>' if view["cause"] else "")
+            + f'<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.76rem;color:#475569;margin-bottom:4px;">'
+              f'<span><strong>Planner:</strong> {view["planner"]} / {view["ruleset"] or "—"}</span>'
+              f'<span><strong>Tools executed:</strong> {view["tool_count"]}</span>'
+              f'<span><strong>Evidence collected:</strong> {view["evidence_count"]}</span>'
+              f'<span><strong>Duration:</strong> {view["duration_ms"]} ms</span></div>'
+            f'<div style="font-size:0.76rem;color:#047857;"><strong>Response impact:</strong> {view["impact_text"]}</div>'
+            f'<div style="font-size:0.72rem;color:#64748b;margin-top:4px;font-style:italic;">{view["independent_note"]}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if view["tools"] or view["hypotheses"]:
+            with st.expander("Agentic trace", expanded=False):
+                for t in view["tools"]:
+                    mark = "✅" if t.get("ok", True) else "⚠️"
+                    st.caption(f"{mark} Step {t.get('step')}: `{t.get('name')}` — evidence added {t.get('evidence_added', 0)}, {t.get('duration_ms', 0)} ms")
+                for h in view["hypotheses"]:
+                    badge = "✔️ supported" if h.get("status") == "supported" and h.get("verified") else f"status: {h.get('status', 'weak')}"
+                    st.caption(f"Hypothesis ({badge}): {h.get('cause', '')}")
+                if view["status"] in ("escalated_insufficient", "escalated_conflict") and view["reason"]:
+                    st.caption(f"Escalation reason: {view['reason']}")
+                for f in view["flags"]:
+                    st.caption(f"⚑ {f}")
+
+
+def _agentic_session_key(tenant_id: str, request_id: str) -> str:
+    return f"_agentic_poll::{tenant_id}::{request_id}"
+
+
+def _agentic_tick(tenant_id: str, request_id: str, key: str) -> None:
+    poll = st.session_state.get(key) or {"state": "pending", "started_at": time.monotonic(), "run": None}
+    if agentic_poll_should_continue(poll, time.monotonic()):
+        run = get_agentic_run(tenant_id, request_id)
+        poll = {**poll, "run": run, "state": run.get("state", "unavailable")}
+        st.session_state[key] = poll
+    render_agentic_investigation(poll.get("run"))
+
+
+def render_agentic_panel_section(tenant_id: str, request_id: str) -> None:
+    """Call once per rendered analysis result. Renders nothing for a request with no id. Otherwise starts (or continues) a
+    non-blocking poll: on a Streamlit build with fragments, a small fragment reruns itself on a timer (`run_every`) without
+    rerunning or blocking the rest of the page; on an older build it degrades to one fetch per full-page rerun — never a
+    synchronous sleep loop either way, so the console stays usable while a shadow run is still in flight."""
+    tenant_id = str(tenant_id or "").strip()
+    request_id = str(request_id or "").strip()
+    if not request_id or not tenant_id:
+        return
+    key = _agentic_session_key(tenant_id, request_id)
+    if key not in st.session_state:
+        st.session_state[key] = {"state": "pending", "started_at": time.monotonic(), "run": None}
+
+    fragment_decorator = getattr(st, "fragment", None)
+    if fragment_decorator is None:
+        _agentic_tick(tenant_id, request_id, key)
+        return
+    try:
+        fragment = fragment_decorator(run_every=f"{AGENTIC_POLL_INTERVAL_S}s")(lambda: _agentic_tick(tenant_id, request_id, key))
+    except Exception:
+        _agentic_tick(tenant_id, request_id, key)
+        return
+    fragment()
+
+
 def render_agent_timeline(result: dict) -> None:
     """Render the agent reasoning timeline when the agentic orchestrator was used.
     Silent no-op when trace_spans are absent (legacy pipeline path).
@@ -3597,6 +3770,11 @@ def render_assistant_result(result: dict, ticket: str, key_suffix: str):
         _banner_mapping = None
     render_incident_action_banner(result, approved_mapping=_banner_mapping)
     render_status_banners(result)
+    try:
+        _agentic_tenant_id = (result.get("tenant_config") or {}).get("tenant_id") or st.session_state.get("tenant_id", DEFAULT_UI_TENANT)
+        render_agentic_panel_section(_agentic_tenant_id, str(result.get("request_id") or ""))
+    except Exception:
+        pass  # the Agentic panel is informational only; it must never disrupt the Incident Console result
     st.markdown("---")
     render_action_panels(result)
     _intel_cls = (result.get("analysis") or {}).get("classification", "")

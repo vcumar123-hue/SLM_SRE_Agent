@@ -265,10 +265,12 @@ from agents.analyze    import router as analyze_router
 from agents.telemetry  import router as telemetry_router
 from agents.automation import router as automation_router
 from agents.evidence   import router as evidence_router
+from agents.agentic_runs import router as agentic_runs_router
 app.include_router(analyze_router)
 app.include_router(telemetry_router)
 app.include_router(automation_router)
 app.include_router(evidence_router)
+app.include_router(agentic_runs_router)
 # ── End Phase-2 agent routers ────────────────────────────────────────
 
 # Release 1 (W2): principal-based authentication and route-level roles. The caller-supplied
